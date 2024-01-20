@@ -17,8 +17,8 @@ func (self CmsAccountLogic) Login(param *models.LoginParam) (string, string, err
 		return "用户名或密码不能为空", "", nil
 	}
 
-	if param.Role != "cms" {
-		return "", "无效角色", nil
+	if param.Role != 0 {
+		return "", "用户不是管理员", nil
 	}
 
 	tx := MasterDB.NewSession()
@@ -56,8 +56,8 @@ func (self CmsAccountLogic) Register(param *models.RegisterParam) (string, error
 		return "密码两次输入不一致", nil
 	}
 
-	if param.Role != "cms" {
-		return "无效角色", nil
+	if param.Role != 0 {
+		return "用户不为管理员", nil
 	}
 
 	newAccount := models.NewAccount{

@@ -10,6 +10,8 @@ import (
 
 type AccountController struct{}
 
+// 有想法改为学生和老师用一套登陆注册
+// 就是分为普通用户和管理员
 // RegisterRoutes
 func (self AccountController) RegisterRoutes(g *gin.RouterGroup) {
 	g.POST("/login", self.Login)                // 学生用户登录

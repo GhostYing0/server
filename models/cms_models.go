@@ -3,14 +3,14 @@ package models
 type LoginParam struct {
 	Username string `json:"username" xorm:"username"`
 	Password string `json:"password" xorm:"password"`
-	Role     string `json:"role" xorm:"role"`
+	Role     int    `json:"role" xorm:"role"`
 }
 
 type RegisterParam struct {
 	Username        string `json:"username" xorm:"username"`
 	Password        string `json:"password" xorm:"password"`
 	ConfirmPassword string `json:"confirm_password"`
-	Role            string `json:"role" xorm:"role"`
+	Role            int    `json:"role" xorm:"role"`
 }
 
 type UpdatePasswordParam struct {

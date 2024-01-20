@@ -17,8 +17,8 @@ func (self StudnetAccountLogic) Login(param *models.LoginParam) (string, string,
 		return "用户名或密码不能为空", "", nil
 	}
 
-	if param.Role != "student" {
-		return "", "无效角色", nil
+	if param.Role != 1 {
+		return "", "用户不是学生", nil
 	}
 
 	tx := MasterDB.NewSession()
@@ -52,8 +52,8 @@ func (self StudnetAccountLogic) Register(param *models.RegisterParam) (string, e
 		return "密码两次输入不一致", nil
 	}
 
-	if param.Role != "student" && param.Role != "teacher" {
-		return "无效角色", nil
+	if param.Role != 1 && param.Role != 2 {
+		return "用户不是学生或老师", nil
 	}
 
 	newAccount := models.NewAccount{
