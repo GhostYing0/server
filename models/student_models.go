@@ -1,32 +1,57 @@
 package models
 
-import "time"
-
 type StudentEntryParam struct {
-	ContestantID int `json:"contestant_id" xorm:"contestant_id"`
-	ContestID    int `json:"contest_id" xorm:"contest_id"`
+	ContestantID int64 `json:"contestant_id" xorm:"contestant_id"`
+	ContestID    int64 `json:"contest_id" xorm:"contest_id"`
 }
 
+// 竞赛报名信息结构体
 type ContestantInfo struct {
-	ID           int       `xorm:"id"`
-	ContestantID int       `xorm:"contestant_id"`
-	ContestID    int       `xorm:"contest_id"`
-	EntryTime    time.Time `xorm:"entry_time"`
-	Deleted      time.Time `xorm:"deleted"`
+	ID           int64     `json:"id" xorm:"id"`
+	ContestantID int64     `json:"contestant_id" xorm:"contestant_id"`
+	ContestID    int64     `json:"contest_id" xorm:"contest_id"`
+	EntryTime    OftenTime `json:"entry_time" xorm:"entry_time"`
+	Deleted      OftenTime `xorm:"deleted"`
 }
 
+// 查询竞赛信息结构体
 type ContestGrade struct {
-	ID           int       `xorm:"id"`
-	ContestantID int       `xorm:"contestant_id"`
-	ContestID    int       `xorm:"contest_id"`
-	EntryTime    time.Time `xorm:"entry_time"`
+	ID           int64     `xorm:"id"`
+	ContestantID int64     `xorm:"contestant_id"`
+	ContestID    int64     `xorm:"contest_id"`
+	EntryTime    OftenTime `xorm:"entry_time"`
 	Awards       string    `xorm:"awards"`
-	Deleted      time.Time `xorm:"deleted"`
+	Deleted      OftenTime `xorm:"deleted"`
 }
 
+// 显示竞赛信息结构体
 type RegistrationInfo ContestGrade
+
+type RegistrationDeleteId struct {
+	ID []int64 `json:"id_number"`
+}
 
 type EntryContestParam struct {
 	Contestant string `json:"contestant"`
 	Contest    string `json:"contest"`
+}
+
+func (*StudentEntryParam) TableName() string {
+	return "registration"
+}
+
+func (*ContestantInfo) TableName() string {
+	return "registration"
+}
+
+func (*ContestGrade) TableName() string {
+	return "registration"
+}
+
+func (*RegistrationInfo) TableName() string {
+	return "registration"
+}
+
+func (*EntryContestParam) TableName() string {
+	return "registration"
 }

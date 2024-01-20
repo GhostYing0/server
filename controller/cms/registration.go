@@ -7,6 +7,7 @@ import (
 	logic "server/logic/cms"
 	"server/models"
 	"server/utils/app"
+	"strconv"
 )
 
 type RegistrationController struct{}
@@ -80,12 +81,43 @@ func (RegistrationController) AddRegistration(c *gin.Context) {
 
 // UpdateRegisteredContestByUser
 func (RegistrationController) UpdateRegistration(c *gin.Context) {
+	appG := app.Gin{C: c}
+	var Param models.ContestantInfo
+	var err error
 
+	err = c.ShouldBindJSON(&Param)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultRegistrationContest.UpdateRegistration(&Param)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSuc("操作成功")
 }
 
 // DeleteRegisteredContestByUser
 func (RegistrationController) DeleteRegistration(c *gin.Context) {
+	appG := app.Gin{C: c}
+	var err error
+	var count int64
 
+	request := models.RegistrationDeleteId{}
+	err = c.ShouldBindJSON(&request)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+	}
+
+	err, count = logic.DefaultRegistrationContest.DeleteRegistration(&request.ID)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+	}
+
+	appG.ResponseSuc("删除", strconv.Itoa(int(count)), "条报名信息成功")
 }
 
 // GetGradeByUser

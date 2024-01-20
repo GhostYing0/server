@@ -10,6 +10,7 @@ import (
 	"server/database"
 	_ "server/database"
 	"server/middleware/jwt"
+	"server/utils/role"
 	"time"
 )
 
@@ -19,6 +20,8 @@ func main() {
 
 	r.Use(jwt.JwtTokenCheck())
 	fmt.Println("Server start")
+
+	role.InitRoleTable()
 
 	studentG := r.Group("api/student")
 	//studentG.Use(jwt.JwtTokenCheck())

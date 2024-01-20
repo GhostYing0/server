@@ -7,6 +7,7 @@ import (
 	"github.com/unknwon/com"
 	"net/http"
 	"server/utils/e"
+	. "server/utils/role"
 	"server/utils/util"
 	"strings"
 )
@@ -39,15 +40,13 @@ func JwtTokenCheck() gin.HandlerFunc {
 				} else if claims == nil {
 					code = e.ERROR_AUTH_TOKEN_PARSE
 					message = "Token错误"
-
-				} else if !strings.Contains(c.Request.RequestURI, "/"+claims.Role) {
+				} else if !strings.Contains(c.Request.RequestURI, "/"+RoleTable[claims.Role]) {
 					code = e.ERROR_AUTH_TOKEN_DIFF
 					message = "Token权限不通用"
 				} else {
 					userIdInt, err = com.StrTo(claims.ID).Int64()
 					if err != nil {
 						code = e.ERROR_AUTH_CHECK_TOKEN_FAIL
-						fmt.Println(err)
 						message = "解析Token失败"
 					}
 				}
