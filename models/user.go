@@ -12,6 +12,12 @@ type UserInfo struct {
 	Deleted  OftenTime `xorm:"deleted"`
 }
 
+type UserRedis struct {
+	ID       int64  `json:"id"`
+	Role     int    `json:"role"`
+	Username string `json:"username"`
+}
+
 type UpdateUserInfo UserInfo
 type DisplayUserForm UserInfo
 

@@ -15,12 +15,13 @@ func (self AccountController) RegisterRoutes(g *gin.RouterGroup) {
 	g.POST("/login", self.Login)                // 管理员登录
 	g.POST("/register", self.Register)          // 管理员注册
 	g.POST("/update_passwd", self.UpdatePasswd) // 管理员修改密码
+	g.GET("/get_info", self.GetInfo)            // 从Redis里读token
 }
 
 // Login
 func (AccountController) Login(c *gin.Context) {
 	appG := app.Gin{C: c}
-	var Param models.LoginParam
+	var Param models.LoginForm
 	var token string
 	var err error
 	var ret string
@@ -48,7 +49,7 @@ func (AccountController) Login(c *gin.Context) {
 // Register
 func (AccountController) Register(c *gin.Context) {
 	appG := app.Gin{C: c}
-	var Param models.RegisterParam
+	var Param models.RegisterForm
 	var err error
 	var ret string
 
@@ -72,7 +73,7 @@ func (AccountController) Register(c *gin.Context) {
 // UpdatePasswd
 func (AccountController) UpdatePasswd(c *gin.Context) {
 	appG := app.Gin{C: c}
-	var Param models.UpdatePasswordParam
+	var Param models.UpdatePasswordForm
 	var err error
 	var ret string
 
@@ -91,4 +92,22 @@ func (AccountController) UpdatePasswd(c *gin.Context) {
 	}
 
 	appG.ResponseSuc(ret)
+}
+
+func (AccountController) GetInfo(c *gin.Context) {
+	appG := app.Gin{C: c}
+	var err error
+	data := make(map[string]interface{})
+	token := c.Query("token")
+
+	id, username, role, err := logic.DefaultCmsAccount.GetInfo(token)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+	}
+
+	data["id"] = id
+	data["username"] = username
+	data["role"] = role
+
+	appG.ResponseSucMsg(data)
 }

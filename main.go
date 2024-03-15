@@ -2,38 +2,40 @@ package main
 
 import (
 	"fmt"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	controlleCms "server/controller/cms"
-	controlleStudent "server/controller/student"
-	controlleTeacher "server/controller/teacher"
+	controllerUser "server/controller"
+	controllerCms "server/controller/cms"
 	"server/database"
 	_ "server/database"
 	"server/middleware/jwt"
-	"server/utils/role"
+	"server/utils/gredis"
 	"time"
 )
 
-func main() {
+func init() {
 	database.Setup()
+	gredis.Setup()
+}
+
+func main() {
 	r := gin.New()
 
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://localhost:8080", "http://10.1.31.107:8080"}
+	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE"}
+	config.AllowHeaders = []string{"BackServer-token", "Content-Type"}
+
+	r.Use(cors.New(config))
 	r.Use(jwt.JwtTokenCheck())
 	fmt.Println("Server start")
 
-	role.InitRoleTable()
+	backGround := r.Group("api/")
+	controllerUser.RegisterRoutes(backGround)
 
-	studentG := r.Group("api/student")
-	//studentG.Use(jwt.JwtTokenCheck())
-	controlleStudent.RegisterRoutes(studentG)
-
-	teacherG := r.Group("api/teacher")
-	//teacherG.Use(jwt.JwtTokenCheck())
-	controlleTeacher.RegisterRoutes(teacherG)
-
-	backG := r.Group("api/cms")
-	//backG.Use(jwt.JwtTokenCheck())
-	controlleCms.RegisterRoutes(backG)
+	backCmsGround := r.Group("api/cms")
+	controllerCms.RegisterRoutes(backCmsGround)
 
 	readTimeout := time.Second * 10
 	writeTimeout := time.Second * 10
