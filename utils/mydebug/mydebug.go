@@ -18,7 +18,7 @@ func DPrintf(args ...interface{}) {
 	if DEBUG {
 		MuPrint.Lock()
 		defer MuPrint.Unlock()
-		fmt.Printf("[Debug]")
+		fmt.Printf("[Debug] ")
 		for _, arg := range args {
 			fmt.Printf("%v", arg)
 		}

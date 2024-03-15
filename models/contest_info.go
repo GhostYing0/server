@@ -31,3 +31,7 @@ type ContestDeleteId struct {
 type DisplayContestForm ContestInfo
 
 type NewContest ContestInfo
+
+func (ContestInfo) TableName() string {
+	return "contest"
+}

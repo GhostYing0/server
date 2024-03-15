@@ -9,6 +9,7 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-sql-driver/mysql v1.7.1
+	github.com/polaris1119/times v0.0.0-20160420102536-14f7f3ba487e
 	github.com/satori/go.uuid v1.2.0
 	github.com/unknwon/com v1.0.1
 	github.com/xormplus/xorm v0.0.0-20210822100304-4e1d4fcc1e67
