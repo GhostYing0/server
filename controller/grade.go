@@ -9,41 +9,37 @@ import (
 	. "server/utils/mydebug"
 )
 
-type EnrollController struct{}
+type GradeController struct{}
 
-func (self EnrollController) RegisterRoutes(g *gin.RouterGroup) {
-	g.POST("/enrollContest", self.EnrollContest)           // 报名竞赛
-	g.GET("/searchEnrollResult", self.DisplayEnrollResult) // 查看报名结果
-	g.POST("/processEnroll", self.ProcessEnroll)           // 审核竞赛
+func (self GradeController) RegisterRoutes(g *gin.RouterGroup) {
+	g.POST("/uploadGrade", self.UploadGrade)   // 报名竞赛
+	g.GET("/searchGrade", self.DisplayGrade)   // 查看报名结果
+	g.POST("/processGrade", self.ProcessGrade) // 审核竞赛
 }
 
-// EnrollContest
-// 报名竞赛
-func (EnrollController) EnrollContest(c *gin.Context) {
+func (self GradeController) UploadGrade(c *gin.Context) {
 	appG := app.Gin{C: c}
 
-	param := &models.EnrollForm{}
+	param := &models.GradeForm{}
 
 	err := c.ShouldBindJSON(param)
 	if err != nil {
-		DPrintf("EnrollContest c.ShouldBindJSON() 发生错误:", err)
-		appG.ResponseErr("报名失败", err.Error())
+		DPrintf("UploadGrade c.ShouldBindJSON() 发生错误:", err)
+		appG.ResponseErr("上传成绩失败", err.Error())
 		return
 	}
 
-	err = logic.DefaultEnrollLogic.InsertEnrollInformation(param.UserName, param.TeamID, param.ContestID, param.CreateTime, param.School, param.Phone, param.Email)
+	err = logic.DefaultGradeLogic.InsertGradeInformation(param.Username, param.Contest, param.Grade, param.Certificate, param.CreateTime)
 	if err != nil {
 		DPrintf("EnrollContest logic.DefaultEnrollLogic.InsertEnrollInformation() 发生错误:", err)
-		appG.ResponseErr("报名失败", err.Error())
+		appG.ResponseErr("上传成绩失败", err.Error())
 		return
 	}
 
-	appG.ResponseSuc("报名成功")
+	appG.ResponseSuc("上传成功")
 }
 
-// SearchEnrollResult
-// 查看报名结果
-func (EnrollController) DisplayEnrollResult(c *gin.Context) {
+func (self GradeController) DisplayGrade(c *gin.Context) {
 	appG := app.Gin{C: c}
 
 	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
@@ -54,9 +50,6 @@ func (EnrollController) DisplayEnrollResult(c *gin.Context) {
 	contest := c.DefaultQuery("contest", "")
 	startTime := c.DefaultQuery("startTime", "")
 	endTime := c.DefaultQuery("endTime", "")
-	school := c.DefaultQuery("school", "")
-	phone := c.DefaultQuery("phone", "")
-	email := c.DefaultQuery("email", "")
 	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
 
 	if limit < 1 || curPage < 1 {
@@ -80,10 +73,10 @@ func (EnrollController) DisplayEnrollResult(c *gin.Context) {
 		return
 	}
 
-	list, total, err := logic.DefaultEnrollLogic.Search(paginator, username, userID, contest, startTime, endTime, school, phone, email, state, user_id.(int64), role.(int))
+	list, total, err := logic.DefaultGradeLogic.Search(paginator, username, userID, contest, startTime, endTime, state, user_id.(int64), role.(int))
 
 	if err != nil {
-		DPrintf("DisplayEnrollResult 发生错误:", err)
+		DPrintf("DisplayGrade 发生错误:", err)
 		appG.ResponseErr(err.Error())
 		return
 	}
@@ -99,8 +92,6 @@ func (EnrollController) DisplayEnrollResult(c *gin.Context) {
 	appG.ResponseSucMsg(data, "查询成功")
 }
 
-// ProcessEnroll
-// 审核竞赛
-func (EnrollController) ProcessEnroll(c *gin.Context) {
+func (self GradeController) ProcessGrade(c *gin.Context) {
 
 }

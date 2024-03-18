@@ -70,7 +70,7 @@ func (self EnrollLogic) InsertEnrollInformation(username string, teamID int64, c
 		return errors.New("用户不存在")
 	}
 
-	exist, err = session.Table("enroll_information").Where("contest = ? AND name = ?", contest.Name, user.Username).Exist()
+	exist, err = session.Table("enroll_information").Where("contest = ? AND username = ?", contest.Name, user.Username).Exist()
 	if err != nil {
 		fail := session.Rollback()
 		if fail != nil {
@@ -115,7 +115,7 @@ func (self EnrollLogic) InsertEnrollInformation(username string, teamID int64, c
 	return session.Commit()
 }
 
-func (self EnrollLogic) Search(paginator *Paginator, username string, userID int64, contest string, startTime string, endTime string, school string, phone string, email string, state int) (*[]models.EnrollInformation, int64, error) {
+func (self EnrollLogic) Search(paginator *Paginator, username string, userID int64, contest string, startTime string, endTime string, school string, phone string, email string, state int, user_id int64, role int) (*[]models.EnrollInformation, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
 		return nil, 0, errors.New("分页器为空")
@@ -133,6 +133,10 @@ func (self EnrollLogic) Search(paginator *Paginator, username string, userID int
 		}
 	}()
 
+	// 不是管理员只能查看自己的信息
+	if role != 0 {
+		session.Table("enroll_information").Where("user_id = ?", user_id)
+	}
 	if len(username) > 0 {
 		session.Table("enroll_information").Where("username = ?", username)
 	}
@@ -156,7 +160,7 @@ func (self EnrollLogic) Search(paginator *Paginator, username string, userID int
 	if len(email) > 0 {
 		session.Table("enroll_information").Where("email = ?", email)
 	}
-	if state > 0 {
+	if state >= 0 {
 		session.Table("enroll_information").Where("state = ?", state)
 	}
 

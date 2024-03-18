@@ -16,6 +16,7 @@ func JwtTokenCheck() gin.HandlerFunc {
 		code := e.SUCCESS
 		data := make(map[string]interface{})
 		userIdInt := int64(0)
+		userRole := -1
 		token := c.Request.Header.Get("BackServer-token")
 		message := "解析成功"
 
@@ -48,10 +49,12 @@ func JwtTokenCheck() gin.HandlerFunc {
 						code = e.ERROR_AUTH_CHECK_TOKEN_FAIL
 						message = "解析Token失败"
 					}
+					userRole = claims.Role
 				}
 			}
 			if code == e.SUCCESS {
 				c.Set("user_id", userIdInt)
+				c.Set("role", userRole)
 			} else {
 				c.JSON(http.StatusOK, gin.H{
 					"code":    code,

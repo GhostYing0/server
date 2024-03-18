@@ -7,4 +7,5 @@ import "github.com/gin-gonic/gin"
 func RegisterRoutes(g *gin.RouterGroup) {
 	new(AccountController).RegisterRoutes(g)
 	new(EnrollController).RegisterRoutes(g)
+	new(GradeController).RegisterRoutes(g)
 }

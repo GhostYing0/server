@@ -1,7 +1,7 @@
 package models
 
 type EnrollForm struct {
-	Name       string `json:"name"`
+	UserName   string `json:"username"`
 	TeamID     int64  `json:"team_id"`
 	ContestID  int64  `json:"contest_id"`
 	CreateTime string `json:"create_time"`
