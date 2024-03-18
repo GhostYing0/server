@@ -1,11 +1,10 @@
-package student
+package controller
 
 import "github.com/gin-gonic/gin"
 
 // RegisterRoutes
-// 注册学生用户路由
+// 注册普通用户路由
 func RegisterRoutes(g *gin.RouterGroup) {
 	new(AccountController).RegisterRoutes(g)
-	new(UserController).RegisterRoutes(g)
-	new(ContestController).RegisterRoutes(g)
+	new(EnrollController).RegisterRoutes(g)
 }

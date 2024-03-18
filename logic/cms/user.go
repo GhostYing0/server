@@ -99,7 +99,7 @@ func (self CmsUserLogic) UpdateUser(ID int64, NewUsername string, NewPassword st
 	return "操作成功", err
 }
 
-func (self CmsUserLogic) DeleteUser(ids *[]int) (string, error, int64) {
+func (self CmsUserLogic) DeleteUser(ids *[]int64) (string, error, int64) {
 	tx := MasterDB.NewSession()
 	var count int64
 

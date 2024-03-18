@@ -10,11 +10,11 @@ var jwtSecret []byte
 type Claims struct {
 	ID       string
 	Username string
-	Role     string
+	Role     int
 	jwt.StandardClaims
 }
 
-func GenerateToken(userid string, username string, role string) (string, error) {
+func GenerateToken(userid string, username string, role int) (string, error) {
 	expireTime := time.Now().Add(1 * time.Hour)
 	claims := Claims{
 		ID:       userid,
