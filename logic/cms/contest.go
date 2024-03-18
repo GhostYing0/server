@@ -5,7 +5,6 @@ import (
 	. "server/database"
 	. "server/logic"
 	"server/models"
-	"time"
 )
 
 type CmsContestLogic struct{}
@@ -42,18 +41,8 @@ func (self CmsContestLogic) InsertContest(Name string, Type string, StartDate st
 		return "竞赛信息不能为空", nil
 	}
 
-	StartTime, err := time.Parse("2006-01-02 15:04:05", StartDate)
-	if err != nil {
-		fmt.Println("StartDate time.Parse error:", err)
-		return "竞赛开始时间解析出错", err
-
-	}
-
-	DeadlineTime, err := time.Parse("2006-01-02 15:04:05", Deadline)
-	if err != nil {
-		fmt.Println("Deadline time.Parse error:", err)
-		return "报名截止时间解析出错", err
-	}
+	StartTime := models.FormatString2OfenTime(StartDate)
+	DeadlineTime := models.FormatString2OfenTime(Deadline)
 
 	NewContest := &models.NewContest{
 		Name:      Name,
@@ -98,17 +87,17 @@ func (self CmsContestLogic) UpdateContest(ID int64, Name string, Type string, St
 
 	tx.Table("contest").Where("id = ?", ID)
 
-	var TimeStartDate time.Time
-	var TimeDeadline time.Time
+	var TimeStartDate models.OftenTime
+	var TimeDeadline models.OftenTime
 	if len(StartDate) > 0 {
-		TimeStartDate, err = time.Parse("2006-01-02 15:04:05", StartDate)
+		TimeStartDate = models.FormatString2OfenTime(StartDate)
 		if err != nil {
 			fmt.Println("UpdateContestInfo StartDate time.Parse error:", err)
 			return "时间解析出错", err
 		}
 	}
 	if len(Deadline) > 0 {
-		TimeDeadline, err = time.Parse("2006-01-02 15:04:05", Deadline)
+		TimeDeadline = models.FormatString2OfenTime(Deadline)
 		if err != nil {
 			fmt.Println("UpdateContestInfo Deadline time.Parse error:", err)
 			return "时间解析出错", err
@@ -159,7 +148,7 @@ func (self CmsContestLogic) UpdateContest(ID int64, Name string, Type string, St
 	return "操作成功", err
 }
 
-func (self CmsContestLogic) DeleteContest(ids *[]int) (string, error, int64) {
+func (self CmsContestLogic) DeleteContest(ids *[]int64) (string, error, int64) {
 	tx := MasterDB.NewSession()
 	var count int64
 
@@ -169,7 +158,7 @@ func (self CmsContestLogic) DeleteContest(ids *[]int) (string, error, int64) {
 			fmt.Println("非法id")
 			continue
 		}
-		contest.ID = int64(id)
+		contest.ID = id
 		affected, err := tx.Table("contest").Delete(&contest)
 		if err != nil {
 			tx.Rollback()

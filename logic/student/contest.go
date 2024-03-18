@@ -4,7 +4,6 @@ import (
 	. "server/database"
 	. "server/logic"
 	"server/models"
-	"time"
 )
 
 type StudentContestLogic struct{}
@@ -69,7 +68,7 @@ func (self StudentContestLogic) FindGrade(user_id int, paginator *Paginator) (*[
 	return &List, total, err
 }
 
-func (self StudentContestLogic) RegisterContest(user_id int, contest_int int) (string, error) {
+func (self StudentContestLogic) RegisterContest(user_id int64, contest_int int64) (string, error) {
 	tx := MasterDB.NewSession()
 
 	has, err := tx.Table("registration").
@@ -88,7 +87,7 @@ func (self StudentContestLogic) RegisterContest(user_id int, contest_int int) (s
 	param := &models.ContestantInfo{
 		ContestantID: user_id,
 		ContestID:    contest_int,
-		EntryTime:    time.Now(),
+		EntryTime:    models.NewOftenTime(),
 	}
 
 	_, err = tx.Table("registration").Insert(param)

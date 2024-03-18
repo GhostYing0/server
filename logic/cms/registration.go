@@ -1,10 +1,12 @@
 package cms
 
 import (
+	"errors"
+	"fmt"
 	. "server/database"
 	. "server/logic"
 	"server/models"
-	"time"
+	. "server/utils/mydebug"
 )
 
 type CmsRegistrationLogic struct{}
@@ -55,7 +57,7 @@ func (self CmsRegistrationLogic) AddRegistration(contestant string, contest stri
 		return "竞赛不存在", err
 	}
 
-	var contestant_id []int
+	var contestant_id []int64
 	err = tx.Table("account").
 		Where("username = ?", contestant).
 		Cols("id").
@@ -64,7 +66,7 @@ func (self CmsRegistrationLogic) AddRegistration(contestant string, contest stri
 		return "操作出错", err
 	}
 
-	var contest_id []int
+	var contest_id []int64
 	err = tx.Table("contest").
 		Where("name = ?", contest).
 		Cols("id").
@@ -76,7 +78,7 @@ func (self CmsRegistrationLogic) AddRegistration(contestant string, contest stri
 	param := &models.ContestantInfo{
 		ContestantID: contestant_id[0],
 		ContestID:    contest_id[0],
-		EntryTime:    time.Now(),
+		EntryTime:    models.NewOftenTime(),
 	}
 
 	has, err = tx.Table("registration").
@@ -92,4 +94,81 @@ func (self CmsRegistrationLogic) AddRegistration(contestant string, contest stri
 	}
 
 	return "添加成功", err
+}
+
+func (self CmsRegistrationLogic) UpdateRegistration(param *models.ContestantInfo) error {
+	tx := MasterDB.NewSession()
+
+	has, err := tx.Table("registration").Where("id = ?", param.ID).Exist()
+	if err != nil {
+		return err
+	}
+	if !has {
+		return errors.New("报名信息不存在")
+	}
+
+	tx.Where("id = ?", param.ID)
+	if param.ContestantID != 0 {
+		_, err := tx.Cols("contestant_id").Update(param)
+		if err != nil {
+			DPrintf("CmsRegistrationLogic UpdateRegistration update contestantID err:", err.Error())
+			rollback := tx.Rollback()
+			if rollback != nil {
+				return errors.New(err.Error() + " " + rollback.Error())
+			}
+			return err
+		}
+	}
+	if param.ContestID != 0 {
+		_, err := tx.Cols("contest_id").Update(param)
+		if err != nil {
+			DPrintf("CmsRegistrationLogic UpdateRegistration update contestID err:", err.Error())
+			rollback := tx.Rollback()
+			if rollback != nil {
+				return errors.New(err.Error() + " " + rollback.Error())
+			}
+			return err
+		}
+	}
+	if !param.EntryTime.IsZero() {
+		_, err := tx.Cols("entry_time").Update(param)
+		if err != nil {
+			DPrintf("CmsRegistrationLogic UpdateRegistration update entryTime err:", err.Error())
+			rollback := tx.Rollback()
+			if rollback != nil {
+				return errors.New(err.Error() + " " + rollback.Error())
+			}
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (self CmsRegistrationLogic) DeleteRegistration(ids *[]int64) (error, int64) {
+	tx := MasterDB.NewSession()
+	var count int64
+
+	for _, id := range *ids {
+		var contestantInfo models.ContestantInfo
+		if id < 1 {
+			fmt.Println("非法id")
+			continue
+		}
+		contestantInfo.ID = id
+		affected, err := tx.Table("registration").Delete(&contestantInfo)
+		if err != nil {
+			DPrintf("CmsRegistrationLogic UpdateRegistration update entryTime err:", err.Error())
+			rollback := tx.Rollback()
+			if rollback != nil {
+				return errors.New(err.Error() + " " + rollback.Error()), count
+			}
+			return err, count
+		}
+		if affected > 0 {
+			count += affected
+		}
+	}
+
+	return tx.Commit(), count
 }
