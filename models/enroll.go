@@ -11,6 +11,7 @@ type EnrollForm struct {
 }
 
 type EnrollInformation struct {
+	ID         int64     `json:"id" xorm:"id"`
 	Username   string    `json:"username" xorm:"username"`
 	UserID     int64     `json:"user_id" xorm:"user_id"`
 	TeamID     int64     `json:"team_id" xorm:"team_id"`
@@ -25,4 +26,8 @@ type EnrollInformation struct {
 
 func (EnrollInformation) TableName() string {
 	return "enroll_information"
+}
+
+type EnrollDeleteId struct {
+	ID []int64 `json:"id_number"`
 }

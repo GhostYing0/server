@@ -27,10 +27,6 @@ type ContestGrade struct {
 // 显示竞赛信息结构体
 type RegistrationInfo ContestGrade
 
-type RegistrationDeleteId struct {
-	ID []int64 `json:"id_number"`
-}
-
 type EntryContestParam struct {
 	Contestant string `json:"contestant"`
 	Contest    string `json:"contest"`
