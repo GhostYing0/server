@@ -7,6 +7,7 @@ import (
 	"net/http"
 	controllerUser "server/controller"
 	controllerCms "server/controller/cms"
+	controllerPublic "server/controller/public"
 	"server/database"
 	_ "server/database"
 	"server/middleware/jwt"
@@ -31,7 +32,10 @@ func main() {
 	r.Use(jwt.JwtTokenCheck())
 	fmt.Println("Server start")
 
-	backGround := r.Group("api/")
+	public := r.Group("api/public")
+	controllerPublic.RegisterRoutes(public)
+
+	backGround := r.Group("api")
 	controllerUser.RegisterRoutes(backGround)
 
 	backCmsGround := r.Group("api/cms")

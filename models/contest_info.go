@@ -35,3 +35,7 @@ type NewContest ContestInfo
 func (ContestInfo) TableName() string {
 	return "contest"
 }
+
+func (DisplayContestForm) TableName() string {
+	return "contest"
+}

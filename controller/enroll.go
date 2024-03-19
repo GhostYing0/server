@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/unknwon/com"
 	"server/logic"
+	. "server/logic"
 	"server/models"
 	"server/utils/app"
 	. "server/utils/mydebug"
@@ -12,9 +13,49 @@ import (
 type EnrollController struct{}
 
 func (self EnrollController) RegisterRoutes(g *gin.RouterGroup) {
+	g.GET("/viewContest", self.ViewContest)                // 查看竞赛信息
 	g.POST("/enrollContest", self.EnrollContest)           // 报名竞赛
 	g.GET("/searchEnrollResult", self.DisplayEnrollResult) // 查看报名结果
 	g.POST("/processEnroll", self.ProcessEnroll)           // 审核竞赛
+}
+
+// Viewcontest
+// 查看竞赛
+func (EnrollController) ViewContest(c *gin.Context) {
+	appG := app.Gin{C: c}
+	var err error
+	var ret string
+
+	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
+	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
+
+	if limit < 0 || curPage < 0 {
+		DPrintf("分页器参数错误")
+		appG.ResponseErr("分页器参数错误")
+		return
+	}
+
+	paginator := NewPaginator(curPage, limit)
+
+	data := make(map[string]interface{})
+	list, total, err := logic.DefaultEnrollLogic.DisplayContest(paginator)
+	if err != nil {
+		DPrintf(" logic.DefaultEnrollLogic.DisplayContest 错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	paginator.SetTotalPage(total)
+
+	if list != nil {
+		data["list"] = list
+		data["total"] = total
+		data["page_size"] = limit
+		data["page_number"] = curPage
+		data["total_page"] = paginator.GetTotalPage()
+	}
+
+	appG.ResponseSucMsg(data, ret)
 }
 
 // EnrollContest

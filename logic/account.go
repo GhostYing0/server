@@ -5,8 +5,10 @@ import (
 	"github.com/unknwon/com"
 	. "server/database"
 	"server/models"
+	"server/utils/gredis"
 	. "server/utils/mydebug"
 	"server/utils/util"
+	"time"
 )
 
 type UserAccountLogic struct{}
@@ -62,6 +64,17 @@ func (self UserAccountLogic) Login(username string, password string, role int) (
 	}
 
 	token, err := util.GenerateToken(com.ToStr(account.ID), account.Username, account.Role)
+	if err != nil {
+		DPrintf("生成token失败")
+		return "", err
+	}
+
+	err = gredis.Set(token, 1, time.Minute*60)
+	if err != nil {
+		DPrintf("login Set 失败:", err)
+		return "", err
+	}
+
 	return token, session.Commit()
 }
 

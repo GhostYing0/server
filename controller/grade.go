@@ -13,7 +13,7 @@ type GradeController struct{}
 
 func (self GradeController) RegisterRoutes(g *gin.RouterGroup) {
 	g.POST("/uploadGrade", self.UploadGrade)   // 报名竞赛
-	g.GET("/searchGrade", self.DisplayGrade)   // 查看报名结果
+	g.GET("/searchGrade", self.DisplayGrade)   // 查看成绩
 	g.POST("/processGrade", self.ProcessGrade) // 审核竞赛
 }
 

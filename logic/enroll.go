@@ -12,6 +12,35 @@ type EnrollLogic struct{}
 
 var DefaultEnrollLogic = EnrollLogic{}
 
+func (self EnrollLogic) DisplayContest(paginator *Paginator) (*[]models.DisplayContestForm, int64, error) {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("DisplayContest session.Begin() 发生错误:", err)
+		return nil, 0, err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("DisplayContest session.Close() 发生错误:", err)
+		}
+	}()
+
+	List := &[]models.DisplayContestForm{}
+
+	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(List)
+	if err != nil {
+		DPrintf("InsertEnrollInformation 查询竞赛发生错误: ", err)
+		fail := session.Rollback()
+		if fail != nil {
+			DPrintf("回滚失败")
+			return nil, 0, fail
+		}
+		return nil, 0, err
+	}
+
+	return List, total, session.Commit()
+}
+
 func (self EnrollLogic) InsertEnrollInformation(username string, teamID int64, contestID int64, create_time string, school string, phone string, email string) error {
 	if len(username) <= 0 {
 		return errors.New("请填写姓名")

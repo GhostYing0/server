@@ -1,14 +1,12 @@
 package cms
 
 import (
-	"errors"
 	"fmt"
 	"github.com/unknwon/com"
 	. "server/database"
 	"server/models"
 	"server/utils/gredis"
 	"server/utils/util"
-	"strconv"
 	"time"
 )
 
@@ -46,19 +44,6 @@ func (self CmsAccountLogic) Login(param *models.LoginForm) (string, string, erro
 	if err != nil {
 		return "token创建出错", token, err
 	}
-
-	//userRedis := models.UserRedis{
-	//	ID:       loginReturn.ID,
-	//	Role:     param.Role,
-	//	Username: param.Username,
-	//}
-	//fmt.Println("token:", token)
-	//fmt.Println("value:", userRedis)
-	//value, _ := json.Marshal(userRedis)
-	//err = gredis.HashSetTimeout("cmsToken", token, value, time.Second*10)
-	//if err != nil {
-	//	fmt.Println("login HashSet err:", err)
-	//}
 
 	err = gredis.Set(token, 1, time.Minute*60)
 	if err != nil {
@@ -135,27 +120,27 @@ func (self CmsAccountLogic) UpdatePassword(param *models.UpdatePasswordForm) (st
 	return "操作成功", err
 }
 
-func (self CmsAccountLogic) GetInfo(token string) (int64, string, int, error) {
-	tokenHasExpired, err := gredis.Get(token)
-	if err != nil {
-		fmt.Println("")
-		return 0, "", 0, err
-	}
-	if tokenHasExpired != "1" {
-		return 0, "", 0, errors.New("token已过期, 请重新登录")
-	}
-
-	claims, err := util.ParseToken(token)
-	if err != nil {
-		fmt.Println("")
-		return 0, "", 0, err
-	}
-
-	id, err := strconv.Atoi(claims.ID)
-	if err != nil {
-		fmt.Println("")
-		return 0, "", 0, err
-	}
-
-	return int64(id), claims.Username, claims.Role, err
-}
+//func (self CmsAccountLogic) GetInfo(token string) (int64, string, int, error) {
+//	tokenHasExpired, err := gredis.Get(token)
+//	if err != nil {
+//		fmt.Println("")
+//		return 0, "", 0, err
+//	}
+//	if tokenHasExpired != "1" {
+//		return 0, "", 0, errors.New("token已过期, 请重新登录")
+//	}
+//
+//	claims, err := util.ParseToken(token)
+//	if err != nil {
+//		fmt.Println("")
+//		return 0, "", 0, err
+//	}
+//
+//	id, err := strconv.Atoi(claims.ID)
+//	if err != nil {
+//		fmt.Println("")
+//		return 0, "", 0, err
+//	}
+//
+//	return int64(id), claims.Username, claims.Role, err
+//}
