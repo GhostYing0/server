@@ -41,8 +41,8 @@ func (self CmsContestLogic) InsertContest(Name string, Type string, StartDate st
 		return "竞赛信息不能为空", nil
 	}
 
-	StartTime := models.FormatString2OfenTime(StartDate)
-	DeadlineTime := models.FormatString2OfenTime(Deadline)
+	StartTime := models.FormatString2OftenTime(StartDate)
+	DeadlineTime := models.FormatString2OftenTime(Deadline)
 
 	NewContest := &models.NewContest{
 		Name:      Name,
@@ -90,14 +90,14 @@ func (self CmsContestLogic) UpdateContest(ID int64, Name string, Type string, St
 	var TimeStartDate models.OftenTime
 	var TimeDeadline models.OftenTime
 	if len(StartDate) > 0 {
-		TimeStartDate = models.FormatString2OfenTime(StartDate)
+		TimeStartDate = models.FormatString2OftenTime(StartDate)
 		if err != nil {
 			fmt.Println("UpdateContestInfo StartDate time.Parse error:", err)
 			return "时间解析出错", err
 		}
 	}
 	if len(Deadline) > 0 {
-		TimeDeadline = models.FormatString2OfenTime(Deadline)
+		TimeDeadline = models.FormatString2OftenTime(Deadline)
 		if err != nil {
 			fmt.Println("UpdateContestInfo Deadline time.Parse error:", err)
 			return "时间解析出错", err

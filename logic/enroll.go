@@ -2,6 +2,7 @@ package logic
 
 import (
 	"errors"
+	"fmt"
 	"github.com/polaris1119/times"
 	. "server/database"
 	"server/models"
@@ -41,7 +42,7 @@ func (self EnrollLogic) DisplayContest(paginator *Paginator) (*[]models.DisplayC
 	return List, total, session.Commit()
 }
 
-func (self EnrollLogic) InsertEnrollInformation(username string, teamID int64, contestID int64, create_time string, school string, phone string, email string) error {
+func (self EnrollLogic) InsertEnrollInformation(username string, teamID string, contestName string, create_time string, school string, phone string, email string) error {
 	if len(username) <= 0 {
 		return errors.New("请填写姓名")
 	}
@@ -58,7 +59,7 @@ func (self EnrollLogic) InsertEnrollInformation(username string, teamID int64, c
 	}()
 
 	contest := &models.ContestInfo{}
-	exist, err := session.Where("id = ?", contestID).Get(contest)
+	exist, err := session.Where("name = ?", contestName).Get(contest)
 	if err != nil {
 		DPrintf("InsertEnrollInformation 查询竞赛发生错误: ", err)
 		fail := session.Rollback()
@@ -123,7 +124,7 @@ func (self EnrollLogic) InsertEnrollInformation(username string, teamID int64, c
 		Username:   user.Username,
 		UserID:     user.ID,
 		Contest:    contest.Name,
-		CreateTime: models.FormatString2OfenTime(create_time),
+		CreateTime: models.FormatString2OftenTime(create_time),
 		School:     school,
 		Phone:      phone,
 		Email:      email,
@@ -207,4 +208,56 @@ func (self EnrollLogic) Search(paginator *Paginator, username string, userID int
 	}
 
 	return data, total, session.Rollback()
+}
+
+func (self EnrollLogic) ProcessEnroll(ids *[]int64, state int) (int64, error) {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("ProcessEnroll session.Begin() 发生错误:", err)
+		return 0, err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("ProcessEnroll session.Close() 发生错误:", err)
+		}
+	}()
+
+	var count int64
+
+	for _, id := range *ids {
+		if id < 1 {
+			fmt.Println("非法id")
+			continue
+		}
+		exist, err := session.Table("enroll_information").Where("id = ?", id).Exist()
+		if !exist {
+
+		}
+		if err != nil {
+			DPrintf("ProcessEnroll 查询竞赛信息发生错误:", err)
+			fail := session.Rollback()
+			if fail != nil {
+				DPrintf("回滚失败")
+				return 0, fail
+			}
+			return count, err
+		}
+		affected, err := session.Where("id = ?", id).Update(models.EnrollInformation{State: state})
+		if err != nil {
+			DPrintf("EnrollLogic Update 发生错误:", err)
+			fail := session.Rollback()
+			if fail != nil {
+				DPrintf("回滚失败")
+				return 0, fail
+			}
+			return count, err
+		}
+
+		if affected > 0 {
+			count += affected
+		}
+	}
+
+	return count, session.Commit()
 }

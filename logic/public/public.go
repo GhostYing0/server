@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"server/utils/gredis"
+	. "server/utils/mydebug"
 	"server/utils/util"
 	"strconv"
 )
@@ -35,4 +36,21 @@ func (self PublicLogic) GetInfo(token string) (int64, string, int, error) {
 	}
 
 	return int64(id), claims.Username, claims.Role, err
+}
+
+func (self PublicLogic) Logout(token string) error {
+	tokenHasExpired, err := gredis.Get(token)
+	if err != nil {
+		fmt.Println("")
+		return err
+	}
+	if tokenHasExpired != "1" {
+		return errors.New("已登出")
+	}
+
+	err = gredis.Del(token)
+	if err != nil {
+		DPrintf("Logout Del token 失败:", err)
+	}
+	return err
 }

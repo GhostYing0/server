@@ -17,6 +17,8 @@ func (self AccountController) RegisterRoutes(g *gin.RouterGroup) {
 	g.POST("/login", self.Login)                // 普通用户登录
 	g.POST("/register", self.Register)          // 普通用户注册
 	g.POST("/update_passwd", self.UpdatePasswd) // 普通用户修改密码
+	g.GET("/Person", self.Person)               //获取个人信息
+	g.POST("/UpdatePerson", self.UpdatePerson)  //更新个人信息
 }
 
 // Login
@@ -84,4 +86,11 @@ func (AccountController) UpdatePasswd(c *gin.Context) {
 	}
 
 	appG.ResponseSuc("修改密码成功")
+}
+
+func (AccountController) Person(c *gin.Context) {
+}
+
+func (AccountController) UpdatePerson(c *gin.Context) {
+
 }

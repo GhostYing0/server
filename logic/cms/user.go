@@ -1,106 +1,163 @@
 package cms
 
 import (
+	"errors"
 	"fmt"
 	. "server/database"
 	. "server/logic"
 	"server/models"
+	. "server/utils/mydebug"
 )
 
 type CmsUserLogic struct{}
 
 var DefaultCmsUser = CmsUserLogic{}
 
-func (self CmsUserLogic) Display(paginator *Paginator) (*[]models.DisplayUserForm, int64, error) {
-	tx := MasterDB.NewSession()
-	var total int64
-	var err error
-
-	var List []models.DisplayUserForm
-
-	if paginator.PerPage() > 0 {
-		total, err = tx.Table("account").Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(&List)
-		if err != nil {
-			tx.Rollback()
-			return nil, 0, err
-		}
-	} else {
-		total, err = tx.Table("account").Limit(10, 10*(paginator.CurPage()-1)).FindAndCount(&List)
-		if err != nil {
-			tx.Rollback()
-			return nil, 0, err
-		}
+func (self CmsUserLogic) Display(paginator *Paginator, mode int, username string) (*[]models.User, int64, error) {
+	if paginator == nil {
+		DPrintf("Search 分页器为空")
+		return nil, 0, errors.New("分页器为空")
 	}
 
-	tx.Commit()
-	return &List, total, err
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("cmsUser Display session.Begin() 发生错误:", err)
+		return nil, 0, err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("cmsUser Display session.Close() 发生错误:", err)
+		}
+	}()
+
+	if mode == 1 {
+		session.Where("role = 1")
+	} else if mode == 2 {
+		session.Where("role = 2")
+	}
+
+	if username != "" {
+		session.Where("username = ?", username)
+	}
+
+	data := &[]models.User{}
+
+	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(data)
+	if err != nil {
+		fail := session.Rollback()
+		if fail != nil {
+			DPrintf("回滚失败")
+			return data, 0, fail
+		}
+		DPrintf("Search 查找成绩信息失败:", err)
+		return data, 0, err
+	}
+
+	return data, total, session.Rollback()
 }
 
-func (self CmsUserLogic) AddUser(username string, password string) (string, error) {
+func (self CmsUserLogic) AddUser(username string, password string, role int) (string, error) {
 	if len(username) == 0 || len(password) == 0 {
 		return "账号和密码不能为空 ", nil
 	}
 
-	tx := MasterDB.NewSession()
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("cmsUser Display session.Begin() 发生错误:", err)
+		return err.Error(), err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("cmsUser Display session.Close() 发生错误:", err)
+		}
+	}()
 
-	exist, err := tx.Table("account").Where("username = ?", username).Exist()
+	exist, err := session.Table("account").Where("username = ? and role = ?", username, role).Exist()
 	if exist {
 		return "用户已存在", err
 	}
 
-	param := &models.UserInfo{
+	param := &models.User{
 		Username: username,
 		Password: password,
+		Role:     role,
 	}
 
-	_, err = tx.Table("account").Insert(param)
+	_, err = session.Insert(param)
 	if err != nil {
-		tx.Rollback()
+		fail := session.Rollback()
+		if fail != nil {
+			DPrintf("回滚失败")
+			return err.Error(), fail
+		}
 		return "操作出错", err
 	}
 
-	tx.Commit()
-	return "操作成功", err
+	return "操作成功", session.Commit()
 }
 
-func (self CmsUserLogic) UpdateUser(ID int64, NewUsername string, NewPassword string) (string, error) {
-	tx := MasterDB.NewSession()
+func (self CmsUserLogic) UpdateUser(ID int64, newUsername string, newPassword string, role int) error {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("cmsUser UpdateUser session.Begin() 发生错误:", err)
+		return err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("cmsUser UpdateUser session.Close() 发生错误:", err)
+		}
+	}()
 
-	exist, err := tx.Table("account").Where("id = ?", ID).Exist()
+	exist, err := session.Table("account").Where("id = ?", ID).Exist()
 	if !exist {
-		return "用户不存在", err
+		return errors.New("用户不存在")
 	}
-	if err != err {
-		tx.Rollback()
-		return "操作错误", err
-	}
-
-	param := &models.UserParam{
-		Username: NewUsername,
-		Password: NewPassword,
-	}
-
-	if len(NewUsername) > 0 {
-		_, err = tx.Table("account").Where("id = ?", ID).Cols("username").Update(param)
-		if err != nil {
-			tx.Rollback()
-			return "更新出错", err
+	if err != nil {
+		fail := session.Rollback()
+		if fail != nil {
+			DPrintf("回滚失败")
+			return fail
 		}
-	}
-	if len(NewPassword) > 0 {
-		_, err = tx.Table("account").Where("id = ?", ID).Cols("password").Update(param)
-		if err != nil {
-			tx.Rollback()
-			return "更新出错", err
-		}
+		DPrintf("UpdateUser 查询用户失败:", err)
+		return err
 	}
 
-	tx.Commit()
-	return "操作成功", err
+	param := &models.User{
+		Username: newUsername,
+		Password: newPassword,
+		Role:     role,
+	}
+
+	_, err = session.Where("id = ?", ID).Update(param)
+	if err != nil {
+		fail := session.Rollback()
+		if fail != nil {
+			DPrintf("回滚失败")
+			return fail
+		}
+		DPrintf("UpdateUser Update 更新用户失败:", err)
+		return err
+	}
+
+	return session.Commit()
 }
 
-func (self CmsUserLogic) DeleteUser(ids *[]int64) (string, error, int64) {
-	tx := MasterDB.NewSession()
+func (self CmsUserLogic) DeleteUser(ids *[]int64) (int64, error) {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("cmsUser DeleteUser session.Begin() 发生错误:", err)
+		return 0, err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("cmsUser DeleteUser session.Close() 发生错误:", err)
+		}
+	}()
+
 	var count int64
 
 	for _, id := range *ids {
@@ -110,16 +167,40 @@ func (self CmsUserLogic) DeleteUser(ids *[]int64) (string, error, int64) {
 			continue
 		}
 		contest.ID = int64(id)
-		affected, err := tx.Table("account").Delete(&contest)
+		affected, err := session.Table("account").Delete(&contest)
 		if err != nil {
-			tx.Rollback()
-			return "操作出错", err, 0
+			fail := session.Rollback()
+			if fail != nil {
+				DPrintf("回滚失败")
+				return 0, fail
+			}
+			return 0, err
 		}
 		if affected > 0 {
 			count += affected
 		}
 	}
 
-	tx.Commit()
-	return "操作成功", nil, count
+	return count, session.Commit()
+}
+
+func (self CmsUserLogic) GetUserCount() (int64, error) {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("GetUserCount session.Begin() 发生错误:", err)
+		return 0, err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("GetUserCount session.Close() 发生错误:", err)
+		}
+	}()
+
+	count, err := session.Table("account").Count()
+	if err != nil {
+		DPrintf("GetUserCount Count 发生错误:", err)
+		return count, err
+	}
+	return count, err
 }

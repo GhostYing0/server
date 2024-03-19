@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"server/utils/mydebug"
+	"time"
+)
 
 type OftenTime time.Time
 
@@ -9,9 +12,10 @@ func NewOftenTime() OftenTime {
 	return OftenTime(t)
 }
 
-func FormatString2OfenTime(str string) OftenTime {
+func FormatString2OftenTime(str string) OftenTime {
 	t, err := time.ParseInLocation("2006-01-02 15:04:05", str, time.Local)
 	if err != nil {
+		mydebug.DPrintf(err)
 		return NewOftenTime()
 	}
 	return OftenTime(t)

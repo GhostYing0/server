@@ -19,6 +19,7 @@ func (self ContestController) RegisterRoutes(g *gin.RouterGroup) {
 	g.POST("/add_contest", self.AddContest)         // 添加竞赛信息
 	g.POST("/update_contest", self.UpdateContest)   // 更改竞赛信息
 	g.DELETE("/delete_contest", self.DeleteContest) // 删除竞赛信息
+	g.POST("/processContest", self.ProcessContest)  //审核竞赛
 }
 
 // GetContest
@@ -119,4 +120,7 @@ func (ContestController) DeleteContest(c *gin.Context) {
 	}
 
 	appG.ResponseSuc(ret, "删除", strconv.Itoa(int(count)), "个竞赛成功")
+}
+
+func (ContestController) ProcessContest(c *gin.Context) {
 }

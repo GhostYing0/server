@@ -5,10 +5,11 @@ type UserParam struct {
 	Password string `json:"password"`
 }
 
-type UserInfo struct {
+type User struct {
 	ID       int64     `xorm:"id"`
 	Username string    `xorm:"username"`
 	Password string    `xorm:"password"`
+	Role     int       `xorm:"role"`
 	Deleted  OftenTime `xorm:"deleted"`
 }
 
@@ -18,9 +19,12 @@ type UserRedis struct {
 	Username string `json:"username"`
 }
 
-type UpdateUserInfo UserInfo
-type DisplayUserForm UserInfo
+type UpdateUserInfo User
 
 type UserDeleteId struct {
-	ID []int64 `json:"id_number"`
+	ID []int64 `json:"ids"`
+}
+
+func (User) TableName() string {
+	return "account"
 }

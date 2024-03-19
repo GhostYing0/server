@@ -7,14 +7,17 @@ import (
 	"server/models"
 	"server/utils/app"
 	. "server/utils/mydebug"
+	"strconv"
 )
 
 type GradeController struct{}
 
 func (self GradeController) RegisterRoutes(g *gin.RouterGroup) {
-	g.POST("/uploadGrade", self.UploadGrade)   // 报名竞赛
-	g.GET("/searchGrade", self.DisplayGrade)   // 查看成绩
-	g.POST("/processGrade", self.ProcessGrade) // 审核竞赛
+	g.POST("/uploadGrade", self.UploadGrade)                 // 上传成绩
+	g.GET("/searchGrade", self.DisplayGrade)                 // 查看成绩
+	g.POST("/processPassGrade", self.ProcessPassGrade)       // 教师审核成绩通过
+	g.POST("/processRejectGrade", self.ProcessRejectGrade)   // 教师审核成绩驳回
+	g.POST("/processRecoverGrade", self.ProcessRecoverGrade) // 教师审核成绩恢复
 }
 
 func (self GradeController) UploadGrade(c *gin.Context) {
@@ -92,6 +95,107 @@ func (self GradeController) DisplayGrade(c *gin.Context) {
 	appG.ResponseSucMsg(data, "查询成功")
 }
 
-func (self GradeController) ProcessGrade(c *gin.Context) {
+// ProcessPassGrade
+// 审核通过
+func (GradeController) ProcessPassGrade(c *gin.Context) {
+	appG := app.Gin{C: c}
 
+	role, exist := appG.C.Get("role")
+	if !exist {
+		DPrintf("无效身份")
+		appG.ResponseErr("无效身份")
+		return
+	}
+	if role != 2 {
+		DPrintf("无教师权限")
+		appG.ResponseErr("无教师权限")
+		return
+	}
+
+	request := models.GradeIds{}
+	err := c.ShouldBindJSON(&request)
+	if err != nil {
+		DPrintf("ProcessEnroll c.ShouldBindJSON 发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	count, err := logic.DefaultGradeLogic.ProcessGrade(&request.ID, 1)
+	if err != nil {
+		DPrintf("logic.DefaultRegistrationContest.Process 发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSuc(strconv.Itoa(int(count)))
+}
+
+// ProcessRejectGrade
+// 审核驳回
+func (GradeController) ProcessRejectGrade(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	role, exist := appG.C.Get("role")
+	if !exist {
+		DPrintf("无效身份")
+		appG.ResponseErr("无效身份")
+		return
+	}
+	if role != 2 {
+		DPrintf("无教师权限")
+		appG.ResponseErr("无教师权限")
+		return
+	}
+
+	request := models.GradeIds{}
+	err := c.ShouldBindJSON(&request)
+	if err != nil {
+		DPrintf("ProcessEnroll c.ShouldBindJSON 发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	count, err := logic.DefaultGradeLogic.ProcessGrade(&request.ID, 2)
+	if err != nil {
+		DPrintf("logic.DefaultRegistrationContest.Process 发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSuc(strconv.Itoa(int(count)))
+}
+
+// ProcessRecoverGrade
+// 审核恢复
+func (GradeController) ProcessRecoverGrade(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	role, exist := appG.C.Get("role")
+	if !exist {
+		DPrintf("无效身份")
+		appG.ResponseErr("无效身份")
+		return
+	}
+	if role != 2 {
+		DPrintf("无教师权限")
+		appG.ResponseErr("无教师权限")
+		return
+	}
+
+	request := models.GradeIds{}
+	err := c.ShouldBindJSON(&request)
+	if err != nil {
+		DPrintf("ProcessEnroll c.ShouldBindJSON 发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	count, err := logic.DefaultGradeLogic.ProcessGrade(&request.ID, 3)
+	if err != nil {
+		DPrintf("logic.DefaultRegistrationContest.Process 发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSuc(strconv.Itoa(int(count)))
 }

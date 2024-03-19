@@ -15,6 +15,15 @@ type Response struct {
 	Data interface{} `json:"data"`
 }
 
+func (g *Gin) ResponseNumber(number int64) {
+	g.C.JSON(http.StatusOK, Response{
+		Code: http.StatusOK,
+		Msg:  "请求成功",
+		Data: number,
+	})
+	return
+}
+
 func (g *Gin) ResponseSuc(msgs ...string) {
 	var msgRet string
 	data := make(map[string]interface{})
