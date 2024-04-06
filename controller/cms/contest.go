@@ -15,11 +15,11 @@ type ContestController struct{}
 
 // RegisterRoutes
 func (self ContestController) RegisterRoutes(g *gin.RouterGroup) {
-	g.GET("/get_contest", self.GetContest)          // 查看竞赛信息
-	g.POST("/add_contest", self.AddContest)         // 添加竞赛信息
-	g.POST("/update_contest", self.UpdateContest)   // 更改竞赛信息
-	g.DELETE("/delete_contest", self.DeleteContest) // 删除竞赛信息
-	g.POST("/processContest", self.ProcessContest)  //审核竞赛
+	g.GET("/getContest", self.GetContest)          // 查看竞赛信息
+	g.POST("/addContest", self.AddContest)         // 添加竞赛信息
+	g.POST("/updateContest", self.UpdateContest)   // 更改竞赛信息
+	g.DELETE("/deleteContest", self.DeleteContest) // 删除竞赛信息
+	g.POST("/processContest", self.ProcessContest) //审核竞赛
 }
 
 // GetContest
@@ -114,7 +114,7 @@ func (ContestController) DeleteContest(c *gin.Context) {
 		appG.ResponseErr(err.Error())
 	}
 
-	ret, err, count = logic.DefaultCmsContest.DeleteContest(&request.ID)
+	ret, count, err = logic.DefaultCmsContest.DeleteContest(&request.ID)
 	if err != nil {
 		appG.ResponseErr(err.Error())
 	}

@@ -3,7 +3,6 @@ package logic
 import (
 	"errors"
 	"fmt"
-	"github.com/polaris1119/times"
 	. "server/database"
 	"server/models"
 	. "server/utils/mydebug"
@@ -145,7 +144,7 @@ func (self EnrollLogic) InsertEnrollInformation(username string, teamID string, 
 	return session.Commit()
 }
 
-func (self EnrollLogic) Search(paginator *Paginator, username string, userID int64, contest string, startTime string, endTime string, school string, phone string, email string, state int, user_id int64, role int) (*[]models.EnrollInformation, int64, error) {
+func (self EnrollLogic) Search(paginator *Paginator, userID int64, contest string, startTime string, endTime string, state int) (*[]models.ReturnEnrollInformation, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
 		return nil, 0, errors.New("分页器为空")
@@ -163,13 +162,6 @@ func (self EnrollLogic) Search(paginator *Paginator, username string, userID int
 		}
 	}()
 
-	// 不是管理员只能查看自己的信息
-	if role != 0 {
-		session.Table("enroll_information").Where("user_id = ?", user_id)
-	}
-	if len(username) > 0 {
-		session.Table("enroll_information").Where("username = ?", username)
-	}
 	if userID > 0 {
 		session.Table("enroll_information").Where("user_id = ?", userID)
 	}
@@ -177,37 +169,41 @@ func (self EnrollLogic) Search(paginator *Paginator, username string, userID int
 		session.Table("enroll_information").Where("contest = ?", contest)
 	}
 	if len(startTime) > 0 && len(endTime) > 0 {
-		start := times.StrToLocalTime(startTime)
-		end := times.StrToLocalTime(endTime)
-		session.Table("enroll_information").Where("createTime >= ? AND createTime <= ?", start, end)
-	}
-	if len(school) > 0 {
-		session.Table("enroll_information").Where("school = ?", school)
-	}
-	if len(phone) > 0 {
-		session.Table("enroll_information").Where("phone = ?", phone)
-	}
-	if len(email) > 0 {
-		session.Table("enroll_information").Where("email = ?", email)
+		session.Table("enroll_information").Where("create_time >= ? AND create_time <= ?", startTime, endTime)
 	}
 	if state >= 0 {
 		session.Table("enroll_information").Where("state = ?", state)
 	}
+	fmt.Println(state)
 
-	data := &[]models.EnrollInformation{}
+	temp := &[]models.EnrollInformation{}
 
-	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(data)
+	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(temp)
 	if err != nil {
 		fail := session.Rollback()
 		if fail != nil {
 			DPrintf("回滚失败")
-			return data, 0, fail
+			return nil, 0, fail
 		}
 		DPrintf("Search 查找报名信息失败:", err)
-		return data, 0, err
+		return nil, 0, err
 	}
 
-	return data, total, session.Rollback()
+	list := make([]models.ReturnEnrollInformation, len(*temp))
+	for i := 0; i < len(*temp); i++ {
+		list[i].ID = (*temp)[i].ID
+		list[i].Username = (*temp)[i].Username
+		list[i].UserID = (*temp)[i].UserID
+		list[i].TeamID = (*temp)[i].TeamID
+		list[i].Contest = (*temp)[i].Contest
+		list[i].CreateTime = (*temp)[i].CreateTime.String()
+		list[i].School = (*temp)[i].School
+		list[i].Phone = (*temp)[i].Phone
+		list[i].Email = (*temp)[i].Email
+		list[i].State = (*temp)[i].State
+	}
+
+	return &list, total, session.Rollback()
 }
 
 func (self EnrollLogic) ProcessEnroll(ids *[]int64, state int) (int64, error) {

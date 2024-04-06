@@ -54,7 +54,7 @@ func (self UserAccountLogic) Login(username string, password string, role int) (
 		return "", errors.New("用户不存在")
 	}
 
-	if username != account.Username || password != account.Password {
+	if username != account.Username || util.EncodeMD5(password) != account.Password {
 		fail := session.Rollback()
 		if fail != nil {
 			DPrintf("回滚失败")
@@ -125,6 +125,8 @@ func (self UserAccountLogic) Register(username string, password string, confirmP
 		}
 		return errors.New("用户已存在")
 	}
+
+	newAccount.Password = util.EncodeMD5(newAccount.Password)
 
 	_, err = session.Insert(newAccount)
 	if err != nil {

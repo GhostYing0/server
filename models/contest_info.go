@@ -8,12 +8,12 @@ type ContestParam struct {
 }
 
 type ContestInfo struct {
-	ID        int64     `xorm:"id"`
-	Name      string    `xorm:"name"`
-	Type      string    `xorm:"type"`
-	StartDate OftenTime `xorm:"start_date"`
-	Deadline  OftenTime `xorm:"deadline"`
-	Deleted   OftenTime `xorm:"deleted"`
+	ID        int64     `json:"id" xorm:"id"`
+	Name      string    `json:"contest" xorm:"name"`
+	Type      string    `json:"type" xorm:"type"`
+	StartDate OftenTime `json:"create_time" xorm:"start_date"`
+	Deadline  OftenTime `json:"deadline" xorm:"deadline"`
+	Deleted   OftenTime `json:"deleted" xorm:"deleted"`
 }
 
 type UpdateContestParam struct {

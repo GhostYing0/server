@@ -36,7 +36,7 @@ func (self CmsAccountLogic) Login(param *models.LoginForm) (string, string, erro
 		return "用户不存在", "", err
 	}
 
-	if param.Password != loginReturn.Password {
+	if util.EncodeMD5(param.Password) != loginReturn.Password {
 		return "密码错误", "", err
 	}
 
@@ -81,6 +81,8 @@ func (self CmsAccountLogic) Register(param *models.RegisterForm) (string, error)
 	if has {
 		return "用户已存在", err
 	}
+
+	newAccount.Password = util.EncodeMD5(newAccount.Password)
 
 	_, err = tx.Table("cms_account").Insert(newAccount)
 	if err != nil {

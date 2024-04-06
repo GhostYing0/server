@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/unknwon/com"
 	"server/logic"
@@ -14,9 +15,10 @@ import (
 type EnrollController struct{}
 
 func (self EnrollController) RegisterRoutes(g *gin.RouterGroup) {
-	g.GET("/viewContest", self.ViewContest)                    // 查看竞赛信息
-	g.POST("/enrollContest", self.EnrollContest)               // 报名竞赛
-	g.GET("/searchEnrollResult", self.DisplayEnrollResult)     // 查看报名结果
+	g.GET("/viewContest", self.ViewContest)                // 查看竞赛信息
+	g.POST("/enrollContest", self.EnrollContest)           // 报名竞赛
+	g.GET("/searchEnrollResult", self.DisplayEnrollResult) // 用户查看报名结果
+	//g.GET("/teacherSearchEnroll", self.TeacherSearchEnroll)    // 教师查看报名结果
 	g.POST("/processPassEnroll", self.ProcessPassEnroll)       // 教师审核通过
 	g.POST("/processRejectEnroll", self.ProcessRejectEnroll)   // 教师审核驳回
 	g.POST("/processRecoverEnroll", self.ProcessRecoverEnroll) // 教师审核恢复
@@ -93,15 +95,26 @@ func (EnrollController) DisplayEnrollResult(c *gin.Context) {
 	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
 	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
 
-	username := c.DefaultQuery("username", "")
-	userID := int64(com.StrTo(c.DefaultQuery("user_id", "0")).MustInt())
-	contest := c.DefaultQuery("contest", "")
-	startTime := c.DefaultQuery("startTime", "")
-	endTime := c.DefaultQuery("endTime", "")
-	school := c.DefaultQuery("school", "")
-	phone := c.DefaultQuery("phone", "")
-	email := c.DefaultQuery("email", "")
+	contest := c.DefaultQuery("contest_name", "")
+	startTime := c.DefaultQuery("start_time", "")
+	endTime := c.DefaultQuery("end_time", "")
 	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
+
+	fmt.Println(startTime)
+	fmt.Println(endTime)
+
+	key, exist := appG.C.Get("user_id")
+	if !exist {
+		DPrintf("无Token")
+		appG.ResponseErr("无Token")
+		return
+	}
+	userID, ok := key.(int64)
+	if !ok {
+		DPrintf("DisplayEnrollResult userID类型错误")
+		appG.ResponseErr("userID类型错误")
+		return
+	}
 
 	if limit < 1 || curPage < 1 {
 		DPrintf("DisplayEnrollResult 查询表容量和页码应大于0")
@@ -113,18 +126,7 @@ func (EnrollController) DisplayEnrollResult(c *gin.Context) {
 
 	paginator := logic.NewPaginator(curPage, limit)
 
-	user_id, exist := c.Get("user_id")
-	if !exist {
-		appG.ResponseErr("user_id不存在")
-		return
-	}
-	role, exist := c.Get("role")
-	if !exist {
-		appG.ResponseErr("role不存在")
-		return
-	}
-
-	list, total, err := logic.DefaultEnrollLogic.Search(paginator, username, userID, contest, startTime, endTime, school, phone, email, state, user_id.(int64), role.(int))
+	list, total, err := logic.DefaultEnrollLogic.Search(paginator, userID, contest, startTime, endTime, state)
 
 	if err != nil {
 		DPrintf("DisplayEnrollResult 发生错误:", err)

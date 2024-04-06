@@ -58,7 +58,6 @@ func (self GradeLogic) InsertGradeInformation(username string, contest string, g
 	}
 
 	gradeInformation := &models.GradeInformation{
-		UserID:      user.ID,
 		Username:    user.Username,
 		Contest:     contest,
 		CreateTime:  models.FormatString2OftenTime(createTime),
@@ -81,7 +80,7 @@ func (self GradeLogic) InsertGradeInformation(username string, contest string, g
 	return session.Commit()
 }
 
-func (self GradeLogic) Search(paginator *Paginator, username string, userID int64, contest string, startTime string, endTime string, state int, user_id int64, role int) (*[]models.GradeInformation, int64, error) {
+func (self GradeLogic) Search(paginator *Paginator, grade string, contest string, startTime string, endTime string, state int, user_id int64, role int) (*[]models.ReturnGradeInformation, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
 		return nil, 0, errors.New("分页器为空")
@@ -100,14 +99,19 @@ func (self GradeLogic) Search(paginator *Paginator, username string, userID int6
 	}()
 
 	// 不是管理员只能查看自己的信息
-	if role != 0 {
-		session.Table("grade").Where("user_id = ?", user_id)
+	user := &models.Account{}
+	exist, err := session.Where("id = ? and role = ?", user_id, role).Get(user)
+	if err != nil {
+		return nil, 0, err
 	}
-	if len(username) > 0 {
-		session.Table("grade").Where("username = ?", username)
+	if !exist {
+		return nil, 0, errors.New("用户不存在")
 	}
-	if userID > 0 {
-		session.Table("grade").Where("user_id = ?", userID)
+	if len(user.Username) > 0 {
+		session.Table("grade").Where("username = ?", user.Username)
+	}
+	if len(grade) > 0 {
+		session.Table("grade").Where("grade = ?", grade)
 	}
 	if len(contest) > 0 {
 		session.Table("grade").Where("contest = ?", contest)
@@ -121,20 +125,31 @@ func (self GradeLogic) Search(paginator *Paginator, username string, userID int6
 		session.Table("grade").Where("state = ?", state)
 	}
 
-	data := &[]models.GradeInformation{}
+	temp := &[]models.GradeInformation{}
 
-	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(data)
+	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(temp)
 	if err != nil {
 		fail := session.Rollback()
 		if fail != nil {
 			DPrintf("回滚失败")
-			return data, 0, fail
+			return nil, 0, fail
 		}
 		DPrintf("Search 查找成绩信息失败:", err)
-		return data, 0, err
+		return nil, 0, err
 	}
 
-	return data, total, session.Rollback()
+	list := make([]models.ReturnGradeInformation, len(*temp))
+	for i := 0; i < len(*temp); i++ {
+		list[i].ID = (*temp)[i].ID
+		list[i].Username = (*temp)[i].Username
+		list[i].Contest = (*temp)[i].Contest
+		list[i].CreateTime = (*temp)[i].CreateTime.String()
+		list[i].Certificate = (*temp)[i].Certificate
+		list[i].Grade = (*temp)[i].Grade
+		list[i].State = (*temp)[i].State
+	}
+
+	return &list, total, session.Rollback()
 }
 
 func (self GradeLogic) ProcessGrade(ids *[]int64, state int) (int64, error) {

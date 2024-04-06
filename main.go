@@ -29,12 +29,13 @@ func main() {
 	config.AllowHeaders = []string{"BackServer-token", "Content-Type"}
 
 	r.Use(cors.New(config))
-	r.Use(jwt.JwtTokenCheck())
 	fmt.Println("Server start")
 
+	//r.StaticFS("/picture", http.Dir("D:/GDesign/code/server/picture/img"))
 	public := r.Group("api/public")
 	controllerPublic.RegisterRoutes(public)
 
+	r.Use(jwt.JwtTokenCheck())
 	backGround := r.Group("api")
 	controllerUser.RegisterRoutes(backGround)
 
@@ -43,7 +44,7 @@ func main() {
 
 	readTimeout := time.Second * 10
 	writeTimeout := time.Second * 10
-	maxHeaderBytes := 1 << 20
+	maxHeaderBytes := 1 << 25
 
 	server := &http.Server{
 		Addr:           "127.0.0.1:9006",

@@ -39,6 +39,21 @@ func (g *Gin) ResponseSuc(msgs ...string) {
 	return
 }
 
+func (g *Gin) Success(data interface{}, msgs ...string) {
+	var msgRet string
+
+	for _, msg := range msgs {
+		msgRet += " " + msg
+	}
+
+	g.C.JSON(http.StatusOK, Response{
+		Code: http.StatusOK,
+		Msg:  msgRet,
+		Data: data,
+	})
+	return
+}
+
 func (g *Gin) ResponseSucMsg(data interface{}, msgs ...string) {
 	var msgRet string
 

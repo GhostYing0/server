@@ -21,7 +21,8 @@ func JwtTokenCheck() gin.HandlerFunc {
 		message := "解析成功"
 
 		if !strings.Contains(c.Request.RequestURI, "/login") &&
-			!strings.Contains(c.Request.RequestURI, "/register") {
+			!strings.Contains(c.Request.RequestURI, "/register") &&
+			!strings.Contains(c.Request.RequestURI, "/picture") {
 			if token == "" {
 				code = e.ERROR_AUTH_CHECK_TOKEN_EMPTY
 				message = "Token为空"

@@ -39,7 +39,32 @@ func (self GradeController) UploadGrade(c *gin.Context) {
 		return
 	}
 
-	appG.ResponseSuc("上传成功")
+	//file, err := c.FormFile("file")
+	//
+	//if err != nil {
+	//	DPrintf("grade c.FormFile 发生错误:", err)
+	//	appG.ResponseErr("获取文件失败", err.Error())
+	//	return
+	//}
+	//saveDir, err := public.DefaultPublic.UploadImg(file)
+	//if err != nil {
+	//	DPrintf("logic.DefaultPublic.Upload 发生错误:", err)
+	//	appG.ResponseErr(err.Error())
+	//	return
+	//}
+	//
+	//err = c.SaveUploadedFile(file, saveDir)
+	//if err != nil {
+	//	DPrintf("上传错误")
+	//	// 返回值
+	//	appG.ResponseErr("文件保存失败")
+	//	return
+	//}
+	//
+	//imageurl := strings.Replace(saveDir, "D:/GDesign/code/server/picture/img", "http://127.0.0.1:9006/api/public/picture", -1)
+
+	//appG.ResponseSucMsg(gin.H{"imageurl": imageurl}, "上传成功")
+	appG.ResponseSucMsg("上传成功")
 }
 
 func (self GradeController) DisplayGrade(c *gin.Context) {
@@ -48,9 +73,8 @@ func (self GradeController) DisplayGrade(c *gin.Context) {
 	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
 	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
 
-	username := c.DefaultQuery("username", "")
-	userID := int64(com.StrTo(c.DefaultQuery("user_id", "0")).MustInt())
-	contest := c.DefaultQuery("contest", "")
+	grade := c.DefaultQuery("grade", "")
+	contest := c.DefaultQuery("contest_name", "")
 	startTime := c.DefaultQuery("startTime", "")
 	endTime := c.DefaultQuery("endTime", "")
 	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
@@ -76,7 +100,7 @@ func (self GradeController) DisplayGrade(c *gin.Context) {
 		return
 	}
 
-	list, total, err := logic.DefaultGradeLogic.Search(paginator, username, userID, contest, startTime, endTime, state, user_id.(int64), role.(int))
+	list, total, err := logic.DefaultGradeLogic.Search(paginator, grade, contest, startTime, endTime, state, user_id.(int64), role.(int))
 
 	if err != nil {
 		DPrintf("DisplayGrade 发生错误:", err)

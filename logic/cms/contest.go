@@ -5,6 +5,7 @@ import (
 	. "server/database"
 	. "server/logic"
 	"server/models"
+	. "server/utils/mydebug"
 )
 
 type CmsContestLogic struct{}
@@ -12,28 +13,46 @@ type CmsContestLogic struct{}
 var DefaultCmsContest = CmsContestLogic{}
 
 func (self CmsContestLogic) Display(paginator *Paginator) (*[]models.DisplayContestForm, int64, error) {
-	tx := MasterDB.NewSession()
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("CmsContestLogic Display session.Begin() 发生错误:", err)
+		return nil, 0, err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("CmsContestLogic Display session.Close() 发生错误:", err)
+		}
+	}()
+
 	var total int64
 	var err error
 
 	var List []models.DisplayContestForm
 
 	if paginator.PerPage() > 0 {
-		total, err = tx.Table("contest").Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(&List)
+		total, err = session.Table("contest").Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(&List)
 		if err != nil {
-			tx.Rollback()
+			fail := session.Rollback()
+			if fail != nil {
+				DPrintf("回滚失败")
+				return nil, 0, fail
+			}
 			return nil, 0, err
 		}
 	} else {
-		total, err = tx.Table("contest").Limit(10, 10*(paginator.CurPage()-1)).FindAndCount(&List)
+		total, err = session.Table("contest").Limit(10, 10*(paginator.CurPage()-1)).FindAndCount(&List)
 		if err != nil {
-			tx.Rollback()
+			fail := session.Rollback()
+			if fail != nil {
+				DPrintf("回滚失败")
+				return nil, 0, fail
+			}
 			return nil, 0, err
 		}
 	}
 
-	tx.Commit()
-	return &List, total, err
+	return &List, total, session.Commit()
 }
 
 func (self CmsContestLogic) InsertContest(Name string, Type string, StartDate string, Deadline string) (string, error) {
@@ -51,9 +70,19 @@ func (self CmsContestLogic) InsertContest(Name string, Type string, StartDate st
 		Deadline:  DeadlineTime,
 	}
 
-	tx := MasterDB.NewSession()
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("CmsContestLogic InsertContest session.Begin() 发生错误:", err)
+		return "", err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("CmsContestLogic InsertContest session.Close() 发生错误:", err)
+		}
+	}()
 
-	has, err := tx.Table("contest").Where("name = ? and type = ?", Name, Type).Exist()
+	has, err := session.Table("contest").Where("name = ? and type = ?", Name, Type).Exist()
 	if err != nil {
 		fmt.Println("InsertContestInfo Exist error:", err)
 		return "操作错误", err
@@ -63,20 +92,33 @@ func (self CmsContestLogic) InsertContest(Name string, Type string, StartDate st
 		return "竞赛已存在", err
 	}
 
-	_, err = tx.Table("contest").Insert(NewContest)
+	_, err = session.Table("contest").Insert(NewContest)
 	if err != nil {
-		tx.Rollback()
+		fail := session.Rollback()
+		if fail != nil {
+			DPrintf("回滚失败")
+			return "", fail
+		}
 		fmt.Println("InsertContestInfo Insert error:", err)
 		return "操作错误", err
 	}
-	tx.Commit()
-	return "操作成功", err
+	return "操作成功", session.Commit()
 }
 
 func (self CmsContestLogic) UpdateContest(ID int64, Name string, Type string, StartDate string, Deadline string) (string, error) {
-	tx := MasterDB.NewSession()
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("CmsContestLogic UpdateContest session.Begin() 发生错误:", err)
+		return "", err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("CmsContestLogic UpdateContest session.Close() 发生错误:", err)
+		}
+	}()
 
-	has, err := tx.Table("contest").Where("id = ?", ID).Exist()
+	has, err := session.Table("contest").Where("id = ?", ID).Exist()
 	if err != nil {
 		fmt.Println("UpdateContestInfo Exist error:", err)
 		return "操作错误", err
@@ -85,7 +127,7 @@ func (self CmsContestLogic) UpdateContest(ID int64, Name string, Type string, St
 		return "竞赛不存在", err
 	}
 
-	tx.Table("contest").Where("id = ?", ID)
+	session.Table("contest").Where("id = ?", ID)
 
 	var TimeStartDate models.OftenTime
 	var TimeDeadline models.OftenTime
@@ -112,44 +154,69 @@ func (self CmsContestLogic) UpdateContest(ID int64, Name string, Type string, St
 	}
 
 	if len(Name) > 0 {
-		_, err = tx.Table("contest").Where("id = ?", ID).Cols("name").Update(param)
+		_, err = session.Table("contest").Where("id = ?", ID).Cols("name").Update(param)
 		if err != nil {
-			tx.Rollback()
+			fail := session.Rollback()
+			if fail != nil {
+				DPrintf("回滚失败")
+				return "", fail
+			}
 			fmt.Println("UpdateContestInfo Update Name error:", err)
 			return "操作错误", err
 		}
 	}
 	if len(Type) > 0 {
-		_, err = tx.Table("contest").Where("id = ?", ID).Cols("type").Update(param)
+		_, err = session.Table("contest").Where("id = ?", ID).Cols("type").Update(param)
 		if err != nil {
-			tx.Rollback()
+			fail := session.Rollback()
+			if fail != nil {
+				DPrintf("回滚失败")
+				return "", fail
+			}
 			fmt.Println("UpdateContestInfo Update Type error:", err)
 			return "操作错误", err
 		}
 	}
 	if len(StartDate) > 0 {
-		_, err = tx.Table("contest").Where("id = ?", ID).Cols("start_date").Update(param)
+		_, err = session.Table("contest").Where("id = ?", ID).Cols("start_date").Update(param)
 		if err != nil {
-			tx.Rollback()
+			fail := session.Rollback()
+			if fail != nil {
+				DPrintf("回滚失败")
+				return "", fail
+			}
 			fmt.Println("UpdateContestInfo Update StartDate error:", err)
 			return "操作错误", err
 		}
 	}
 	if len(Deadline) > 0 {
-		_, err = tx.Table("contest").Where("id = ?", ID).Cols("deadline").Update(param)
+		_, err = session.Table("contest").Where("id = ?", ID).Cols("deadline").Update(param)
 		if err != nil {
-			tx.Rollback()
+			fail := session.Rollback()
+			if fail != nil {
+				DPrintf("回滚失败")
+				return "", fail
+			}
 			fmt.Println("UpdateContestInfo Update Deadline error:", err)
 			return "操作错误", err
 		}
 	}
 
-	tx.Commit()
-	return "操作成功", err
+	return "操作成功", session.Commit()
 }
 
-func (self CmsContestLogic) DeleteContest(ids *[]int64) (string, error, int64) {
-	tx := MasterDB.NewSession()
+func (self CmsContestLogic) DeleteContest(ids *[]int64) (string, int64, error) {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("CmsContestLogic UpdateContest session.Begin() 发生错误:", err)
+		return "", 0, err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("CmsContestLogic UpdateContest session.Close() 发生错误:", err)
+		}
+	}()
 	var count int64
 
 	for _, id := range *ids {
@@ -159,16 +226,19 @@ func (self CmsContestLogic) DeleteContest(ids *[]int64) (string, error, int64) {
 			continue
 		}
 		contest.ID = id
-		affected, err := tx.Table("contest").Delete(&contest)
+		affected, err := session.Table("contest").Delete(&contest)
 		if err != nil {
-			tx.Rollback()
-			return "操作出错", err, 0
+			fail := session.Rollback()
+			if fail != nil {
+				DPrintf("回滚失败")
+				return "", 0, fail
+			}
+			return "操作出错", 0, err
 		}
 		if affected > 0 {
 			count += affected
 		}
 	}
 
-	tx.Commit()
-	return "操作成功", nil, count
+	return "操作成功", 0, session.Commit()
 }
