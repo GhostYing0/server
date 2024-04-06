@@ -145,7 +145,7 @@ func (self CmsRegistrationLogic) Add(username string, teamID string, contestName
 		return errors.New("用户不存在")
 	}
 
-	exist, err = session.Table("enroll_information").Where("contest = ? AND username = ?", contest.Name, user.Username).Exist()
+	exist, err = session.Table("enroll_information").Where("contest = ? AND username = ?", contest.Contest, user.Username).Exist()
 	if err != nil {
 		fail := session.Rollback()
 		if fail != nil {
@@ -168,7 +168,7 @@ func (self CmsRegistrationLogic) Add(username string, teamID string, contestName
 	enroll := &models.EnrollInformation{
 		Username:   user.Username,
 		UserID:     user.ID,
-		Contest:    contest.Name,
+		Contest:    contest.Contest,
 		CreateTime: models.FormatString2OftenTime(create_time),
 		School:     school,
 		Phone:      phone,

@@ -56,18 +56,18 @@ func (ContestController) GetContest(c *gin.Context) {
 // AddContest
 func (ContestController) AddContest(c *gin.Context) {
 	appG := app.Gin{C: c}
-	var Param models.ContestParam
+	var form models.ContestForm
 	var err error
 	var ret string
 
-	err = c.ShouldBindJSON(&Param)
+	err = c.ShouldBindJSON(&form)
 	if err != nil {
 		fmt.Println("ShouldBindJSON error:", err)
 		appG.ResponseErr(err.Error())
 		return
 	}
 
-	ret, err = logic.DefaultCmsContest.InsertContest(Param.Name, Param.Type, Param.StartDate, Param.Deadline)
+	ret, err = logic.DefaultCmsContest.InsertContest(form.Contest, form.ContestType, form.StartTime, form.Deadline)
 	if err != nil {
 		fmt.Println("logic.InsertContestInfo error:", err)
 		appG.ResponseErr(ret)

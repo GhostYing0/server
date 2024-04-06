@@ -11,6 +11,12 @@ type RegisterForm struct {
 	Password        string `json:"password" xorm:"password"`
 	ConfirmPassword string `json:"confirm_password"`
 	Role            int    `json:"role" xorm:"role"`
+	Name            string `json:"name" xorm:"name"`
+	Gender          string `json:"gender" xorm:"gender"`
+	School          string `json:"school" xorm:"school"`
+	College         string `json:"college" xorm:"college"`
+	Semester        string `json:"semester" xorm:"semester"`
+	Class           string `json:"class" xorm:"class"`
 }
 
 type UpdatePasswordForm struct {
@@ -30,6 +36,7 @@ type Account struct {
 	Username string    `json:"username" xorm:"username"`
 	Password string    `json:"password" xorm:"password"`
 	Role     int       `json:"role" xorm:"role"`
+	UserID   string    `json:"user_id" xorm:"user_id"`
 	Deleted  OftenTime `json:"deleted" xorm:"deleted"`
 }
 

@@ -83,3 +83,18 @@ func (g *Gin) ResponseErr(msgs ...string) {
 	})
 	return
 }
+
+func (g *Gin) Response(code int, msgs ...string) {
+	msgRet := "服务器发生错误"
+	data := make(map[string]interface{})
+	for _, msg := range msgs {
+		msgRet += " " + msg
+	}
+
+	g.C.JSON(http.StatusOK, Response{
+		Code: code,
+		Msg:  msgRet,
+		Data: data,
+	})
+	return
+}

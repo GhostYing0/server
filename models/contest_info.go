@@ -1,19 +1,32 @@
 package models
 
-type ContestParam struct {
-	Name      string `json:"name"`
-	Type      string `json:"type"`
-	StartDate string `json:"start_date"`
-	Deadline  string `json:"deadline"`
+type ContestForm struct {
+	Contest     string `json:"contest"`
+	ContestType string `json:"contest_type"`
+	StartTime   string `json:"start_time"`
+	Deadline    string `json:"deadline"`
 }
 
 type ContestInfo struct {
-	ID        int64     `json:"id" xorm:"id"`
-	Name      string    `json:"contest" xorm:"name"`
-	Type      string    `json:"type" xorm:"type"`
-	StartDate OftenTime `json:"create_time" xorm:"start_date"`
-	Deadline  OftenTime `json:"deadline" xorm:"deadline"`
-	Deleted   OftenTime `json:"deleted" xorm:"deleted"`
+	ID          int64     `json:"id" xorm:"id"`
+	Contest     string    `json:"contest" xorm:"contest"`
+	ContestType string    `json:"contest_type" xorm:"contest_type"`
+	CreateTime  OftenTime `json:"create_time" xorm:"create_time"`
+	StartTime   OftenTime `json:"start_time" xorm:"start_time"`
+	Deadline    OftenTime `json:"deadline" xorm:"deadline"`
+	State       int       `json:"state" xorm:"state"`
+	Deleted     OftenTime `json:"deleted" xorm:"deleted"`
+}
+
+type ContestReturn struct {
+	ID          int64     `json:"id" xorm:"id"`
+	Contest     string    `json:"contest" xorm:"contest"`
+	ContestType string    `json:"contest_type" xorm:"contest_type"`
+	CreateTime  string    `json:"create_time" xorm:"create_time"`
+	StartTime   string    `json:"start_time" xorm:"start_time"`
+	Deadline    string    `json:"deadline" xorm:"deadline"`
+	State       int       `json:"state" xorm:"state"`
+	Deleted     OftenTime `json:"deleted" xorm:"deleted"`
 }
 
 type UpdateContestParam struct {

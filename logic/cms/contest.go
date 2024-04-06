@@ -6,13 +6,14 @@ import (
 	. "server/logic"
 	"server/models"
 	. "server/utils/mydebug"
+	"time"
 )
 
 type CmsContestLogic struct{}
 
 var DefaultCmsContest = CmsContestLogic{}
 
-func (self CmsContestLogic) Display(paginator *Paginator) (*[]models.DisplayContestForm, int64, error) {
+func (self CmsContestLogic) Display(paginator *Paginator) (*[]models.ContestReturn, int64, error) {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("CmsContestLogic Display session.Begin() 发生错误:", err)
@@ -28,46 +29,32 @@ func (self CmsContestLogic) Display(paginator *Paginator) (*[]models.DisplayCont
 	var total int64
 	var err error
 
-	var List []models.DisplayContestForm
+	var List []models.ContestReturn
 
-	if paginator.PerPage() > 0 {
-		total, err = session.Table("contest").Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(&List)
-		if err != nil {
-			fail := session.Rollback()
-			if fail != nil {
-				DPrintf("回滚失败")
-				return nil, 0, fail
-			}
-			return nil, 0, err
-		}
-	} else {
-		total, err = session.Table("contest").Limit(10, 10*(paginator.CurPage()-1)).FindAndCount(&List)
-		if err != nil {
-			fail := session.Rollback()
-			if fail != nil {
-				DPrintf("回滚失败")
-				return nil, 0, fail
-			}
-			return nil, 0, err
-		}
+	total, err = session.Table("contest").Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(&List)
+	if err != nil {
+		return nil, 0, err
+	}
+	for _, l := range List {
+		fmt.Println(time.ParseInLocation("2006-01-02 15:04:05", l.CreateTime, time.Local))
 	}
 
 	return &List, total, session.Commit()
 }
 
-func (self CmsContestLogic) InsertContest(Name string, Type string, StartDate string, Deadline string) (string, error) {
-	if Name == "" || Type == "" || Deadline == "" || StartDate == "" {
+func (self CmsContestLogic) InsertContest(contest string, contestType string, stateTime string, deadline string) (string, error) {
+	if contest == "" || contestType == "" || stateTime == "" || deadline == "" {
 		return "竞赛信息不能为空", nil
 	}
 
-	StartTime := models.FormatString2OftenTime(StartDate)
-	DeadlineTime := models.FormatString2OftenTime(Deadline)
+	StartTime := models.FormatString2OftenTime(stateTime)
+	DeadlineTime := models.FormatString2OftenTime(deadline)
 
 	NewContest := &models.NewContest{
-		Name:      Name,
-		Type:      Type,
-		StartDate: StartTime,
-		Deadline:  DeadlineTime,
+		Contest:     contest,
+		ContestType: contestType,
+		StartTime:   StartTime,
+		Deadline:    DeadlineTime,
 	}
 
 	session := MasterDB.NewSession()
@@ -82,7 +69,7 @@ func (self CmsContestLogic) InsertContest(Name string, Type string, StartDate st
 		}
 	}()
 
-	has, err := session.Table("contest").Where("name = ? and type = ?", Name, Type).Exist()
+	has, err := session.Table("contest").Where("name = ? and type = ?", contest, contestType).Exist()
 	if err != nil {
 		fmt.Println("InsertContestInfo Exist error:", err)
 		return "操作错误", err
@@ -147,10 +134,10 @@ func (self CmsContestLogic) UpdateContest(ID int64, Name string, Type string, St
 	}
 
 	param := &models.ContestInfo{
-		Name:      Name,
-		Type:      Type,
-		StartDate: TimeStartDate,
-		Deadline:  TimeDeadline,
+		Contest:     Name,
+		ContestType: Type,
+		StartTime:   TimeStartDate,
+		Deadline:    TimeDeadline,
 	}
 
 	if len(Name) > 0 {

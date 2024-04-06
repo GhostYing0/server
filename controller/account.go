@@ -49,15 +49,17 @@ func (AccountController) Login(c *gin.Context) {
 // Register
 func (AccountController) Register(c *gin.Context) {
 	appG := app.Gin{C: c}
-	param := &models.RegisterForm{}
-	err := c.ShouldBindJSON(param)
+	form := &models.RegisterForm{}
+	err := c.ShouldBindJSON(form)
 	if err != nil {
 		DPrintf("Register 注册失败:", err)
 		appG.ResponseErr(err.Error())
 		return
 	}
 
-	err = logic.DefaultUserAccount.Register(param.Username, param.Password, param.ConfirmPassword, param.Role)
+	err = logic.DefaultUserAccount.Register(
+		form.Username, form.Password, form.ConfirmPassword, form.Role,
+		form.Name, form.Gender, form.Semester, form.College, form.School, form.Class)
 	if err != nil {
 		DPrintf("Register 注册发生错误:", err)
 		appG.ResponseErr(err.Error())

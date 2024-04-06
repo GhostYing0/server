@@ -8,6 +8,7 @@ import (
 	"server/utils/gredis"
 	. "server/utils/mydebug"
 	"server/utils/util"
+	"server/utils/uuid"
 	"time"
 )
 
@@ -78,7 +79,7 @@ func (self UserAccountLogic) Login(username string, password string, role int) (
 	return token, session.Commit()
 }
 
-func (self UserAccountLogic) Register(username string, password string, confirmPassword string, role int) error {
+func (self UserAccountLogic) Register(username string, password string, confirmPassword string, role int, name, gender, semester, college, school, class string) error {
 	if username == "" || password == "" {
 		return errors.New("用户名或密码不能为空")
 	}
@@ -101,32 +102,41 @@ func (self UserAccountLogic) Register(username string, password string, confirmP
 		}
 	}()
 
-	newAccount := models.LoginForm{
-		Username: username,
-		Password: password,
-		Role:     role,
-	}
-
-	has, err := session.Table("account").Where("username = ?", newAccount.Username).And("role = ?", newAccount.Role).Exist()
+	has, err := session.Table("account").Where("username = ?", username).And("role = ?", role).Exist()
 	if err != nil {
 		DPrintf("Register 查询用户发生错误:", err)
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
 		return err
 	}
 	if has {
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
 		return errors.New("用户已存在")
 	}
 
-	newAccount.Password = util.EncodeMD5(newAccount.Password)
+	searchSchoolResult := &models.School{}
+	has, err = session.Where("school = ?", school).Get(searchSchoolResult)
+	if err != nil {
+		DPrintf("Register 查询学校发生错误:", err)
+		return err
+	}
+	if !has {
+		return errors.New("学校不存在")
+	}
+
+	searchCollegeResult := &models.College{}
+	has, err = session.Where("college = ?", college).Get(searchCollegeResult)
+	if err != nil {
+		DPrintf("Register 查询学院发生错误:", err)
+		return err
+	}
+	if !has {
+		return errors.New("学院不存在")
+	}
+
+	newAccount := models.Account{
+		Username: username,
+		Password: util.EncodeMD5(password),
+		Role:     role,
+		UserID:   uuid.CreateUUIDByNameSpace(username, password, name, gender, semester, college, school, class, role, time.Now()).String(),
+	}
 
 	_, err = session.Insert(newAccount)
 	if err != nil {
@@ -137,6 +147,59 @@ func (self UserAccountLogic) Register(username string, password string, confirmP
 			return fail
 		}
 		return err
+	}
+
+	if role == 1 {
+		//学生注册
+		searchSemesterResult := &models.Semester{}
+		has, err = session.Where("semester = ?", semester).Get(searchSemesterResult)
+		if err != nil {
+			DPrintf("Register 查询学期发生错误:", err)
+			return err
+		}
+		if !has {
+			return errors.New("学期不合法")
+		}
+
+		student := models.Student{
+			StudentID:  newAccount.UserID,
+			Name:       name,
+			Gender:     gender,
+			Class:      class,
+			SchoolID:   searchSchoolResult.SchoolID,
+			CollegeID:  searchCollegeResult.CollegeID,
+			SemesterID: searchSemesterResult.SemesterID,
+		}
+		_, err = session.Insert(student)
+		if err != nil {
+			DPrintf("Register 添加学生失败:", err)
+			fail := session.Rollback()
+			if fail != nil {
+				DPrintf("回滚失败")
+				return fail
+			}
+			return err
+		}
+
+	} else if role == 2 {
+		//教师注册
+		teacher := models.Teacher{
+			TeacherID: newAccount.UserID,
+			Name:      name,
+			Gender:    gender,
+			SchoolID:  searchSchoolResult.SchoolID,
+			CollegeID: searchCollegeResult.CollegeID,
+		}
+		_, err = session.Insert(teacher)
+		if err != nil {
+			DPrintf("Register 添加教师失败:", err)
+			fail := session.Rollback()
+			if fail != nil {
+				DPrintf("回滚失败")
+				return fail
+			}
+			return err
+		}
 	}
 
 	return session.Commit()

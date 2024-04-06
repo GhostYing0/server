@@ -132,7 +132,7 @@ func (self CmsGradeLogic) Add(username string, contestName string, grade string,
 
 	enroll := &models.GradeInformation{
 		Username:    user.Username,
-		Contest:     contest.Name,
+		Contest:     contest.Contest,
 		CreateTime:  models.FormatString2OftenTime(create_time),
 		Grade:       grade,
 		Certificate: certificate,
