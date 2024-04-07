@@ -15,31 +15,35 @@ type UserController struct{}
 
 // RegisterRoutes
 func (self UserController) RegisterRoutes(g *gin.RouterGroup) {
-	g.GET("/get_user", self.GetUser)          // 查看用户
-	g.POST("/add_user", self.AddUser)         // 添加用户
-	g.POST("/update_user", self.UpdateUser)   // 更新用户
-	g.DELETE("/delete_user", self.DeleteUser) // 删除用户
+	g.GET("/getStudentUser", self.GetStudentUser) // 查看用户
+	g.GET("/getTeacherUser", self.GetTeacherUser) // 查看用户
+	g.POST("/addUser", self.AddUser)              // 添加用户
+	g.POST("/updateUser", self.UpdateUser)        // 更新用户
+	g.DELETE("/deleteUSer", self.DeleteUser)      // 删除用户
 
-	g.GET("/getCount", self.GetCount)
+	g.GET("/getUserCount", self.GetCount)
 }
 
-// GetUser
-func (UserController) GetUser(c *gin.Context) {
+// GetStudentUser
+func (UserController) GetStudentUser(c *gin.Context) {
 	appG := app.Gin{C: c}
-	var err error
-	var ret string
 
 	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
 	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
-	mode := com.StrTo(c.DefaultQuery("mode", "0")).MustInt()
 	username := c.DefaultQuery("searchUser", "")
+	gender := c.DefaultQuery("gender", "")
+	school := c.DefaultQuery("school", "")
+	semester := c.DefaultQuery("semester", "")
+	college := c.DefaultQuery("college", "")
+	class := c.DefaultQuery("class", "")
+	name := c.DefaultQuery("name", "")
 
 	fmt.Println("limit:", limit, " curPage:", curPage)
 	fmt.Println(c.Request.URL)
 	paginator := NewPaginator(curPage, limit)
 
 	data := make(map[string]interface{})
-	list, total, err := logic.DefaultCmsUser.Display(paginator, mode, username)
+	list, total, err := logic.DefaultCmsUser.DisplayStudent(paginator, username, gender, school, semester, college, class, name)
 	if err != nil {
 		appG.ResponseErr(err.Error())
 		return
@@ -55,13 +59,51 @@ func (UserController) GetUser(c *gin.Context) {
 		data["total_page"] = paginator.GetTotalPage()
 	}
 
-	appG.ResponseSucMsg(data, ret)
+	appG.ResponseSucMsg(data)
+}
+
+// GetTeacherUser
+func (UserController) GetTeacherUser(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
+	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
+	username := c.DefaultQuery("searchUser", "")
+	gender := c.DefaultQuery("gender", "")
+	school := c.DefaultQuery("school", "")
+	semester := c.DefaultQuery("semester", "")
+	college := c.DefaultQuery("college", "")
+	class := c.DefaultQuery("class", "")
+	name := c.DefaultQuery("name", "")
+
+	fmt.Println("limit:", limit, " curPage:", curPage)
+	fmt.Println(c.Request.URL)
+	paginator := NewPaginator(curPage, limit)
+
+	data := make(map[string]interface{})
+	list, total, err := logic.DefaultCmsUser.DisplayTeacher(paginator, username, gender, school, semester, college, class, name)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	paginator.SetTotalPage(total)
+
+	if list != nil {
+		data["list"] = list
+		data["total"] = total
+		data["page_size"] = limit
+		data["page_number"] = curPage
+		data["total_page"] = paginator.GetTotalPage()
+	}
+
+	appG.ResponseSucMsg(data)
 }
 
 // AddUser
 func (UserController) AddUser(c *gin.Context) {
 	appG := app.Gin{C: c}
-	var Param models.User
+	var Param models.OldUser
 	var err error
 	var ret string
 

@@ -8,6 +8,7 @@ import (
 	logic "server/logic/cms"
 	"server/models"
 	"server/utils/app"
+	. "server/utils/mydebug"
 	"strconv"
 )
 
@@ -20,6 +21,8 @@ func (self ContestController) RegisterRoutes(g *gin.RouterGroup) {
 	g.POST("/updateContest", self.UpdateContest)   // 更改竞赛信息
 	g.DELETE("/deleteContest", self.DeleteContest) // 删除竞赛信息
 	g.POST("/processContest", self.ProcessContest) //审核竞赛
+
+	g.GET("/getContestCount", self.GetCount)
 }
 
 // GetContest
@@ -30,11 +33,14 @@ func (ContestController) GetContest(c *gin.Context) {
 
 	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
 	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
+	contest := c.DefaultQuery("contest", "")
+	contestType := c.DefaultQuery("contest_type", "")
+	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
 
 	paginator := NewPaginator(curPage, limit)
 
 	data := make(map[string]interface{})
-	list, total, err := logic.DefaultCmsContest.Display(paginator)
+	list, total, err := logic.DefaultCmsContest.Display(paginator, contest, contestType, state)
 	if err != nil {
 		appG.ResponseErr(err.Error())
 		return
@@ -67,7 +73,7 @@ func (ContestController) AddContest(c *gin.Context) {
 		return
 	}
 
-	ret, err = logic.DefaultCmsContest.InsertContest(form.Contest, form.ContestType, form.StartTime, form.Deadline)
+	ret, err = logic.DefaultCmsContest.InsertContest(form.Contest, form.ContestType, form.StartTime, form.Deadline, form.State)
 	if err != nil {
 		fmt.Println("logic.InsertContestInfo error:", err)
 		appG.ResponseErr(ret)
@@ -80,18 +86,18 @@ func (ContestController) AddContest(c *gin.Context) {
 // UpdateContest
 func (ContestController) UpdateContest(c *gin.Context) {
 	appG := app.Gin{C: c}
-	var Param models.UpdateContestParam
+	var form models.UpdateContestForm
 	var err error
 	var ret string
 
-	err = c.ShouldBindJSON(&Param)
+	err = c.ShouldBindJSON(&form)
 	if err != nil {
 		fmt.Println("ShouldBindJSON error:", err)
 		appG.ResponseErr(err.Error())
 		return
 	}
 
-	ret, err = logic.DefaultCmsContest.UpdateContest(Param.ID, Param.Name, Param.Type, Param.StartDate, Param.Deadline)
+	ret, err = logic.DefaultCmsContest.UpdateContest(form.ID, form.Contest, form.ContestType, form.StartTime, form.Deadline, form.State)
 	if err != nil {
 		fmt.Println("logic.UpdateContestInfo error:", err)
 		appG.ResponseErr(err.Error())
@@ -123,4 +129,21 @@ func (ContestController) DeleteContest(c *gin.Context) {
 }
 
 func (ContestController) ProcessContest(c *gin.Context) {
+}
+
+// GetCount
+func (ContestController) GetCount(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	count, err := logic.DefaultCmsContest.GetContestCount()
+
+	if err != nil {
+		DPrintf("GetEnrollCount 出错:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+	data := make(map[string]interface{})
+	data["count"] = count
+
+	appG.ResponseSucMsg(data, "查询成功")
 }

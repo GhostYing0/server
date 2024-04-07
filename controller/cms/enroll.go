@@ -23,6 +23,8 @@ func (self RegistrationController) RegisterRoutes(g *gin.RouterGroup) {
 	g.POST("/addEnrollInformation", self.AddEnrollInformation)         // 添加用户报名信息
 	g.POST("/updateEnrollInformation", self.UpdateEnrollInformation)   // 更改用户报名信息
 	g.DELETE("/deleteEnrollInformation", self.DeleteEnrollInformation) // 删除用户报名信息
+
+	g.GET("/getEnrollCount", self.GetCount)
 }
 
 // GetRegisteredContestByUser
@@ -131,4 +133,21 @@ func (RegistrationController) DeleteEnrollInformation(c *gin.Context) {
 	}
 
 	appG.ResponseSuc("删除", strconv.Itoa(int(count)), "条报名信息成功")
+}
+
+// GetCount
+func (RegistrationController) GetCount(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	count, err := logic.DefaultRegistrationContest.GetEnrollCount()
+
+	if err != nil {
+		DPrintf("GetEnrollCount 出错:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+	data := make(map[string]interface{})
+	data["count"] = count
+
+	appG.ResponseSucMsg(data, "查询成功")
 }

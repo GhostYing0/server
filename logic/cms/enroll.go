@@ -285,3 +285,14 @@ func (self CmsRegistrationLogic) Delete(ids *[]int64) (int64, error) {
 
 	return count, session.Commit()
 }
+
+func (self CmsRegistrationLogic) GetEnrollCount() (int64, error) {
+	session := MasterDB.NewSession()
+
+	count, err := session.Table("enroll").Count()
+	if err != nil {
+		DPrintf("GetEnrollCount Count 发生错误:", err)
+		return count, err
+	}
+	return count, err
+}

@@ -13,7 +13,7 @@ type CmsUserLogic struct{}
 
 var DefaultCmsUser = CmsUserLogic{}
 
-func (self CmsUserLogic) Display(paginator *Paginator, mode int, username string) (*[]models.User, int64, error) {
+func (self CmsUserLogic) DisplayStudent(paginator *Paginator, username, gender, school, semester, college, class, name string) (*[]models.StudentReturn, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
 		return nil, 0, errors.New("分页器为空")
@@ -31,32 +31,151 @@ func (self CmsUserLogic) Display(paginator *Paginator, mode int, username string
 		}
 	}()
 
-	if mode == 1 {
-		session.Where("role = 1")
-	} else if mode == 2 {
-		session.Where("role = 2")
-	}
-
 	if username != "" {
-		session.Where("username = ?", username)
+		session.Table("account").Where("username = ?", username)
+	}
+	//查询学生
+	session.Table("account").Where("role = ?", 1)
+	if gender != "" {
+		session.Table("student").Where("gender = ?", gender)
+	}
+	if school != "" {
+		session.Table("student").Where("school = ?", school)
+	}
+	if semester != "" {
+		session.Table("student").Where("name = ?", name)
+	}
+	if college != "" {
+		session.Table("student").Where("college = ?", college)
+	}
+	if name != "" {
+		session.Table("student").Where("name = ?", name)
+	}
+	if class != "" {
+		session.Table("student").Where("class = ?", class)
 	}
 
-	data := &[]models.User{}
+	data := &[]models.AccountStudent{}
 
-	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(data)
+	total, err := session.
+		Join("LEFT", "student", "account.user_id = student.student_id").
+		Limit(paginator.PerPage(), paginator.Offset()).
+		FindAndCount(data)
 	if err != nil {
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return data, 0, fail
-		}
 		DPrintf("Search 查找成绩信息失败:", err)
-		return data, 0, err
+		return nil, 0, err
 	}
 
-	return data, total, session.Rollback()
+	list := make([]models.StudentReturn, total)
+
+	for i := 0; i < len(*data); i++ {
+		list[i].ID = (*data)[i].ID
+		list[i].Username = (*data)[i].Username
+		list[i].Password = (*data)[i].Password
+		list[i].Role = (*data)[i].Role
+		list[i].StudentID = (*data)[i].StudentID
+		list[i].Name = (*data)[i].Name
+		list[i].Gender = (*data)[i].Gender
+		list[i].Class = (*data)[i].Class
+		list[i].Avatar = (*data)[i].Avatar
+
+		searchSchool := &models.School{}
+		searchSemester := &models.Semester{}
+		searchCollege := &models.College{}
+		_, err := session.Where("school_id = ?", (*data)[i].SchoolID).Get(searchSchool)
+		if err != nil {
+			list[i].School = "查询出错"
+		}
+		list[i].School = searchSchool.School
+		_, err = session.Where("semester_id = ?", (*data)[i].SemesterID).Get(searchSemester)
+		if err != nil {
+			list[i].Semester = "查询出错"
+		}
+		list[i].Semester = searchSemester.Semester
+		_, err = session.Where("college_id = ?", (*data)[i].CollegeID).Get(searchCollege)
+		if err != nil {
+			list[i].College = "查询出错"
+		}
+		list[i].College = searchCollege.College
+	}
+
+	return &list, total, session.Rollback()
 }
 
+func (self CmsUserLogic) DisplayTeacher(paginator *Paginator, username, gender, school, semester, college, class, name string) (*[]models.TeacherReturn, int64, error) {
+	if paginator == nil {
+		DPrintf("Search 分页器为空")
+		return nil, 0, errors.New("分页器为空")
+	}
+
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("cmsUser Display session.Begin() 发生错误:", err)
+		return nil, 0, err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("cmsUser Display session.Close() 发生错误:", err)
+		}
+	}()
+
+	if username != "" {
+		session.Table("account").Where("username = ?", username)
+	}
+	//查询学生
+	session.Table("account").Where("role = ?", 2)
+	if gender != "" {
+		session.Table("teacher").Where("gender = ?", gender)
+	}
+	if school != "" {
+		session.Table("teacher").Where("school = ?", school)
+	}
+	if college != "" {
+		session.Table("teacher").Where("college = ?", college)
+	}
+	if name != "" {
+		session.Table("teacher").Where("name = ?", name)
+	}
+
+	data := &[]models.AccountTeacher{}
+
+	total, err := session.
+		Join("LEFT", "teacher", "account.user_id = teacher.teacher_id").
+		Limit(paginator.PerPage(), paginator.Offset()).
+		FindAndCount(data)
+	if err != nil {
+		DPrintf("Search 查找成绩信息失败:", err)
+		return nil, 0, err
+	}
+
+	list := make([]models.TeacherReturn, total)
+
+	for i := 0; i < len(*data); i++ {
+		list[i].ID = (*data)[i].ID
+		list[i].Username = (*data)[i].Username
+		list[i].Password = (*data)[i].Password
+		list[i].Role = (*data)[i].Role
+		list[i].TeacherID = (*data)[i].TeacherID
+		list[i].Name = (*data)[i].Name
+		list[i].Gender = (*data)[i].Gender
+
+		searchSchool := &models.School{}
+		searchCollege := &models.College{}
+		_, err := session.Where("school_id = ?", (*data)[i].SchoolID).Get(searchSchool)
+		if err != nil {
+			list[i].School = "查询出错"
+		}
+		list[i].School = searchSchool.School
+		_, err = session.Where("college_id = ?", (*data)[i].CollegeID).Get(searchCollege)
+		if err != nil {
+			list[i].College = "查询出错"
+		}
+		list[i].College = searchCollege.College
+	}
+
+	return &list, total, session.Rollback()
+}
 func (self CmsUserLogic) AddUser(username string, password string, role int) (string, error) {
 	if len(username) == 0 || len(password) == 0 {
 		return "账号和密码不能为空 ", nil
@@ -79,7 +198,7 @@ func (self CmsUserLogic) AddUser(username string, password string, role int) (st
 		return "用户已存在", err
 	}
 
-	param := &models.User{
+	param := &models.OldUser{
 		Username: username,
 		Password: password,
 		Role:     role,
@@ -125,7 +244,7 @@ func (self CmsUserLogic) UpdateUser(ID int64, newUsername string, newPassword st
 		return err
 	}
 
-	param := &models.User{
+	param := &models.OldUser{
 		Username: newUsername,
 		Password: newPassword,
 		Role:     role,
@@ -186,16 +305,6 @@ func (self CmsUserLogic) DeleteUser(ids *[]int64) (int64, error) {
 
 func (self CmsUserLogic) GetUserCount() (int64, error) {
 	session := MasterDB.NewSession()
-	if err := session.Begin(); err != nil {
-		DPrintf("GetUserCount session.Begin() 发生错误:", err)
-		return 0, err
-	}
-	defer func() {
-		err := session.Close()
-		if err != nil {
-			DPrintf("GetUserCount session.Close() 发生错误:", err)
-		}
-	}()
 
 	count, err := session.Table("account").Count()
 	if err != nil {

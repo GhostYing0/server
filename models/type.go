@@ -52,3 +52,21 @@ func (this *OftenTime) UnmarshalJSON(data []byte) (err error) {
 
 	return
 }
+
+func MysqlFormatString2String(str string) string {
+	parsedTimeMysql, err := time.Parse(time.RFC3339, str)
+	if err != nil {
+		mydebug.DPrintf("解析时间出错")
+		return ""
+	}
+	stringTime := parsedTimeMysql.String()
+
+	loc, err := time.LoadLocation("Asia/Shanghai")
+	parsedTime, err := time.ParseInLocation("2006-01-02 15:04:05 MST", stringTime[:len(stringTime)-6], loc)
+	if err != nil {
+		mydebug.DPrintf("解析时间出错")
+		return ""
+	}
+	formattedTime := parsedTime.Format("2006-01-02 15:04:05")
+	return formattedTime
+}

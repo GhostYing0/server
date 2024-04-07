@@ -266,3 +266,14 @@ func (self CmsGradeLogic) Delete(ids *[]int64) (int64, error) {
 
 	return count, session.Commit()
 }
+
+func (self CmsGradeLogic) GetGradeCount() (int64, error) {
+	session := MasterDB.NewSession()
+
+	count, err := session.Table("grade").Count()
+	if err != nil {
+		DPrintf("GetGradeCount Count 发生错误:", err)
+		return count, err
+	}
+	return count, err
+}

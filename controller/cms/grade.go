@@ -23,6 +23,8 @@ func (self GradeController) RegisterRoutes(g *gin.RouterGroup) {
 	g.POST("/addGrade", self.AddGrade)         // 添加成绩信息
 	g.POST("/updateGrade", self.UpdateGrade)   // 更改成绩信息
 	g.DELETE("/deleteGrade", self.DeleteGrade) // 删除成绩信息
+
+	g.GET("/getGradeCount", self.GetCount)
 }
 
 // GetRegisteredContestByUser
@@ -127,4 +129,21 @@ func (GradeController) DeleteGrade(c *gin.Context) {
 	}
 
 	appG.ResponseSuc("删除", strconv.Itoa(int(count)), "条成绩信息成功")
+}
+
+// GetCount
+func (GradeController) GetCount(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	count, err := logic.DefaultGradeContest.GetGradeCount()
+
+	if err != nil {
+		DPrintf("GetUserCount 出错:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+	data := make(map[string]interface{})
+	data["count"] = count
+
+	appG.ResponseSucMsg(data, "查询成功")
 }
