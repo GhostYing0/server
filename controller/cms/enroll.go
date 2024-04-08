@@ -1,7 +1,6 @@
 package cms
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/unknwon/com"
 	. "server/logic"
@@ -71,17 +70,16 @@ func (RegistrationController) GetEnrollInformation(c *gin.Context) {
 // AddRegisteredContestByUser
 func (RegistrationController) AddEnrollInformation(c *gin.Context) {
 	appG := app.Gin{C: c}
-	param := &models.NewEnrollInformation{}
+	form := &models.EnrollInformationForm{}
 
-	err := c.ShouldBindJSON(&param)
+	err := c.ShouldBindJSON(&form)
 	if err != nil {
 		DPrintf("AddEnrollInformation c.ShouldBindJSON 发生错误:", err)
 		appG.ResponseErr(err.Error())
 		return
 	}
 
-	fmt.Println("asd:", param)
-	err = logic.DefaultEnrollContest.Add(param.UserName, param.TeamID, param.ContestName, param.CreateTime, param.School, param.Phone, param.Email, param.State)
+	err = logic.DefaultEnrollContest.Add(form.UserName, form.Name, form.Contest, form.CreateTime, form.School, form.Phone, form.Email, form.State)
 	if err != nil {
 		DPrintf("AddEnrollInformation 发生错误:", err)
 		appG.ResponseErr(err.Error())
@@ -94,16 +92,16 @@ func (RegistrationController) AddEnrollInformation(c *gin.Context) {
 // UpdateRegisteredContestByUser
 func (RegistrationController) UpdateEnrollInformation(c *gin.Context) {
 	appG := app.Gin{C: c}
-	param := &models.EnrollForm{}
+	form := &models.EnrollInformationForm{}
 
-	err := c.ShouldBindJSON(param)
+	err := c.ShouldBindJSON(form)
 	if err != nil {
 		DPrintf("UpdateEnrollInformation c.ShouldBindJSON 发生错误:", err)
 		appG.ResponseErr(err.Error())
 		return
 	}
 
-	err = logic.DefaultEnrollContest.Update(param.ID, param.UserName, param.TeamID, param.ContestName, param.CreateTime, param.School, param.Phone, param.Email, param.State)
+	err = logic.DefaultEnrollContest.Update(form.ID, form.UserName, form.Name, form.Contest, form.CreateTime, form.School, form.Phone, form.Email, form.State)
 	if err != nil {
 		DPrintf("UpdateEnrollInformation 发生错误:", err)
 		appG.ResponseErr(err.Error())

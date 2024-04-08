@@ -9,6 +9,7 @@ import (
 	. "server/database"
 	"server/models"
 	"server/utils/gredis"
+	"server/utils/logging"
 	. "server/utils/mydebug"
 	"server/utils/util"
 	"strconv"
@@ -95,30 +96,94 @@ func (self PublicLogic) UploadImg(file *multipart.FileHeader) (string, error) {
 
 func SearchSchoolByName(name string) (*models.School, error) {
 	school := &models.School{}
-	_, err := MasterDB.Where("school = ?", name).Get(school)
+	exist, err := MasterDB.Where("school = ?", name).Get(school)
 	if err != nil {
 		DPrintf("查询学校失败")
+		logging.L.Error(err)
 		return school, err
+	}
+	if !exist {
+		return school, errors.New("不存在")
 	}
 	return school, err
 }
 
 func SearchSemesterByName(name string) (*models.Semester, error) {
 	semester := &models.Semester{}
-	_, err := MasterDB.Where("semester = ?", name).Get(semester)
+	exist, err := MasterDB.Where("semester = ?", name).Get(semester)
 	if err != nil {
 		DPrintf("查询学期失败")
+		logging.L.Error(err)
 		return semester, err
+	}
+	if !exist {
+		return semester, errors.New("不存在")
 	}
 	return semester, err
 }
 
 func SearchCollegeByName(name string) (*models.College, error) {
 	college := &models.College{}
-	_, err := MasterDB.Where("college = ?", name).Get(college)
+	exist, err := MasterDB.Where("college = ?", name).Get(college)
 	if err != nil {
 		DPrintf("查询学院失败")
+		logging.L.Error(err)
 		return college, err
 	}
+	if !exist {
+		return college, errors.New("不存在")
+	}
 	return college, err
+}
+
+func SearchStudentByName(name string) (*models.Student, error) {
+	student := &models.Student{}
+	exist, err := MasterDB.Where("name = ?", name).Get(student)
+	if err != nil {
+		logging.L.Error(err)
+		return student, err
+	}
+	if !exist {
+		return student, errors.New("不存在")
+	}
+	return student, err
+}
+
+func SearchTeacherByName(name string) (*models.Teacher, error) {
+	teacher := &models.Teacher{}
+	exist, err := MasterDB.Where("name = ?", name).Get(teacher)
+	if err != nil {
+		logging.L.Error(err)
+		return teacher, err
+	}
+	if !exist {
+		return teacher, errors.New("不存在")
+	}
+	return teacher, err
+}
+
+func SearchContestByName(name string) (*models.ContestInfo, error) {
+	contest := &models.ContestInfo{}
+	exist, err := MasterDB.Where("contest = ?", name).Get(contest)
+	if err != nil {
+		logging.L.Error(err)
+		return contest, err
+	}
+	if !exist {
+		return contest, errors.New("不存在")
+	}
+	return contest, err
+}
+
+func SearchAccountByUsername(username string) (*models.Account, error) {
+	account := &models.Account{}
+	exist, err := MasterDB.Where("username = ?", username).Get(account)
+	if err != nil {
+		logging.L.Error(err)
+		return account, err
+	}
+	if !exist {
+		return account, errors.New("不存在")
+	}
+	return account, err
 }

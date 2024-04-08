@@ -5,6 +5,7 @@ import (
 	"fmt"
 	. "server/database"
 	. "server/logic"
+	"server/logic/public"
 	"server/models"
 	"server/utils/logging"
 	. "server/utils/mydebug"
@@ -31,17 +32,18 @@ func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, s
 
 	session.Join("LEFT", "student", "student.student_id = enroll_information.student_id")
 	session.Join("LEFT", "contest", "contest.id = enroll_information.contest_id")
+	session.Join("LEFT", "account", "account.user_id = student.student_id")
 	if name != "" {
-		session.Where("name = ?", name)
+		session.Where("student.name = ?", name)
 	}
 	if contest != "" {
-		session.Where("contest = ?", contest)
+		session.Where("contest.contest = ?", contest)
 	}
 	if startTime != "" && endTime != "" {
-		session.Table("enroll_information").Where("create_time > ? and create_time < ?", startTime, endTime)
+		session.Where("enroll_information.create_time > ? and enroll_information.create_time < ?", startTime, endTime)
 	}
 	if state != -1 {
-		session.Table("enroll_information").Where("state = ?", state)
+		session.Where("enroll_information.state = ?", state)
 	}
 
 	data := &[]models.EnrollContestStudent{}
@@ -63,10 +65,12 @@ func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, s
 	list := make([]models.EnrollInformationReturn, len(*data))
 	for i := 0; i < len(*data); i++ {
 		list[i].ID = (*data)[i].EnrollInformation.ID
+		list[i].Username = (*data)[i].Username
+		list[i].StudentID = (*data)[i].Student.StudentID
 		list[i].Name = (*data)[i].Name
 		list[i].TeamID = (*data)[i].TeamID
 		list[i].Contest = (*data)[i].Contest.Contest
-		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].EnrollInformation.CreateTime.String())
+		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].EnrollInformation.CreateTime)
 		list[i].School = (*data)[i].School
 		list[i].Phone = (*data)[i].Phone
 		list[i].Email = (*data)[i].Email
@@ -76,93 +80,65 @@ func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, s
 	return &list, total, session.Commit()
 }
 
-func (self CmsEnrollLogic) Add(username string, teamID string, contestName string, create_time string, school string, phone string, email string, state int) error {
+func (self CmsEnrollLogic) Add(username string, name string, contest string, createTime string, school string, phone string, email string, state int) error {
 	if len(username) <= 0 {
 		return errors.New("请填写姓名")
 	}
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("InsertEnrollInformation session.Begin() 发生错误:", err)
+		logging.L.Error(err)
 		return err
 	}
 	defer func() {
 		err := session.Close()
 		if err != nil {
 			DPrintf("InsertEnrollInformation session.Close() 发生错误:", err)
+			logging.L.Error(err)
 		}
 	}()
 
-	contest := &models.ContestInfo{}
-	exist, err := session.Where("name = ?", contestName).Get(contest)
+	contestInfo, err := public.SearchContestByName(contest)
 	if err != nil {
-		DPrintf("InsertEnrollInformation 查询竞赛发生错误: ", err)
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
+		logging.L.Error(err)
 		return err
 	}
-	if !exist {
-		DPrintf("InsertEnrollInformation 竞赛不存在")
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
-		return errors.New("竞赛不存在")
-	}
 
-	user := &models.Account{}
-	exist, err = session.Table("account").In("username", username).Get(user)
+	_, err = public.SearchAccountByUsername(username)
 	if err != nil {
-		DPrintf("InsertEnrollInformation 查询参赛者失败:", err)
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
+		logging.L.Error(err)
 		return err
 	}
-	if !exist {
-		DPrintf("InsertEnrollInformation 用户不存在")
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
-		return errors.New("用户不存在")
+
+	student, err := public.SearchStudentByName(name)
+	if err != nil {
+		logging.L.Error(err)
+		return err
 	}
 
-	exist, err = session.Table("enroll_information").Where("contest = ? AND username = ?", contest.Contest, user.Username).Exist()
+	exist, err := session.
+		Table("enroll_information").
+		Where("student_id = ? AND contest_id = ?", student.StudentID, contestInfo.ID).
+		Exist()
 	if err != nil {
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
+		logging.L.Error(err)
 		DPrintf("InsertEnrollInformation 查询重复报名发生错误: ", err)
 		return err
 	}
 	if exist {
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
+		logging.L.Error(err)
 		DPrintf("请勿重复报名")
 		return errors.New("请勿重复报名")
 	}
 
-	enroll := &models.EnrollInformation{
-		//Username:   user.Username,
-		//UserID:     user.ID,
-		//Contest:    contest.Contest,
-		CreateTime: models.FormatString2OftenTime(create_time),
-		School:     school,
-		Phone:      phone,
-		Email:      email,
-		State:      state,
+	enroll := &models.NewEnroll{
+		StudentID:  student.StudentID,
+		ContestID:  contestInfo.ID,
+		CreateTime: models.NewOftenTime(),
+		//School:     school,
+		Phone: phone,
+		Email: email,
+		State: state,
 	}
 
 	_, err = session.Insert(enroll)
@@ -170,8 +146,10 @@ func (self CmsEnrollLogic) Add(username string, teamID string, contestName strin
 		fail := session.Rollback()
 		if fail != nil {
 			DPrintf("回滚失败")
+			logging.L.Error(fail)
 			return fail
 		}
+		logging.L.Error(err)
 		DPrintf("InsertEnrollInformation 添加报名信息发生错误:", err)
 		return err
 	}
@@ -179,7 +157,7 @@ func (self CmsEnrollLogic) Add(username string, teamID string, contestName strin
 	return session.Commit()
 }
 
-func (self CmsEnrollLogic) Update(id int64, username string, teamID string, contestName string, create_time string, school string, phone string, email string, state int) error {
+func (self CmsEnrollLogic) Update(id int64, username string, name string, contest string, createTime string, school string, phone string, email string, state int) error {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("InsertEnrollInformation session.Begin() 发生错误:", err)
@@ -192,42 +170,50 @@ func (self CmsEnrollLogic) Update(id int64, username string, teamID string, cont
 		}
 	}()
 
+	contestInfo, err := public.SearchContestByName(contest)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
+	_, err = public.SearchAccountByUsername(username)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
+	student, err := public.SearchStudentByName(name)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
 	has, err := session.Table("enroll_information").Where("id = ?", id).Exist()
 	if err != nil {
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
+		logging.L.Error(err)
 		return err
 	}
 	if !has {
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
+		logging.L.Error("报名信息不存在")
 		return errors.New("报名信息不存在")
 	}
 
-	newEnroll := &models.EnrollInformation{
-		ID: id,
-		//Contest:    contestName,
-		//Username:   username,
-		TeamID:     teamID,
-		CreateTime: models.FormatString2OftenTime(create_time),
-		School:     school,
+	_, err = session.Where("id = ?", id).Update(&models.NewEnroll{
+		StudentID:  student.StudentID,
+		ContestID:  contestInfo.ID,
+		CreateTime: models.FormatString2OftenTime(createTime),
 		Phone:      phone,
 		Email:      email,
 		State:      state,
-	}
-	_, err = session.Where("id = ?", id).Update(newEnroll)
+	})
 	if err != nil {
 		fail := session.Rollback()
 		if fail != nil {
 			DPrintf("回滚失败")
+			logging.L.Error(fail)
 			return fail
 		}
+		logging.L.Error(err)
 		DPrintf("cms enroll Update 失败:", err)
 		return err
 	}

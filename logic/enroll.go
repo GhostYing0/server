@@ -123,7 +123,7 @@ func (self EnrollLogic) InsertEnrollInformation(username string, teamID string, 
 		//Username:   user.Username,
 		//UserID:     user.ID,
 		//Contest:    contest.Contest,
-		CreateTime: models.FormatString2OftenTime(create_time),
+		CreateTime: models.MysqlFormatString2String(create_time),
 		School:     school,
 		Phone:      phone,
 		Email:      email,
@@ -196,7 +196,7 @@ func (self EnrollLogic) Search(paginator *Paginator, userID int64, contest strin
 		//list[i].UserID = (*temp)[i].UserID
 		list[i].TeamID = (*temp)[i].TeamID
 		//list[i].Contest = (*temp)[i].Contest
-		list[i].CreateTime = (*temp)[i].CreateTime.String()
+		list[i].CreateTime = models.MysqlFormatString2String((*temp)[i].CreateTime)
 		list[i].School = (*temp)[i].School
 		list[i].Phone = (*temp)[i].Phone
 		list[i].Email = (*temp)[i].Email
