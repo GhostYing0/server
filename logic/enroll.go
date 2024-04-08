@@ -120,9 +120,9 @@ func (self EnrollLogic) InsertEnrollInformation(username string, teamID string, 
 	}
 
 	enroll := &models.EnrollInformation{
-		Username:   user.Username,
-		UserID:     user.ID,
-		Contest:    contest.Contest,
+		//Username:   user.Username,
+		//UserID:     user.ID,
+		//Contest:    contest.Contest,
 		CreateTime: models.FormatString2OftenTime(create_time),
 		School:     school,
 		Phone:      phone,
@@ -144,7 +144,7 @@ func (self EnrollLogic) InsertEnrollInformation(username string, teamID string, 
 	return session.Commit()
 }
 
-func (self EnrollLogic) Search(paginator *Paginator, userID int64, contest string, startTime string, endTime string, state int) (*[]models.ReturnEnrollInformation, int64, error) {
+func (self EnrollLogic) Search(paginator *Paginator, userID int64, contest string, startTime string, endTime string, state int) (*[]models.EnrollInformationReturn, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
 		return nil, 0, errors.New("分页器为空")
@@ -189,13 +189,13 @@ func (self EnrollLogic) Search(paginator *Paginator, userID int64, contest strin
 		return nil, 0, err
 	}
 
-	list := make([]models.ReturnEnrollInformation, len(*temp))
+	list := make([]models.EnrollInformationReturn, len(*temp))
 	for i := 0; i < len(*temp); i++ {
 		list[i].ID = (*temp)[i].ID
-		list[i].Username = (*temp)[i].Username
-		list[i].UserID = (*temp)[i].UserID
+		//list[i].Username = (*temp)[i].Username
+		//list[i].UserID = (*temp)[i].UserID
 		list[i].TeamID = (*temp)[i].TeamID
-		list[i].Contest = (*temp)[i].Contest
+		//list[i].Contest = (*temp)[i].Contest
 		list[i].CreateTime = (*temp)[i].CreateTime.String()
 		list[i].School = (*temp)[i].School
 		list[i].Phone = (*temp)[i].Phone

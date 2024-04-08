@@ -54,6 +54,19 @@ type Student struct {
 	Deleted    OftenTime `xorm:"deleted"`
 }
 
+type StudentForm struct {
+	ID       int64  `json:"id" xorm:"id"`
+	Username string `json:"username" xorm:"username"`
+	Password string `json:"password" xorm:"password"`
+	Name     string `json:"name" xorm:"name"`
+	Gender   string `json:"gender" xorm:"gender"`
+	School   string `json:"school" xorm:"school"`
+	Semester string `json:"semester" xorm:"semester"`
+	College  string `json:"college"" xorm:"college"`
+	Class    string `json:"class" xorm:"class"`
+	Avatar   string `json:"avatar" xorm:"avatar"`
+}
+
 type StudentReturn struct {
 	ID        int64  `json:"id" xorm:"id"`
 	Username  string `json:"username" xorm:"username"`
@@ -80,6 +93,16 @@ type Teacher struct {
 	SchoolID  int64     `json:"school_id" xorm:"school_id"`
 	CollegeID int64     `json:"college_id" xorm:"college_id"`
 	Deleted   OftenTime `xorm:"deleted"`
+}
+
+type TeacherForm struct {
+	ID       int64  `json:"id" xorm:"id"`
+	Username string `json:"username" xorm:"username"`
+	Password string `json:"password" xorm:"password"`
+	Name     string `json:"name" xorm:"name"`
+	Gender   string `json:"gender" xorm:"gender"`
+	School   string `json:"school" xorm:"school"`
+	College  string `json:"college" xorm:"college"`
 }
 
 type TeacherReturn struct {

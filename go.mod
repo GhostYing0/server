@@ -9,13 +9,16 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-sql-driver/mysql v1.7.1
+	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/polaris1119/times v0.0.0-20160420102536-14f7f3ba487e
 	github.com/satori/go.uuid v1.2.0
 	github.com/unknwon/com v1.0.1
 	github.com/xormplus/xorm v0.0.0-20210822100304-4e1d4fcc1e67
+	go.uber.org/zap v1.27.0
 )
 
 require (
+	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/Chronokeeper/anyxml v0.0.0-20160530174208-54457d8e98c6 // indirect
 	github.com/CloudyKit/fastprinter v0.0.0-20200109182630-33d98a066a53 // indirect
 	github.com/CloudyKit/jet v2.1.2+incompatible // indirect
@@ -48,6 +51,7 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/xormplus/builder v0.0.0-20200331055651-240ff40009be // indirect
+	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/arch v0.5.0 // indirect
 	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/net v0.16.0 // indirect
@@ -55,6 +59,7 @@ require (
 	golang.org/x/text v0.13.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/flosch/pongo2.v3 v3.0.0-20141028000813-5e81b817a0c4 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

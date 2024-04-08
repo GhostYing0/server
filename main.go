@@ -12,12 +12,14 @@ import (
 	_ "server/database"
 	"server/middleware/jwt"
 	"server/utils/gredis"
+	"server/utils/logging"
 	"time"
 )
 
 func init() {
 	database.Setup()
 	gredis.Setup()
+	logging.Setup()
 }
 
 func main() {

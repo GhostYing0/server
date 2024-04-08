@@ -24,7 +24,7 @@ func (self RegistrationController) RegisterRoutes(g *gin.RouterGroup) {
 	g.POST("/updateEnrollInformation", self.UpdateEnrollInformation)   // 更改用户报名信息
 	g.DELETE("/deleteEnrollInformation", self.DeleteEnrollInformation) // 删除用户报名信息
 
-	g.GET("/getEnrollCount", self.GetCount)
+	g.GET("/getEnrollCount", self.GetEnrollCount)
 }
 
 // GetRegisteredContestByUser
@@ -34,21 +34,21 @@ func (RegistrationController) GetEnrollInformation(c *gin.Context) {
 	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
 	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
 
-	username := c.DefaultQuery("username", "")
-	userID := com.StrTo(c.DefaultQuery("user_id", "-1")).MustInt64()
-	teamID := c.DefaultQuery("team_id", "")
-	contest := c.DefaultQuery("contest_name", "")
+	name := c.DefaultQuery("name", "")
+	//userID := com.StrTo(c.DefaultQuery("user_id", "-1")).MustInt64()
+	//teamID := c.DefaultQuery("team_id", "")
+	contest := c.DefaultQuery("contest", "")
 	startTime := c.DefaultQuery("start_time", "")
 	endTime := c.DefaultQuery("end_time", "")
-	school := c.DefaultQuery("school", "")
-	phone := c.DefaultQuery("phone", "")
-	email := c.DefaultQuery("email", "")
+	//school := c.DefaultQuery("school", "")
+	//phone := c.DefaultQuery("phone", "")
+	//email := c.DefaultQuery("email", "")
 	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
 
 	paginator := NewPaginator(curPage, limit)
 
 	data := make(map[string]interface{})
-	list, total, err := logic.DefaultRegistrationContest.Display(paginator, username, userID, teamID, contest, startTime, endTime, school, phone, email, state)
+	list, total, err := logic.DefaultEnrollContest.Display(paginator, name, contest, startTime, endTime, state)
 	if err != nil {
 		DPrintf("logic.DefaultRegistrationContest.Display 发生错误:", err)
 		appG.ResponseErr(err.Error())
@@ -81,7 +81,7 @@ func (RegistrationController) AddEnrollInformation(c *gin.Context) {
 	}
 
 	fmt.Println("asd:", param)
-	err = logic.DefaultRegistrationContest.Add(param.UserName, param.TeamID, param.ContestName, param.CreateTime, param.School, param.Phone, param.Email, param.State)
+	err = logic.DefaultEnrollContest.Add(param.UserName, param.TeamID, param.ContestName, param.CreateTime, param.School, param.Phone, param.Email, param.State)
 	if err != nil {
 		DPrintf("AddEnrollInformation 发生错误:", err)
 		appG.ResponseErr(err.Error())
@@ -103,7 +103,7 @@ func (RegistrationController) UpdateEnrollInformation(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultRegistrationContest.Update(param.ID, param.UserName, param.TeamID, param.ContestName, param.CreateTime, param.School, param.Phone, param.Email, param.State)
+	err = logic.DefaultEnrollContest.Update(param.ID, param.UserName, param.TeamID, param.ContestName, param.CreateTime, param.School, param.Phone, param.Email, param.State)
 	if err != nil {
 		DPrintf("UpdateEnrollInformation 发生错误:", err)
 		appG.ResponseErr(err.Error())
@@ -125,7 +125,7 @@ func (RegistrationController) DeleteEnrollInformation(c *gin.Context) {
 		return
 	}
 
-	count, err := logic.DefaultRegistrationContest.Delete(&request.ID)
+	count, err := logic.DefaultEnrollContest.Delete(&request.ID)
 	if err != nil {
 		DPrintf("DeleteEnrollInformation 发生错误:", err)
 		appG.ResponseErr(err.Error())
@@ -136,10 +136,10 @@ func (RegistrationController) DeleteEnrollInformation(c *gin.Context) {
 }
 
 // GetCount
-func (RegistrationController) GetCount(c *gin.Context) {
+func (RegistrationController) GetEnrollCount(c *gin.Context) {
 	appG := app.Gin{C: c}
 
-	count, err := logic.DefaultRegistrationContest.GetEnrollCount()
+	count, err := logic.DefaultEnrollContest.GetEnrollCount()
 
 	if err != nil {
 		DPrintf("GetEnrollCount 出错:", err)

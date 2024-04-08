@@ -6,6 +6,8 @@ import (
 	"mime/multipart"
 	"os"
 	"path"
+	. "server/database"
+	"server/models"
 	"server/utils/gredis"
 	. "server/utils/mydebug"
 	"server/utils/util"
@@ -89,4 +91,34 @@ func (self PublicLogic) UploadImg(file *multipart.FileHeader) (string, error) {
 	saveDir := path.Join("D:/GDesign/picture/img", fileUnixName+extName)
 
 	return saveDir, nil
+}
+
+func SearchSchoolByName(name string) (*models.School, error) {
+	school := &models.School{}
+	_, err := MasterDB.Where("school = ?", name).Get(school)
+	if err != nil {
+		DPrintf("查询学校失败")
+		return school, err
+	}
+	return school, err
+}
+
+func SearchSemesterByName(name string) (*models.Semester, error) {
+	semester := &models.Semester{}
+	_, err := MasterDB.Where("semester = ?", name).Get(semester)
+	if err != nil {
+		DPrintf("查询学期失败")
+		return semester, err
+	}
+	return semester, err
+}
+
+func SearchCollegeByName(name string) (*models.College, error) {
+	college := &models.College{}
+	_, err := MasterDB.Where("college = ?", name).Get(college)
+	if err != nil {
+		DPrintf("查询学院失败")
+		return college, err
+	}
+	return college, err
 }
