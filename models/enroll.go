@@ -1,15 +1,16 @@
 package models
 
 type EnrollForm struct {
-	ID          int64  `json:"id"`
-	UserName    string `json:"username"`
-	TeamID      string `json:"team_id"`
-	ContestName string `json:"contest_name"`
-	CreateTime  string `json:"create_time"`
-	School      string `json:"school"`
-	Phone       string `json:"phone"`
-	Email       string `json:"email"`
-	State       int    `json:"state"`
+	ID       int64  `json:"id"`
+	UserName string `json:"username"`
+	Name     string `json:"name"`
+	TeamID   string `json:"team_id"`
+	Contest  string `json:"contest_name"`
+	//CreateTime string `json:"create_time"`
+	School string `json:"school"`
+	Phone  string `json:"phone"`
+	Email  string `json:"email"`
+	State  int    `json:"state"`
 }
 
 type EnrollInformationForm struct {
@@ -31,7 +32,7 @@ type EnrollInformation struct {
 	TeamID     string    `json:"team_id" xorm:"team_id"`
 	ContestID  string    `json:"contest_id" xorm:"contest_id"`
 	CreateTime string    `json:"create_time" xorm:"create_time"`
-	School     string    `json:"school" xorm:"school"`
+	SchoolID   int64     `json:"school_id" xorm:"school_id"`
 	Phone      string    `json:"phone" xorm:"phone"`
 	Email      string    `json:"email" xorm:"email"`
 	State      int       `json:"state" xorm:"state"`
@@ -43,10 +44,10 @@ type NewEnroll struct {
 	TeamID     string    `json:"team_id" xorm:"team_id"`
 	ContestID  int64     `json:"contest_id" xorm:"contest_id"`
 	CreateTime OftenTime `json:"create_time" xorm:"create_time"`
-	//School     string    `json:"school" xorm:"school"`
-	Phone string `json:"phone" xorm:"phone"`
-	Email string `json:"email" xorm:"email"`
-	State int    `json:"state" xorm:"state"`
+	SchoolID   int64     `json:"school_id" xorm:"school_id"`
+	Phone      string    `json:"phone" xorm:"phone"`
+	Email      string    `json:"email" xorm:"email"`
+	State      int       `json:"state" xorm:"state"`
 }
 
 func (NewEnroll) TableName() string {
@@ -58,6 +59,16 @@ type EnrollContestStudent struct {
 	Contest           `xorm:"extends"`
 	Student           `xorm:"extends"`
 	Account           `xorm:"extends"`
+}
+
+type EnrollContest struct {
+	EnrollInformation `xorm:"extends"`
+	Contest           `xorm:"extends"`
+	Account           `xorm:"extends"`
+}
+
+func (EnrollContest) TableName() string {
+	return "enroll_information"
 }
 
 func (EnrollContestStudent) TableName() string {

@@ -197,7 +197,7 @@ func (UserController) AddTeacher(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultCmsTeacher.AddTeacher(form.Username, form.Password, form.Name, form.Gender, form.School, form.College)
+	err = logic.DefaultCmsTeacher.AddTeacher(form.Username, form.Password, form.Name, form.Gender, form.School, form.College, form.Avatar)
 	if err != nil {
 		appG.ResponseErr(err.Error())
 		return
@@ -219,7 +219,7 @@ func (UserController) UpdateTeacher(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultCmsTeacher.UpdateTeacher(form.ID, form.Username, form.Password, form.Name, form.Gender, form.School, form.College)
+	err = logic.DefaultCmsTeacher.UpdateTeacher(form.ID, form.Username, form.Password, form.Name, form.Gender, form.School, form.College, form.Avatar)
 	if err != nil {
 		DPrintf("UpdateUser logic.DefaultCmsUser.UpdateUser err:", err)
 		appG.ResponseErr(err.Error())

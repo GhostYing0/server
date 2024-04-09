@@ -110,7 +110,7 @@ func (self CmsTeacherLogic) DisplayTeacher(paginator *Paginator, username, gende
 	return &list, total, session.Rollback()
 }
 
-func (self CmsTeacherLogic) AddTeacher(username, password, name, gender, school, college string) error {
+func (self CmsTeacherLogic) AddTeacher(username, password, name, gender, school, college, avatar string) error {
 	if len(username) == 0 || len(password) == 0 {
 		logging.L.Error("账号和密码不能为空")
 		return nil
@@ -160,6 +160,7 @@ func (self CmsTeacherLogic) AddTeacher(username, password, name, gender, school,
 		Gender:    gender,
 		SchoolID:  searchSchool.SchoolID,
 		CollegeID: searchCollege.CollegeID,
+		Avatar:    avatar,
 	}
 
 	_, err = session.Insert(account)
@@ -189,7 +190,7 @@ func (self CmsTeacherLogic) AddTeacher(username, password, name, gender, school,
 	return session.Commit()
 }
 
-func (self CmsTeacherLogic) UpdateTeacher(id int64, username, password, name, gender, school, college string) error {
+func (self CmsTeacherLogic) UpdateTeacher(id int64, username, password, name, gender, school, college, avatar string) error {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("cmsUser UpdateUser session.Begin() 发生错误:", err)
@@ -250,6 +251,7 @@ func (self CmsTeacherLogic) UpdateTeacher(id int64, username, password, name, ge
 			Gender:    gender,
 			SchoolID:  searchSchool.SchoolID,
 			CollegeID: searchCollege.CollegeID,
+			Avatar:    avatar,
 		})
 	if err != nil {
 		fail := session.Rollback()

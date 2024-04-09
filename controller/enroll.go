@@ -16,7 +16,7 @@ type EnrollController struct{}
 
 func (self EnrollController) RegisterRoutes(g *gin.RouterGroup) {
 	g.GET("/viewContest", self.ViewContest)                // 查看竞赛信息
-	g.POST("/enrollContest", self.EnrollContest)           // 报名竞赛
+	g.POST("/enrollContest", self.EnrollContest)           // 学生上传报名信息
 	g.GET("/searchEnrollResult", self.DisplayEnrollResult) // 用户查看报名结果
 	//g.GET("/teacherSearchEnroll", self.TeacherSearchEnroll)    // 教师查看报名结果
 	g.POST("/processPassEnroll", self.ProcessPassEnroll)       // 教师审核通过
@@ -28,8 +28,6 @@ func (self EnrollController) RegisterRoutes(g *gin.RouterGroup) {
 // 查看竞赛
 func (EnrollController) ViewContest(c *gin.Context) {
 	appG := app.Gin{C: c}
-	var err error
-	var ret string
 
 	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
 	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
@@ -60,7 +58,7 @@ func (EnrollController) ViewContest(c *gin.Context) {
 		data["total_page"] = paginator.GetTotalPage()
 	}
 
-	appG.ResponseSucMsg(data, ret)
+	appG.ResponseSucMsg(data)
 }
 
 // EnrollContest
@@ -68,16 +66,16 @@ func (EnrollController) ViewContest(c *gin.Context) {
 func (EnrollController) EnrollContest(c *gin.Context) {
 	appG := app.Gin{C: c}
 
-	param := &models.EnrollForm{}
+	form := &models.EnrollForm{}
 
-	err := c.ShouldBindJSON(param)
+	err := c.ShouldBindJSON(form)
 	if err != nil {
 		DPrintf("EnrollContest c.ShouldBindJSON() 发生错误:", err)
 		appG.ResponseErr("报名失败", err.Error())
 		return
 	}
 
-	err = logic.DefaultEnrollLogic.InsertEnrollInformation(param.UserName, param.TeamID, param.ContestName, param.CreateTime, param.School, param.Phone, param.Email)
+	err = logic.DefaultEnrollLogic.InsertEnrollInformation(form.UserName, form.Name, form.TeamID, form.Contest, form.School, form.Phone, form.Email)
 	if err != nil {
 		DPrintf("EnrollContest logic.DefaultEnrollLogic.InsertEnrollInformation() 发生错误:", err)
 		appG.ResponseErr("报名失败", err.Error())

@@ -5,6 +5,7 @@ import (
 	"server/logic"
 	"server/models"
 	"server/utils/app"
+	"server/utils/logging"
 	. "server/utils/mydebug"
 )
 
@@ -14,11 +15,12 @@ type AccountController struct{}
 // 就是分为普通用户和管理员
 // RegisterRoutes
 func (self AccountController) RegisterRoutes(g *gin.RouterGroup) {
-	g.POST("/login", self.Login)                // 普通用户登录
-	g.POST("/register", self.Register)          // 普通用户注册
-	g.POST("/update_passwd", self.UpdatePasswd) // 普通用户修改密码
-	g.GET("/Person", self.Person)               //获取个人信息
-	g.POST("/UpdatePerson", self.UpdatePerson)  //更新个人信息
+	g.POST("/login", self.Login)                  // 普通用户登录
+	g.POST("/register", self.Register)            // 普通用户注册
+	g.POST("/update_passwd", self.UpdatePasswd)   // 普通用户修改密码
+	g.GET("/profileStudent", self.ProfileStudent) //学生获取个人信息
+	g.GET("/profileTeacher", self.ProfileTeacher) //学生获取个人信息
+	g.POST("/updateProfile", self.UpdateProfile)  //更新个人信息
 }
 
 // Login
@@ -90,9 +92,42 @@ func (AccountController) UpdatePasswd(c *gin.Context) {
 	appG.ResponseSuc("修改密码成功")
 }
 
-func (AccountController) Person(c *gin.Context) {
+func (AccountController) ProfileStudent(c *gin.Context) {
+	app := app.Gin{C: c}
+
+	userID, exist := c.Get("user_id")
+	if !exist {
+		app.ResponseErr("用户查找错误")
+		logging.L.Error("用户查找错误")
+		return
+	}
+
+	data, err := logic.DefaultUserAccount.GetProfileStudent(userID.(int64))
+	if err != nil {
+		app.ResponseErr(err.Error())
+		return
+	}
+	app.ResponseSucMsg(data)
 }
 
-func (AccountController) UpdatePerson(c *gin.Context) {
+func (AccountController) ProfileTeacher(c *gin.Context) {
+	app := app.Gin{C: c}
+
+	userID, exist := c.Get("user_id")
+	if !exist {
+		app.ResponseErr("用户查找错误")
+		logging.L.Error("用户查找错误")
+		return
+	}
+
+	data, err := logic.DefaultUserAccount.GetProfileTeacher(userID.(int64))
+	if err != nil {
+		app.ResponseErr(err.Error())
+		return
+	}
+	app.ResponseSucMsg(data)
+}
+
+func (AccountController) UpdateProfile(c *gin.Context) {
 
 }

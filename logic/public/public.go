@@ -187,3 +187,67 @@ func SearchAccountByUsername(username string) (*models.Account, error) {
 	}
 	return account, err
 }
+
+func SearchSchoolByID(id int64) (*models.School, error) {
+	school := &models.School{}
+	exist, err := MasterDB.Where("school_id = ?", id).Get(school)
+	if err != nil {
+		logging.L.Error(err)
+		return school, err
+	}
+	if !exist {
+		return school, errors.New("不存在")
+	}
+	return school, err
+}
+
+func SearchAccountByID(id int64) (*models.Account, error) {
+	account := &models.Account{}
+	exist, err := MasterDB.Where("id = ?", id).Get(account)
+	if err != nil {
+		logging.L.Error(err)
+		return account, err
+	}
+	if !exist {
+		return account, errors.New("不存在")
+	}
+	return account, err
+}
+func SearchStudentByID(name string) (*models.Student, error) {
+	student := &models.Student{}
+	exist, err := MasterDB.Where("name = ?", name).Get(student)
+	if err != nil {
+		logging.L.Error(err)
+		return student, err
+	}
+	if !exist {
+		return student, errors.New("不存在")
+	}
+	return student, err
+}
+
+func SearchCollegeByID(id int64) (*models.College, error) {
+	college := &models.College{}
+	exist, err := MasterDB.Where("college_id = ?", id).Get(college)
+	if err != nil {
+		logging.L.Error(err)
+		return college, err
+	}
+	if !exist {
+		return college, errors.New("不存在")
+	}
+	return college, err
+}
+
+func SearchSemesterByID(id int64) (*models.Semester, error) {
+	semester := &models.Semester{}
+	exist, err := MasterDB.Where("semester_id = ?", id).Get(semester)
+	if err != nil {
+		logging.L.Error(err)
+		return semester, err
+	}
+	if !exist {
+		return semester, errors.New("不存在")
+	}
+	return semester, err
+}

@@ -27,6 +27,14 @@ type AccountStudent struct {
 	Student `xorm:"extends"`
 }
 
+func (*AccountStudent) TableName() string {
+	return "student"
+}
+
+func (*AccountTeacher) TableName() string {
+	return "teacher"
+}
+
 type AccountTeacher struct {
 	Account `xorm:"extends"`
 	Teacher `xorm:"extends"`
@@ -92,6 +100,7 @@ type Teacher struct {
 	Gender    string    `json:"gender" xorm:"gender"`
 	SchoolID  int64     `json:"school_id" xorm:"school_id"`
 	CollegeID int64     `json:"college_id" xorm:"college_id"`
+	Avatar    string    `json:"avatar" xorm:"avatar"`
 	Deleted   OftenTime `xorm:"deleted"`
 }
 
@@ -103,6 +112,7 @@ type TeacherForm struct {
 	Gender   string `json:"gender" xorm:"gender"`
 	School   string `json:"school" xorm:"school"`
 	College  string `json:"college" xorm:"college"`
+	Avatar   string `json:"avatar" xorm:"avatar"`
 }
 
 type TeacherReturn struct {
@@ -115,6 +125,7 @@ type TeacherReturn struct {
 	Gender    string `json:"gender" xorm:"gender"`
 	School    string `json:"school" xorm:"school"`
 	College   string `json:"college" xorm:"college"`
+	Avatar    string `json:"avatar" xorm:"avatar"`
 }
 
 func (Teacher) TableName() string {

@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	. "server/database"
+	"server/logic/public"
 	"server/models"
+	"server/utils/logging"
 	. "server/utils/mydebug"
 )
 
@@ -41,90 +43,63 @@ func (self EnrollLogic) DisplayContest(paginator *Paginator) (*[]models.DisplayC
 	return List, total, session.Commit()
 }
 
-func (self EnrollLogic) InsertEnrollInformation(username string, teamID string, contestName string, create_time string, school string, phone string, email string) error {
+func (self EnrollLogic) InsertEnrollInformation(username, name, teamID, contest string, school string, phone string, email string) error {
 	if len(username) <= 0 {
 		return errors.New("请填写姓名")
 	}
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("InsertEnrollInformation session.Begin() 发生错误:", err)
+		logging.L.Error(err)
 		return err
 	}
 	defer func() {
 		err := session.Close()
 		if err != nil {
 			DPrintf("InsertEnrollInformation session.Close() 发生错误:", err)
+			logging.L.Error(err)
 		}
 	}()
 
-	contest := &models.ContestInfo{}
-	exist, err := session.Where("name = ?", contestName).Get(contest)
+	account, err := public.SearchAccountByUsername(username)
 	if err != nil {
-		DPrintf("InsertEnrollInformation 查询竞赛发生错误: ", err)
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
+		logging.L.Error(err)
 		return err
 	}
-	if !exist {
-		DPrintf("InsertEnrollInformation 竞赛不存在")
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
-		return errors.New("竞赛不存在")
-	}
 
-	user := &models.Account{}
-	exist, err = session.Table("account").In("username", username).Get(user)
+	searchContest, err := public.SearchContestByName(contest)
 	if err != nil {
-		DPrintf("InsertEnrollInformation 查询参赛者失败:", err)
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
+		logging.L.Error(err)
 		return err
 	}
-	if !exist {
-		DPrintf("InsertEnrollInformation 用户不存在")
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
-		return errors.New("用户不存在")
+
+	searchSchool, err := public.SearchSchoolByName(school)
+	if err != nil {
+		logging.L.Error(err)
+		return err
 	}
 
-	exist, err = session.Table("enroll_information").Where("contest = ? AND username = ?", contest.Contest, user.Username).Exist()
+	exist, err := session.
+		Table("enroll_information").
+		Where("contest_id = ? AND student_id = ?", searchContest.ID, account.UserID).
+		Exist()
 	if err != nil {
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
 		DPrintf("InsertEnrollInformation 查询重复报名发生错误: ", err)
+		logging.L.Error(err)
 		return err
 	}
 	if exist {
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
 		DPrintf("请勿重复报名")
+		logging.L.Error("请勿重复报名")
 		return errors.New("请勿重复报名")
 	}
 
-	enroll := &models.EnrollInformation{
-		//Username:   user.Username,
-		//UserID:     user.ID,
-		//Contest:    contest.Contest,
-		CreateTime: models.MysqlFormatString2String(create_time),
-		School:     school,
+	enroll := &models.NewEnroll{
+		StudentID:  account.UserID,
+		TeamID:     teamID,
+		ContestID:  searchContest.ID,
+		CreateTime: models.NewOftenTime(),
+		SchoolID:   searchSchool.SchoolID,
 		Phone:      phone,
 		Email:      email,
 		State:      0,
@@ -147,60 +122,64 @@ func (self EnrollLogic) InsertEnrollInformation(username string, teamID string, 
 func (self EnrollLogic) Search(paginator *Paginator, userID int64, contest string, startTime string, endTime string, state int) (*[]models.EnrollInformationReturn, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
+		logging.L.Error("Search 分页器为空")
 		return nil, 0, errors.New("分页器为空")
 	}
 
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("Search session.Begin() 发生错误:", err)
+		logging.L.Error(err)
 		return nil, 0, err
 	}
 	defer func() {
 		err := session.Close()
 		if err != nil {
 			DPrintf("Search session.Close() 发生错误:", err)
+			logging.L.Error(err)
 		}
 	}()
 
+	session.Join("LEFT", "contest", "contest.id = enroll_information.contest_id")
+	session.Join("LEFT", "account", "account.user_id = enroll_information.student_id")
 	if userID > 0 {
-		session.Table("enroll_information").Where("user_id = ?", userID)
+		session.Where("account.id = ?", userID)
 	}
 	if len(contest) > 0 {
-		session.Table("enroll_information").Where("contest = ?", contest)
+		session.Where("contest.contest = ?", contest)
 	}
 	if len(startTime) > 0 && len(endTime) > 0 {
-		session.Table("enroll_information").Where("create_time >= ? AND create_time <= ?", startTime, endTime)
+		session.Where("enroll_information.create_time >= ? AND enroll_information.create_time <= ?", startTime, endTime)
 	}
 	if state >= 0 {
-		session.Table("enroll_information").Where("state = ?", state)
+		session.Where("enroll_information.state = ?", state)
 	}
 	fmt.Println(state)
 
-	temp := &[]models.EnrollInformation{}
+	data := &[]models.EnrollContestStudent{}
 
-	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(temp)
+	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(data)
 	if err != nil {
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return nil, 0, fail
-		}
 		DPrintf("Search 查找报名信息失败:", err)
+		logging.L.Error(err)
 		return nil, 0, err
 	}
 
-	list := make([]models.EnrollInformationReturn, len(*temp))
-	for i := 0; i < len(*temp); i++ {
-		list[i].ID = (*temp)[i].ID
+	list := make([]models.EnrollInformationReturn, len(*data))
+	for i := 0; i < len(*data); i++ {
+		if err != nil {
+			logging.L.Error(err)
+		}
+		list[i].ID = (*data)[i].EnrollInformation.ID
 		//list[i].Username = (*temp)[i].Username
 		//list[i].UserID = (*temp)[i].UserID
-		list[i].TeamID = (*temp)[i].TeamID
-		//list[i].Contest = (*temp)[i].Contest
-		list[i].CreateTime = models.MysqlFormatString2String((*temp)[i].CreateTime)
-		list[i].School = (*temp)[i].School
-		list[i].Phone = (*temp)[i].Phone
-		list[i].Email = (*temp)[i].Email
-		list[i].State = (*temp)[i].State
+		list[i].TeamID = (*data)[i].TeamID
+		list[i].Contest = (*data)[i].Contest.Contest
+		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].EnrollInformation.CreateTime)
+		list[i].Phone = (*data)[i].Phone
+		list[i].Email = (*data)[i].Email
+		list[i].State = (*data)[i].EnrollInformation.State
+
 	}
 
 	return &list, total, session.Rollback()

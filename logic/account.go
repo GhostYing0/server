@@ -4,8 +4,10 @@ import (
 	"errors"
 	"github.com/unknwon/com"
 	. "server/database"
+	"server/logic/public"
 	"server/models"
 	"server/utils/gredis"
+	"server/utils/logging"
 	. "server/utils/mydebug"
 	"server/utils/util"
 	"server/utils/uuid"
@@ -257,4 +259,109 @@ func (self UserAccountLogic) UpdatePassword(username string, newPassword string,
 	}
 
 	return session.Commit()
+}
+
+func (self UserAccountLogic) GetProfileStudent(userID int64) (*models.StudentReturn, error) {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("Register session.Begin() 发生错误:", err)
+		logging.L.Error(err)
+		return nil, err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("Register session.Close() 发生错误:", err)
+			logging.L.Error(err)
+		}
+	}()
+
+	data := &models.AccountStudent{}
+
+	session.Join("LEFT", "account", "account.user_id = student.student_id")
+	exist, err := session.Where("account.id = ? and role = 1", userID).Get(data)
+	if err != nil {
+		logging.L.Error(err)
+		return nil, err
+	}
+	if !exist {
+		logging.L.Error("用户不存在")
+		return nil, errors.New("用户不存在")
+	}
+
+	school, err := public.SearchSchoolByID(data.SchoolID)
+	if err != nil {
+		logging.L.Error()
+		school.School = "查询错误"
+	}
+	college, err := public.SearchCollegeByID(data.CollegeID)
+	if err != nil {
+		logging.L.Error()
+		college.College = "查询错误"
+	}
+	semester, err := public.SearchSemesterByID(data.SemesterID)
+	if err != nil {
+		logging.L.Error()
+		semester.Semester = "查询错误"
+	}
+
+	studentReturn := &models.StudentReturn{
+		Name:     data.Name,
+		Gender:   data.Gender,
+		School:   school.School,
+		Semester: semester.Semester,
+		College:  college.College,
+		Class:    data.Class,
+		Avatar:   data.Avatar,
+	}
+	return studentReturn, err
+}
+
+func (self UserAccountLogic) GetProfileTeacher(userID int64) (*models.TeacherReturn, error) {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("Register session.Begin() 发生错误:", err)
+		logging.L.Error(err)
+		return nil, err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("Register session.Close() 发生错误:", err)
+			logging.L.Error(err)
+		}
+	}()
+
+	data := &models.AccountTeacher{}
+
+	session.Join("LEFT", "account", "account.user_id = teacher.teacher_id")
+	exist, err := session.Where("account.id = ? and role = 2", userID).Get(data)
+	if err != nil {
+		logging.L.Error(err)
+		return nil, err
+	}
+	if !exist {
+		logging.L.Error("用户不存在")
+		return nil, errors.New("用户不存在")
+	}
+
+	school, err := public.SearchSchoolByID(data.SchoolID)
+	if err != nil {
+		logging.L.Error()
+		school.School = "查询错误"
+	}
+	college, err := public.SearchCollegeByID(data.CollegeID)
+	if err != nil {
+		logging.L.Error()
+		college.College = "查询错误"
+	}
+
+	teacherReturn := &models.TeacherReturn{
+		Name:    data.Name,
+		Gender:  data.Gender,
+		School:  school.School,
+		College: college.College,
+		Avatar:  data.Avatar,
+	}
+	return teacherReturn, err
 }

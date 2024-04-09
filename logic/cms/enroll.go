@@ -15,7 +15,7 @@ type CmsEnrollLogic struct{}
 
 var DefaultEnrollContest = CmsEnrollLogic{}
 
-func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, startTime, endTime string, state int) (*[]models.EnrollInformationReturn, int64, error) {
+func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, startTime, endTime, school string, state int) (*[]models.EnrollInformationReturn, int64, error) {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("DisplayContest session.Begin() 发生错误:", err)
@@ -45,6 +45,14 @@ func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, s
 	if state != -1 {
 		session.Where("enroll_information.state = ?", state)
 	}
+	if school != "" {
+		searchSchool, err := public.SearchSchoolByName(school)
+		if err != nil {
+			logging.L.Error()
+		} else {
+			session.Where("enroll_information.school_id = ?", searchSchool.SchoolID)
+		}
+	}
 
 	data := &[]models.EnrollContestStudent{}
 
@@ -64,6 +72,11 @@ func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, s
 
 	list := make([]models.EnrollInformationReturn, len(*data))
 	for i := 0; i < len(*data); i++ {
+		searchSchool, err := public.SearchSchoolByID((*data)[i].EnrollInformation.SchoolID)
+		if err != nil {
+			logging.L.Error(err)
+		}
+
 		list[i].ID = (*data)[i].EnrollInformation.ID
 		list[i].Username = (*data)[i].Username
 		list[i].StudentID = (*data)[i].Student.StudentID
@@ -71,7 +84,7 @@ func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, s
 		list[i].TeamID = (*data)[i].TeamID
 		list[i].Contest = (*data)[i].Contest.Contest
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].EnrollInformation.CreateTime)
-		list[i].School = (*data)[i].School
+		list[i].School = searchSchool.School
 		list[i].Phone = (*data)[i].Phone
 		list[i].Email = (*data)[i].Email
 		list[i].State = (*data)[i].EnrollInformation.State
@@ -116,6 +129,12 @@ func (self CmsEnrollLogic) Add(username string, name string, contest string, cre
 		return err
 	}
 
+	searchSchool, err := public.SearchSchoolByName(school)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
 	exist, err := session.
 		Table("enroll_information").
 		Where("student_id = ? AND contest_id = ?", student.StudentID, contestInfo.ID).
@@ -135,10 +154,10 @@ func (self CmsEnrollLogic) Add(username string, name string, contest string, cre
 		StudentID:  student.StudentID,
 		ContestID:  contestInfo.ID,
 		CreateTime: models.NewOftenTime(),
-		//School:     school,
-		Phone: phone,
-		Email: email,
-		State: state,
+		SchoolID:   searchSchool.SchoolID,
+		Phone:      phone,
+		Email:      email,
+		State:      state,
 	}
 
 	_, err = session.Insert(enroll)
