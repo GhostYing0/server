@@ -5,7 +5,9 @@ import (
 	"fmt"
 	. "server/database"
 	. "server/logic"
+	"server/logic/public"
 	"server/models"
+	"server/utils/logging"
 	. "server/utils/mydebug"
 )
 
@@ -13,127 +15,118 @@ type CmsGradeLogic struct{}
 
 var DefaultGradeContest = CmsGradeLogic{}
 
-func (self CmsGradeLogic) Display(paginator *Paginator, username string, contest, startTime, endTime, grade string, state int) (*[]models.ReturnGradeInformation, int64, error) {
+func (self CmsGradeLogic) Display(paginator *Paginator, username, name, contest, school, startTime, endTime, grade string, state int) (*[]models.ReturnGradeInformation, int64, error) {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("DisplayGrade session.Begin() 发生错误:", err)
+		logging.L.Error()
 		return nil, 0, err
 	}
 	defer func() {
 		err := session.Close()
 		if err != nil {
 			DPrintf("DisplayGrade session.Close() 发生错误:", err)
+			logging.L.Error()
 		}
 	}()
 
-	fmt.Println(startTime)
-	fmt.Println(endTime)
+	session.Table("grade")
+	session.Join("LEFT", "student", "student.student_id = grade.student_id")
+	session.Join("LEFT", "school", "school.school_id = grade.school_id")
+	session.Join("LEFT", "contest", "contest.id = grade.contest_id")
+	session.Join("LEFT", "account", "account.user_id = student.student_id")
+
 	if username != "" {
-		session.Table("grade").Where("username = ?", username)
+		session.Where("account.username = ?", username)
+	}
+	if name != "" {
+		session.Where("student.name = ?", name)
 	}
 	if contest != "" {
-		session.Table("grade").Where("contest = ?", contest)
+		session.Where("contest.contest = ?", contest)
 	}
 	if startTime != "" && endTime != "" {
-		session.Table("grade").Where("create_time > ? and create_time < ?", startTime, endTime)
+		session.Where("grade.create_time > ? and grade.create_time < ?", startTime, endTime)
 	}
 	if grade != "" {
-		session.Table("grade").Where("grade = ?", grade)
+		session.Where("grade.grade = ?", grade)
+	}
+	if school != "" {
+		session.Where("school.school = ?", school)
 	}
 	if state != -1 {
-		session.Table("grade").Where("state = ?", state)
+		session.Where("grade.state = ?", state)
 	}
 
-	temp := &[]models.GradeInformation{}
+	data := &[]models.GradeStudentSchoolContestAccount{}
 
-	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(temp)
-	//total, err = session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(list)
+	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(data)
 	if err != nil {
 		DPrintf("Display 查询成绩信息发生错误: ", err)
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return nil, 0, fail
-		}
+		logging.L.Error(err)
 		return nil, 0, err
 	}
 
-	list := make([]models.ReturnGradeInformation, len(*temp))
-	for i := 0; i < len(*temp); i++ {
-		list[i].ID = (*temp)[i].ID
-		list[i].Username = (*temp)[i].Username
-		list[i].Contest = (*temp)[i].Contest
-		list[i].CreateTime = (*temp)[i].CreateTime.String()
-		list[i].Certificate = (*temp)[i].Certificate
-		list[i].Grade = (*temp)[i].Grade
-		list[i].State = (*temp)[i].State
+	list := make([]models.ReturnGradeInformation, len(*data))
+	for i := 0; i < len(*data); i++ {
+		list[i].ID = (*data)[i].GradeInformation.ID
+		list[i].Username = (*data)[i].Username
+		list[i].Name = (*data)[i].Name
+		list[i].Contest = (*data)[i].Contest.Contest
+		list[i].School = (*data)[i].School.School
+		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].GradeInformation.CreateTime)
+		list[i].Certificate = (*data)[i].Certificate
+		list[i].Grade = (*data)[i].Grade
+		list[i].State = (*data)[i].GradeInformation.State
 	}
 
 	return &list, total, session.Commit()
 }
 
-func (self CmsGradeLogic) Add(username string, contestName string, grade string, create_time string, certificate string, state int) error {
+func (self CmsGradeLogic) Add(username string, contest string, grade string, createTime string, certificate string, state int) error {
 	if len(username) <= 0 {
 		return errors.New("请填写姓名")
 	}
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("InsertGradeInformation session.Begin() 发生错误:", err)
+		logging.L.Error(err)
 		return err
 	}
 	defer func() {
 		err := session.Close()
 		if err != nil {
 			DPrintf("InsertGradeInformation session.Close() 发生错误:", err)
+			logging.L.Error(err)
 		}
 	}()
 
-	contest := &models.ContestInfo{}
-	exist, err := session.Where("name = ?", contestName).Get(contest)
+	searchContest, err := public.SearchContestByName(contest)
 	if err != nil {
 		DPrintf("InsertGradeInformation 查询竞赛发生错误: ", err)
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
+		logging.L.Error(err)
 		return err
-	}
-	if !exist {
-		DPrintf("InsertGradeInformation 竞赛不存在")
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
-		return errors.New("竞赛不存在")
 	}
 
-	user := &models.Account{}
-	exist, err = session.Table("account").In("username", username).Get(user)
+	account, err := public.SearchAccountByUsername(username)
 	if err != nil {
 		DPrintf("InsertGradeInformation 查询参赛者失败:", err)
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
+		logging.L.Error(err)
 		return err
 	}
-	if !exist {
-		DPrintf("InsertGradeInformation 用户不存在")
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
-		return errors.New("用户不存在")
+
+	student, err := public.SearchStudentByID(account.UserID)
+	if err != nil {
+		DPrintf("InsertGradeInformation 查询学生:", err)
+		logging.L.Error(err)
+		return err
 	}
 
 	enroll := &models.GradeInformation{
-		Username:    user.Username,
-		Contest:     contest.Contest,
-		CreateTime:  models.FormatString2OftenTime(create_time),
+		StudentID:   account.UserID,
+		ContestID:   searchContest.ID,
+		SchoolID:    student.SchoolID,
+		CreateTime:  models.MysqlFormatString2String(createTime),
 		Grade:       grade,
 		Certificate: certificate,
 		State:       state,
@@ -144,8 +137,10 @@ func (self CmsGradeLogic) Add(username string, contestName string, grade string,
 		fail := session.Rollback()
 		if fail != nil {
 			DPrintf("回滚失败")
+			logging.L.Error(fail)
 			return fail
 		}
+		logging.L.Error(err)
 		DPrintf("InsertGradeInformation 添加成绩信息发生错误:", err)
 		return err
 	}
@@ -153,73 +148,70 @@ func (self CmsGradeLogic) Add(username string, contestName string, grade string,
 	return session.Commit()
 }
 
-func (self CmsGradeLogic) Update(id int64, username string, contestName string, grade string, create_time string, certificate string, state int) error {
+func (self CmsGradeLogic) Update(id int64, username string, contest string, grade string, createTime string, certificate string, state int) error {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("UpdateGradeInformation session.Begin() 发生错误:", err)
+		logging.L.Error(err)
 		return err
 	}
 	defer func() {
 		err := session.Close()
 		if err != nil {
 			DPrintf("UpdateGradeInformation session.Close() 发生错误:", err)
+			logging.L.Error(err)
 		}
 	}()
 
 	has, err := session.Table("grade").Where("id = ?", id).Exist()
 	if err != nil {
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
+		logging.L.Error(err)
 		return err
 	}
 	if !has {
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
+		logging.L.Error("成绩信息不存在")
 		return errors.New("成绩信息不存在")
 	}
 
-	exist, err := session.Table("account").In("username", username).Exist()
+	searchContest, err := public.SearchContestByName(contest)
 	if err != nil {
-		DPrintf("InsertGradeInformation 查询参赛者失败:", err)
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
+		DPrintf("InsertGradeInformation 查询竞赛发生错误: ", err)
+		logging.L.Error(err)
 		return err
 	}
-	if !exist {
-		DPrintf("InsertGradeInformation 用户不存在")
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
-		return errors.New("用户不存在")
+
+	account, err := public.SearchAccountByUsername(username)
+	if err != nil {
+		DPrintf("InsertGradeInformation 查询参赛者失败:", err)
+		logging.L.Error(err)
+		return err
 	}
 
-	newGrade := &models.GradeInformation{
-		ID:          id,
-		Contest:     contestName,
-		Username:    username,
-		CreateTime:  models.FormatString2OftenTime(create_time),
+	student, err := public.SearchStudentByID(account.UserID)
+	if err != nil {
+		DPrintf("InsertGradeInformation 查询学生:", err)
+		logging.L.Error(err)
+		return err
+	}
+
+	enroll := &models.GradeInformation{
+		StudentID:   account.UserID,
+		ContestID:   searchContest.ID,
+		SchoolID:    student.SchoolID,
+		CreateTime:  models.MysqlFormatString2String(createTime),
 		Grade:       grade,
 		Certificate: certificate,
 		State:       state,
 	}
-	_, err = session.Where("id = ?", id).Update(newGrade)
+	_, err = session.Where("id = ?", id).Update(enroll)
 	if err != nil {
 		fail := session.Rollback()
 		if fail != nil {
 			DPrintf("回滚失败")
+			logging.L.Error(fail)
 			return fail
 		}
+		logging.L.Error(err)
 		DPrintf("cms enroll Update 失败:", err)
 		return err
 	}

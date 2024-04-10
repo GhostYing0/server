@@ -43,10 +43,7 @@ func (self EnrollLogic) DisplayContest(paginator *Paginator) (*[]models.DisplayC
 	return List, total, session.Commit()
 }
 
-func (self EnrollLogic) InsertEnrollInformation(username, name, teamID, contest string, school string, phone string, email string) error {
-	if len(username) <= 0 {
-		return errors.New("请填写姓名")
-	}
+func (self EnrollLogic) InsertEnrollInformation(userID int64, name, teamID, contest string, school string, phone string, email string) error {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("InsertEnrollInformation session.Begin() 发生错误:", err)
@@ -61,7 +58,7 @@ func (self EnrollLogic) InsertEnrollInformation(username, name, teamID, contest 
 		}
 	}()
 
-	account, err := public.SearchAccountByUsername(username)
+	account, err := public.SearchAccountByID(userID)
 	if err != nil {
 		logging.L.Error(err)
 		return err
@@ -102,7 +99,7 @@ func (self EnrollLogic) InsertEnrollInformation(username, name, teamID, contest 
 		SchoolID:   searchSchool.SchoolID,
 		Phone:      phone,
 		Email:      email,
-		State:      0,
+		State:      3,
 	}
 
 	_, err = session.Insert(enroll)

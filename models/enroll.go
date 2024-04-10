@@ -5,7 +5,7 @@ type EnrollForm struct {
 	UserName string `json:"username"`
 	Name     string `json:"name"`
 	TeamID   string `json:"team_id"`
-	Contest  string `json:"contest_name"`
+	Contest  string `json:"contest"`
 	//CreateTime string `json:"create_time"`
 	School string `json:"school"`
 	Phone  string `json:"phone"`

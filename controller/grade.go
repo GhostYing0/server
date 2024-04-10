@@ -23,16 +23,22 @@ func (self GradeController) RegisterRoutes(g *gin.RouterGroup) {
 func (self GradeController) UploadGrade(c *gin.Context) {
 	appG := app.Gin{C: c}
 
-	param := &models.GradeForm{}
+	form := &models.GradeForm{}
 
-	err := c.ShouldBindJSON(param)
+	userID, exist := c.Get("user_id")
+	if !exist {
+		appG.ResponseErr("用户不存在")
+		return
+	}
+
+	err := c.ShouldBindJSON(form)
 	if err != nil {
 		DPrintf("UploadGrade c.ShouldBindJSON() 发生错误:", err)
 		appG.ResponseErr("上传成绩失败", err.Error())
 		return
 	}
 
-	err = logic.DefaultGradeLogic.InsertGradeInformation(param.Username, param.Contest, param.Grade, param.Certificate, param.CreateTime)
+	err = logic.DefaultGradeLogic.InsertGradeInformation(userID.(int64), form.Contest, form.Grade, form.Certificate)
 	if err != nil {
 		DPrintf("EnrollContest logic.DefaultEnrollLogic.InsertEnrollInformation() 发生错误:", err)
 		appG.ResponseErr("上传成绩失败", err.Error())
@@ -74,7 +80,7 @@ func (self GradeController) DisplayGrade(c *gin.Context) {
 	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
 
 	grade := c.DefaultQuery("grade", "")
-	contest := c.DefaultQuery("contest_name", "")
+	contest := c.DefaultQuery("contest", "")
 	startTime := c.DefaultQuery("startTime", "")
 	endTime := c.DefaultQuery("endTime", "")
 	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()

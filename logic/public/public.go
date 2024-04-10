@@ -62,6 +62,16 @@ func (self PublicLogic) Logout(token string) error {
 	return err
 }
 
+func (self PublicLogic) GetContestType() (*[]models.ContestType, error) {
+	list := &[]models.ContestType{}
+	err := MasterDB.Find(list)
+	if err != nil {
+		logging.L.Error(err)
+		return nil, err
+	}
+	return list, err
+}
+
 func (self PublicLogic) UploadImg(file *multipart.FileHeader) (string, error) {
 	extName := path.Ext(file.Filename)
 	allowExtMap := map[string]bool{
@@ -103,7 +113,7 @@ func SearchSchoolByName(name string) (*models.School, error) {
 		return school, err
 	}
 	if !exist {
-		return school, errors.New("不存在")
+		return school, errors.New("学校不存在")
 	}
 	return school, err
 }
@@ -117,7 +127,7 @@ func SearchSemesterByName(name string) (*models.Semester, error) {
 		return semester, err
 	}
 	if !exist {
-		return semester, errors.New("不存在")
+		return semester, errors.New("学年不存在")
 	}
 	return semester, err
 }
@@ -131,7 +141,7 @@ func SearchCollegeByName(name string) (*models.College, error) {
 		return college, err
 	}
 	if !exist {
-		return college, errors.New("不存在")
+		return college, errors.New("学院不存在")
 	}
 	return college, err
 }
@@ -144,7 +154,7 @@ func SearchStudentByName(name string) (*models.Student, error) {
 		return student, err
 	}
 	if !exist {
-		return student, errors.New("不存在")
+		return student, errors.New("学生不存在")
 	}
 	return student, err
 }
@@ -157,7 +167,7 @@ func SearchTeacherByName(name string) (*models.Teacher, error) {
 		return teacher, err
 	}
 	if !exist {
-		return teacher, errors.New("不存在")
+		return teacher, errors.New("教师不存在")
 	}
 	return teacher, err
 }
@@ -170,7 +180,7 @@ func SearchContestByName(name string) (*models.ContestInfo, error) {
 		return contest, err
 	}
 	if !exist {
-		return contest, errors.New("不存在")
+		return contest, errors.New("竞赛不存在")
 	}
 	return contest, err
 }
@@ -183,7 +193,7 @@ func SearchAccountByUsername(username string) (*models.Account, error) {
 		return account, err
 	}
 	if !exist {
-		return account, errors.New("不存在")
+		return account, errors.New("账户不存在")
 	}
 	return account, err
 }
@@ -196,7 +206,7 @@ func SearchSchoolByID(id int64) (*models.School, error) {
 		return school, err
 	}
 	if !exist {
-		return school, errors.New("不存在")
+		return school, errors.New("学校不存在")
 	}
 	return school, err
 }
@@ -209,19 +219,20 @@ func SearchAccountByID(id int64) (*models.Account, error) {
 		return account, err
 	}
 	if !exist {
-		return account, errors.New("不存在")
+		return account, errors.New("账户不存在")
 	}
 	return account, err
 }
-func SearchStudentByID(name string) (*models.Student, error) {
+
+func SearchStudentByID(id string) (*models.Student, error) {
 	student := &models.Student{}
-	exist, err := MasterDB.Where("name = ?", name).Get(student)
+	exist, err := MasterDB.Where("student_id = ?", id).Get(student)
 	if err != nil {
 		logging.L.Error(err)
 		return student, err
 	}
 	if !exist {
-		return student, errors.New("不存在")
+		return student, errors.New("学生不存在")
 	}
 	return student, err
 }
@@ -234,7 +245,7 @@ func SearchCollegeByID(id int64) (*models.College, error) {
 		return college, err
 	}
 	if !exist {
-		return college, errors.New("不存在")
+		return college, errors.New("学院不存在")
 	}
 	return college, err
 }
@@ -247,7 +258,7 @@ func SearchSemesterByID(id int64) (*models.Semester, error) {
 		return semester, err
 	}
 	if !exist {
-		return semester, errors.New("不存在")
+		return semester, errors.New("学期不存在")
 	}
 	return semester, err
 }

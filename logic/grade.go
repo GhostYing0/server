@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"github.com/polaris1119/times"
 	. "server/database"
+	"server/logic/public"
 	"server/models"
+	"server/utils/logging"
 	. "server/utils/mydebug"
 )
 
@@ -13,57 +15,60 @@ type GradeLogic struct{}
 
 var DefaultGradeLogic = GradeLogic{}
 
-func (self GradeLogic) InsertGradeInformation(username string, contest string, grade string, certificate string, createTime string) error {
-	if len(username) <= 0 {
-		return errors.New("请填写姓名")
-	}
+func (self GradeLogic) InsertGradeInformation(user_id int64, contest, grade, certificate string) error {
 	if len(contest) <= 0 {
+		logging.L.Info("请填写竞赛名称")
 		return errors.New("请填写竞赛名称")
 	}
 	if len(grade) <= 0 {
+		logging.L.Info("请填写成绩")
 		return errors.New("请填写成绩")
 	}
 
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("InsertGradeInformation session.Begin() 发生错误:", err)
+		logging.L.Error(err)
 		return err
 	}
 	defer func() {
 		err := session.Close()
 		if err != nil {
 			DPrintf("InsertGradeInformation session.Close() 发生错误:", err)
+			logging.L.Error(err)
+
 		}
 	}()
 
-	user := &models.Account{}
-	exist, err := session.Table("account").In("username", username).Get(user)
+	account, err := public.SearchAccountByID(user_id)
 	if err != nil {
-		DPrintf("InsertEnrollInformation 查询参赛者失败:", err)
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
+		DPrintf("InsertEnrollInformation 查询用户失败:", err)
+		logging.L.Error(err)
 		return err
 	}
-	if !exist {
-		DPrintf("InsertEnrollInformation 用户不存在")
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return fail
-		}
-		return errors.New("用户不存在")
+
+	searchContest, err := public.SearchContestByName(contest)
+	if err != nil {
+		DPrintf("InsertEnrollInformation 查询竞赛失败:", err)
+		logging.L.Error(err)
+		return err
+	}
+
+	student, err := public.SearchStudentByID(account.UserID)
+	if err != nil {
+		DPrintf("InsertEnrollInformation 学生失败:", err)
+		logging.L.Error(err)
+		return err
 	}
 
 	gradeInformation := &models.GradeInformation{
-		Username:    user.Username,
-		Contest:     contest,
-		CreateTime:  models.FormatString2OftenTime(createTime),
+		StudentID:   account.UserID,
+		SchoolID:    student.SchoolID,
+		ContestID:   searchContest.ID,
+		CreateTime:  models.NewOftenTime().String(),
 		Certificate: certificate,
 		Grade:       grade,
-		State:       0,
+		State:       3,
 	}
 
 	_, err = session.Insert(gradeInformation)
@@ -71,8 +76,10 @@ func (self GradeLogic) InsertGradeInformation(username string, contest string, g
 		fail := session.Rollback()
 		if fail != nil {
 			DPrintf("回滚失败")
+			logging.L.Error(fail)
 			return fail
 		}
+		logging.L.Error(err)
 		DPrintf("InsertEnrollInformation 上传成绩信息发生错误:", err)
 		return err
 	}
@@ -83,11 +90,18 @@ func (self GradeLogic) InsertGradeInformation(username string, contest string, g
 func (self GradeLogic) Search(paginator *Paginator, grade string, contest string, startTime string, endTime string, state int, user_id int64, role int) (*[]models.ReturnGradeInformation, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
+		logging.L.Error("Search 分页器为空")
 		return nil, 0, errors.New("分页器为空")
+	}
+
+	if user_id <= 0 {
+		logging.L.Error("UserID Error")
+		return nil, 0, errors.New("UserID Error")
 	}
 
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
+		logging.L.Error(err)
 		DPrintf("Search session.Begin() 发生错误:", err)
 		return nil, 0, err
 	}
@@ -95,58 +109,63 @@ func (self GradeLogic) Search(paginator *Paginator, grade string, contest string
 		err := session.Close()
 		if err != nil {
 			DPrintf("Search session.Close() 发生错误:", err)
+			logging.L.Error(err)
 		}
 	}()
 
 	// 不是管理员只能查看自己的信息
-	user := &models.Account{}
-	exist, err := session.Where("id = ? and role = ?", user_id, role).Get(user)
+	account, err := public.SearchAccountByID(user_id)
 	if err != nil {
+		logging.L.Error(err)
 		return nil, 0, err
 	}
-	if !exist {
-		return nil, 0, errors.New("用户不存在")
-	}
-	if len(user.Username) > 0 {
-		session.Table("grade").Where("username = ?", user.Username)
+
+	session.Table("grade")
+	session.Join("LEFT", "student", "student.student_id = grade.student_id")
+	session.Join("LEFT", "school", "school.school_id = grade.school_id")
+	session.Join("LEFT", "contest", "contest.id = grade.contest_id")
+	session.Join("LEFT", "account", "account.user_id = student.student_id")
+
+	if len(account.Username) > 0 {
+		session.Where("grade.student_id = ?", account.UserID)
 	}
 	if len(grade) > 0 {
-		session.Table("grade").Where("grade = ?", grade)
+		session.Where("grade = ?", grade)
 	}
 	if len(contest) > 0 {
-		session.Table("grade").Where("contest = ?", contest)
+		searchContest, err := public.SearchContestByName(contest)
+		if err != nil {
+			logging.L.Error(err)
+		} else {
+			session.Where("grade.contest_id = ?", searchContest.ID)
+		}
 	}
 	if len(startTime) > 0 && len(endTime) > 0 {
 		start := times.StrToLocalTime(startTime)
 		end := times.StrToLocalTime(endTime)
-		session.Table("grade").Where("createTime >= ? AND createTime <= ?", start, end)
+		session.Where("grade.createTime >= ? AND greade.createTime <= ?", start, end)
 	}
 	if state > 0 {
-		session.Table("grade").Where("state = ?", state)
+		session.Where("grade.state = ?", state)
 	}
 
-	temp := &[]models.GradeInformation{}
+	data := &[]models.GradeStudentSchoolContestAccount{}
 
-	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(temp)
+	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(data)
 	if err != nil {
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			return nil, 0, fail
-		}
+		logging.L.Error(err)
 		DPrintf("Search 查找成绩信息失败:", err)
 		return nil, 0, err
 	}
 
-	list := make([]models.ReturnGradeInformation, len(*temp))
-	for i := 0; i < len(*temp); i++ {
-		list[i].ID = (*temp)[i].ID
-		list[i].Username = (*temp)[i].Username
-		list[i].Contest = (*temp)[i].Contest
-		list[i].CreateTime = (*temp)[i].CreateTime.String()
-		list[i].Certificate = (*temp)[i].Certificate
-		list[i].Grade = (*temp)[i].Grade
-		list[i].State = (*temp)[i].State
+	list := make([]models.ReturnGradeInformation, len(*data))
+	for i := 0; i < len(*data); i++ {
+		list[i].ID = (*data)[i].GradeInformation.ID
+		list[i].Contest = (*data)[i].Contest.Contest
+		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].GradeInformation.CreateTime)
+		list[i].Certificate = (*data)[i].Certificate
+		list[i].Grade = (*data)[i].Grade
+		list[i].State = (*data)[i].GradeInformation.State
 	}
 
 	return &list, total, session.Rollback()

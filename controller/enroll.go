@@ -68,6 +68,12 @@ func (EnrollController) EnrollContest(c *gin.Context) {
 
 	form := &models.EnrollForm{}
 
+	userID, exist := c.Get("user_id")
+	if !exist {
+		appG.ResponseErr("用户不存在")
+		return
+	}
+
 	err := c.ShouldBindJSON(form)
 	if err != nil {
 		DPrintf("EnrollContest c.ShouldBindJSON() 发生错误:", err)
@@ -75,7 +81,7 @@ func (EnrollController) EnrollContest(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultEnrollLogic.InsertEnrollInformation(form.UserName, form.Name, form.TeamID, form.Contest, form.School, form.Phone, form.Email)
+	err = logic.DefaultEnrollLogic.InsertEnrollInformation(userID.(int64), form.Name, form.TeamID, form.Contest, form.School, form.Phone, form.Email)
 	if err != nil {
 		DPrintf("EnrollContest logic.DefaultEnrollLogic.InsertEnrollInformation() 发生错误:", err)
 		appG.ResponseErr("报名失败", err.Error())

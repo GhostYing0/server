@@ -35,7 +35,9 @@ func (GradeController) GetGrade(c *gin.Context) {
 	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
 
 	username := c.DefaultQuery("username", "")
-	contest := c.DefaultQuery("contest_name", "")
+	name := c.DefaultQuery("name", "")
+	contest := c.DefaultQuery("contest", "")
+	school := c.DefaultQuery("school", "")
 	startTime := c.DefaultQuery("start_time", "")
 	endTime := c.DefaultQuery("end_time", "")
 	grade := c.DefaultQuery("grade", "")
@@ -44,7 +46,7 @@ func (GradeController) GetGrade(c *gin.Context) {
 	paginator := NewPaginator(curPage, limit)
 
 	data := make(map[string]interface{})
-	list, total, err := logic.DefaultGradeContest.Display(paginator, username, contest, startTime, endTime, grade, state)
+	list, total, err := logic.DefaultGradeContest.Display(paginator, username, name, contest, school, startTime, endTime, grade, state)
 	if err != nil {
 		DPrintf("logic.DefaultGradeContest.Display 发生错误:", err)
 		appG.ResponseErr(err.Error())
@@ -67,17 +69,17 @@ func (GradeController) GetGrade(c *gin.Context) {
 // AddRegisteredContestByUser
 func (GradeController) AddGrade(c *gin.Context) {
 	appG := app.Gin{C: c}
-	param := &models.GradeForm{}
+	form := &models.GradeForm{}
 
-	err := c.ShouldBindJSON(&param)
+	err := c.ShouldBindJSON(&form)
 	if err != nil {
 		DPrintf("AddGradeInformation c.ShouldBindJSON 发生错误:", err)
 		appG.ResponseErr(err.Error())
 		return
 	}
 
-	fmt.Println("asd:", param)
-	err = logic.DefaultGradeContest.Add(param.Username, param.Contest, param.Grade, param.CreateTime, param.Certificate, param.State)
+	fmt.Println("asd:", form)
+	err = logic.DefaultGradeContest.Add(form.Username, form.Contest, form.Grade, form.CreateTime, form.Certificate, form.State)
 	if err != nil {
 		DPrintf("AddGradeInformation 发生错误:", err)
 		appG.ResponseErr(err.Error())
@@ -90,16 +92,16 @@ func (GradeController) AddGrade(c *gin.Context) {
 // UpdateRegisteredContestByUser
 func (GradeController) UpdateGrade(c *gin.Context) {
 	appG := app.Gin{C: c}
-	param := &models.GradeForm{}
+	form := &models.GradeForm{}
 
-	err := c.ShouldBindJSON(param)
+	err := c.ShouldBindJSON(form)
 	if err != nil {
 		DPrintf("UpdateGradeInformation c.ShouldBindJSON 发生错误:", err)
 		appG.ResponseErr(err.Error())
 		return
 	}
 
-	err = logic.DefaultGradeContest.Update(param.ID, param.Username, param.Contest, param.Grade, param.CreateTime, param.Certificate, param.State)
+	err = logic.DefaultGradeContest.Update(form.ID, form.Username, form.Contest, form.Grade, form.CreateTime, form.Certificate, form.State)
 	if err != nil {
 		DPrintf("UpdateGradeInformation 发生错误:", err)
 		appG.ResponseErr(err.Error())
