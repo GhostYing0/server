@@ -78,7 +78,7 @@ func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, s
 		}
 
 		list[i].ID = (*data)[i].EnrollInformation.ID
-		list[i].Username = (*data)[i].Username
+		list[i].Username = (*data)[i].Account.Username
 		list[i].StudentID = (*data)[i].Student.StudentID
 		list[i].Name = (*data)[i].Name
 		list[i].TeamID = (*data)[i].TeamID
@@ -117,7 +117,7 @@ func (self CmsEnrollLogic) Add(username string, name string, contest string, cre
 		return err
 	}
 
-	_, err = public.SearchAccountByUsername(username)
+	_, err = public.SearchAccountByUsernameAndRole(username, 1)
 	if err != nil {
 		logging.L.Error(err)
 		return err
@@ -195,7 +195,7 @@ func (self CmsEnrollLogic) Update(id int64, username string, name string, contes
 		return err
 	}
 
-	_, err = public.SearchAccountByUsername(username)
+	_, err = public.SearchAccountByUsernameAndRole(username, 1)
 	if err != nil {
 		logging.L.Error(err)
 		return err

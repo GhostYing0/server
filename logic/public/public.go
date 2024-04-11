@@ -172,6 +172,19 @@ func SearchTeacherByName(name string) (*models.Teacher, error) {
 	return teacher, err
 }
 
+func SearchTeacherByID(id string) (*models.Teacher, error) {
+	teacher := &models.Teacher{}
+	exist, err := MasterDB.Where("teacher_id = ?", id).Get(teacher)
+	if err != nil {
+		logging.L.Error(err)
+		return teacher, err
+	}
+	if !exist {
+		return teacher, errors.New("教师不存在")
+	}
+	return teacher, err
+}
+
 func SearchContestByName(name string) (*models.ContestInfo, error) {
 	contest := &models.ContestInfo{}
 	exist, err := MasterDB.Where("contest = ?", name).Get(contest)
@@ -185,9 +198,9 @@ func SearchContestByName(name string) (*models.ContestInfo, error) {
 	return contest, err
 }
 
-func SearchAccountByUsername(username string) (*models.Account, error) {
+func SearchAccountByUsernameAndRole(username string, role int) (*models.Account, error) {
 	account := &models.Account{}
-	exist, err := MasterDB.Where("username = ?", username).Get(account)
+	exist, err := MasterDB.Where("username = ? and role = ?", username, role).Get(account)
 	if err != nil {
 		logging.L.Error(err)
 		return account, err
@@ -261,4 +274,17 @@ func SearchSemesterByID(id int64) (*models.Semester, error) {
 		return semester, errors.New("学期不存在")
 	}
 	return semester, err
+}
+
+func SearchContestTypeByName(name string) (*models.ContestType, error) {
+	contestType := &models.ContestType{}
+	exist, err := MasterDB.Where("type = ?", name).Get(contestType)
+	if err != nil {
+		logging.L.Error(err)
+		return contestType, err
+	}
+	if !exist {
+		return contestType, errors.New("竞赛类型不存在")
+	}
+	return contestType, err
 }

@@ -70,7 +70,7 @@ func (self CmsGradeLogic) Display(paginator *Paginator, username, name, contest,
 	list := make([]models.ReturnGradeInformation, len(*data))
 	for i := 0; i < len(*data); i++ {
 		list[i].ID = (*data)[i].GradeInformation.ID
-		list[i].Username = (*data)[i].Username
+		list[i].Username = (*data)[i].Account.Username
 		list[i].Name = (*data)[i].Name
 		list[i].Contest = (*data)[i].Contest.Contest
 		list[i].School = (*data)[i].School.School
@@ -108,7 +108,7 @@ func (self CmsGradeLogic) Add(username string, contest string, grade string, cre
 		return err
 	}
 
-	account, err := public.SearchAccountByUsername(username)
+	account, err := public.SearchAccountByUsernameAndRole(username, 1)
 	if err != nil {
 		DPrintf("InsertGradeInformation 查询参赛者失败:", err)
 		logging.L.Error(err)
@@ -180,7 +180,7 @@ func (self CmsGradeLogic) Update(id int64, username string, contest string, grad
 		return err
 	}
 
-	account, err := public.SearchAccountByUsername(username)
+	account, err := public.SearchAccountByUsernameAndRole(username, 1)
 	if err != nil {
 		DPrintf("InsertGradeInformation 查询参赛者失败:", err)
 		logging.L.Error(err)

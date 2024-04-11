@@ -5,7 +5,9 @@ import (
 	"fmt"
 	. "server/database"
 	. "server/logic"
+	"server/logic/public"
 	"server/models"
+	"server/utils/logging"
 	. "server/utils/mydebug"
 )
 
@@ -26,56 +28,57 @@ func (self CmsContestLogic) Display(paginator *Paginator, contest, contestType s
 		}
 	}()
 
-	searchType := &models.ContestType{}
+	searchContest, err := public.SearchContestByName(contest)
+	if err != nil {
+		logging.L.Error(err)
+	}
 
 	if contest != "" {
-		session.Table("contest").Where("contest = ?", contest)
+		session.Where("contest.id = ?", searchContest.ID)
 	}
 	if contestType != "" {
-		exist, err := session.Where("type = ?", contestType).Get(searchType)
-		if err != nil {
-			DPrintf("Display查询竞赛类型:", err)
-			return nil, 0, err
-		}
-		if !exist {
-			return nil, 0, errors.New("竞赛类型不存在")
-		}
-		session.Table("contest").Where("contest_type_id = ?", searchType.ContestTypeID)
+		session.Where("contest.contest_type_id = ?", searchContest.ID)
 	}
 	if state != -1 {
 		session.Table("contest").Where("state = ?", state)
 	}
 
-	var total int64
-	var err error
+	session.Join("LEFT", "teacher", "contest.teacher_id = teacher.teacher_id")
+	session.Join("LEFT", "account", "account.user_id = teacher.teacher_id")
+	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
+	session.Join("LEFT", "school", "teacher.school_id = school.school_id")
+	session.Join("LEFT", "college", "teacher.college_id = college.college_id")
 
-	var res []models.ContestContestType
+	data := &[]models.ContestContestTypeTeacher{}
 
-	total, err = session.
-		Join("LEFT", "contest_type", "contest.contest_type_id = contest_type.id").
-		Limit(paginator.PerPage(), paginator.Offset()).
-		FindAndCount(&res)
+	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(data)
 	if err != nil {
+		logging.L.Error(err)
 		return nil, 0, err
 	}
 
 	list := make([]models.ContestReturn, total)
 	for i := 0; i < len(list); i++ {
-		list[i].ID = res[i].Contest.ID
-		list[i].State = res[i].Contest.State
-		list[i].Contest = res[i].Contest.Contest
-		list[i].ContestType = res[i].ContestType
-		list[i].CreateTime = models.MysqlFormatString2String(res[i].Contest.CreateTime)
-		list[i].StartTime = models.MysqlFormatString2String(res[i].Contest.StartTime)
-		list[i].Deadline = models.MysqlFormatString2String(res[i].Contest.Deadline)
+		fmt.Println((*data)[i])
+		list[i].Username = (*data)[i].Username
+		list[i].Name = (*data)[i].Name
+		list[i].School = (*data)[i].School
+		list[i].College = (*data)[i].College
+		list[i].ID = (*data)[i].Contest.ID
+		list[i].State = (*data)[i].Contest.State
+		list[i].Contest = (*data)[i].Contest.Contest
+		list[i].ContestType = (*data)[i].ContestType
+		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].Contest.CreateTime)
+		list[i].StartTime = models.MysqlFormatString2String((*data)[i].Contest.StartTime)
+		list[i].Deadline = models.MysqlFormatString2String((*data)[i].Contest.Deadline)
 	}
 
 	return &list, total, session.Commit()
 }
 
-func (self CmsContestLogic) InsertContest(contest, contestType, startTime, deadline string, state int) (string, error) {
-	if contest == "" || contestType == "" || startTime == "" || deadline == "" {
-		return "竞赛信息不能为空", nil
+func (self CmsContestLogic) InsertContest(username, contest, contestType, startTime, deadline string, state int) error {
+	if username == "" || contest == "" || contestType == "" || startTime == "" || deadline == "" {
+		return errors.New("竞赛信息不能为空")
 	}
 
 	StartTime := models.FormatString2OftenTime(startTime)
@@ -84,38 +87,52 @@ func (self CmsContestLogic) InsertContest(contest, contestType, startTime, deadl
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("CmsContestLogic InsertContest session.Begin() 发生错误:", err)
-		return "", err
+		logging.L.Error(err)
+		return err
 	}
 	defer func() {
 		err := session.Close()
 		if err != nil {
 			DPrintf("CmsContestLogic InsertContest session.Close() 发生错误:", err)
+			logging.L.Error(err)
 		}
 	}()
 
-	searchType := &models.ContestType{}
-	exist, err := session.Where("type = ?", contestType).Get(searchType)
+	account, err := public.SearchAccountByUsernameAndRole(username, 2)
 	if err != nil {
-		DPrintf("InsertContest查询竞赛类型:", err)
-		return "", err
-	}
-	if !exist {
-		return "", errors.New("竞赛类型不存在")
+		logging.L.Error(err)
+		return err
 	}
 
-	has, err := session.Table("contest").Where("contest = ? and contest_type_id = ?", contest, searchType.ContestTypeID).Exist()
+	teacher, err := public.SearchTeacherByID(account.UserID)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
+	searchContestType, err := public.SearchContestTypeByName(contestType)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
+	has, err := session.Table("contest").Where("contest = ? and contest_type_id = ?", contest, searchContestType.ContestTypeID).Exist()
 	if err != nil {
 		fmt.Println("InsertContestInfo Exist error:", err)
-		return "操作错误", err
+		logging.L.Error(err)
+		return err
 	}
-
 	if has {
-		return "竞赛已存在", err
+		logging.L.Error("竞赛已存在")
+		return err
 	}
 
 	NewContest := &models.NewContest{
 		Contest:     contest,
-		ContestType: searchType.ContestTypeID,
+		TeacherID:   account.UserID,
+		SchoolID:    teacher.SchoolID,
+		CollegeID:   teacher.CollegeID,
+		ContestType: searchContestType.ContestTypeID,
 		CreateTime:  models.NewOftenTime(),
 		StartTime:   StartTime,
 		Deadline:    DeadlineTime,
@@ -127,47 +144,62 @@ func (self CmsContestLogic) InsertContest(contest, contestType, startTime, deadl
 		fail := session.Rollback()
 		if fail != nil {
 			DPrintf("回滚失败")
-			return "", fail
+			logging.L.Error(fail)
+			return fail
 		}
 		fmt.Println("InsertContestInfo Insert error:", err)
-		return "操作错误", err
+		logging.L.Error(err)
+		return err
 	}
-	return "操作成功", session.Commit()
+	return session.Commit()
 }
 
-func (self CmsContestLogic) UpdateContest(id int64, contest, contestType, startTime, deadline string, state int) (string, error) {
+func (self CmsContestLogic) UpdateContest(id int64, username, contest, contestType, startTime, deadline string, state int) error {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("CmsContestLogic UpdateContest session.Begin() 发生错误:", err)
-		return "", err
+		logging.L.Error(err)
+		return err
 	}
 	defer func() {
 		err := session.Close()
 		if err != nil {
 			DPrintf("CmsContestLogic UpdateContest session.Close() 发生错误:", err)
+			logging.L.Error(err)
 		}
 	}()
 
 	has, err := session.Table("contest").Where("id = ?", id).Exist()
 	if err != nil {
 		fmt.Println("UpdateContestInfo Exist error:", err)
-		return "操作错误", err
+		logging.L.Error(err)
+		return err
 	}
 	if !has {
-		return "竞赛不存在", err
+		logging.L.Error("竞赛不存在")
+		return errors.New("竞赛不存在")
+	}
+
+	account, err := public.SearchAccountByUsernameAndRole(username, 2)
+	if err != nil {
+		logging.L.Error(err)
+		return err
 	}
 
 	searchType := &models.ContestType{}
 	exist, err := session.Where("type = ?", contestType).Get(searchType)
 	if err != nil {
 		DPrintf("UpdateContest查询竞赛类型:", err)
-		return "", err
+		logging.L.Error(err)
+		return err
 	}
 	if !exist {
-		return "", errors.New("竞赛类型不存在")
+		logging.L.Error("竞赛类型不存在")
+		return errors.New("竞赛类型不存在")
 	}
 
 	_, err = session.Where("id = ?", id).Update(&models.ContestInfo{
+		TeacherID:   account.UserID,
 		Contest:     contest,
 		ContestType: searchType.ContestTypeID,
 		StartTime:   models.FormatString2OftenTime(startTime),
@@ -178,12 +210,14 @@ func (self CmsContestLogic) UpdateContest(id int64, contest, contestType, startT
 		fail := session.Rollback()
 		if fail != nil {
 			DPrintf("回滚失败")
-			return "", fail
+			logging.L.Error(fail)
+			return fail
 		}
-		return "更改失败", err
+		logging.L.Error(err)
+		return err
 	}
 
-	return "操作成功", session.Commit()
+	return session.Commit()
 }
 
 func (self CmsContestLogic) DeleteContest(ids *[]int64) (string, int64, error) {

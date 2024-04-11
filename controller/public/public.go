@@ -67,7 +67,6 @@ func (PublicController) Logout(c *gin.Context) {
 func (PublicController) Upload(c *gin.Context) {
 	appG := app.Gin{C: c}
 
-	fmt.Println("Asdadadadasdasd")
 	token := c.Query("token")
 	fmt.Println("token:", token)
 

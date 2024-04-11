@@ -63,48 +63,44 @@ func (ContestController) GetContest(c *gin.Context) {
 func (ContestController) AddContest(c *gin.Context) {
 	appG := app.Gin{C: c}
 	var form models.ContestForm
-	var err error
-	var ret string
 
-	err = c.ShouldBindJSON(&form)
+	err := c.ShouldBindJSON(&form)
 	if err != nil {
 		fmt.Println("ShouldBindJSON error:", err)
 		appG.ResponseErr(err.Error())
 		return
 	}
 
-	ret, err = logic.DefaultCmsContest.InsertContest(form.Contest, form.ContestType, form.StartTime, form.Deadline, form.State)
+	err = logic.DefaultCmsContest.InsertContest(form.Username, form.Contest, form.ContestType, form.StartTime, form.Deadline, form.State)
 	if err != nil {
 		fmt.Println("logic.InsertContestInfo error:", err)
-		appG.ResponseErr(ret)
+		appG.ResponseErr(err.Error())
 		return
 	}
 
-	appG.ResponseSuc(ret)
+	appG.ResponseSuc()
 }
 
 // UpdateContest
 func (ContestController) UpdateContest(c *gin.Context) {
 	appG := app.Gin{C: c}
 	var form models.UpdateContestForm
-	var err error
-	var ret string
 
-	err = c.ShouldBindJSON(&form)
+	err := c.ShouldBindJSON(&form)
 	if err != nil {
 		fmt.Println("ShouldBindJSON error:", err)
 		appG.ResponseErr(err.Error())
 		return
 	}
 
-	ret, err = logic.DefaultCmsContest.UpdateContest(form.ID, form.Contest, form.ContestType, form.StartTime, form.Deadline, form.State)
+	err = logic.DefaultCmsContest.UpdateContest(form.ID, form.Username, form.Contest, form.ContestType, form.StartTime, form.Deadline, form.State)
 	if err != nil {
 		fmt.Println("logic.UpdateContestInfo error:", err)
 		appG.ResponseErr(err.Error())
 		return
 	}
 
-	appG.ResponseSuc(ret)
+	appG.ResponseSuc()
 }
 
 // DeleteContest
