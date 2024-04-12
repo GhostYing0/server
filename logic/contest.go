@@ -2,7 +2,6 @@ package logic
 
 import (
 	"errors"
-	"fmt"
 	. "server/database"
 	"server/logic/public"
 	"server/models"
@@ -131,58 +130,6 @@ func (self ContestLogic) ViewTeacherContest(paginator *Paginator, userID int64, 
 	return &list, total, session.Commit()
 }
 
-func (self ContestLogic) ProcessEnroll(ids *[]int64, state int) (int64, error) {
-	session := MasterDB.NewSession()
-	if err := session.Begin(); err != nil {
-		DPrintf("ProcessEnroll session.Begin() 发生错误:", err)
-		return 0, err
-	}
-	defer func() {
-		err := session.Close()
-		if err != nil {
-			DPrintf("ProcessEnroll session.Close() 发生错误:", err)
-		}
-	}()
-
-	var count int64
-
-	for _, id := range *ids {
-		if id < 1 {
-			fmt.Println("非法id")
-			continue
-		}
-		exist, err := session.Table("enroll_information").Where("id = ?", id).Exist()
-		if !exist {
-
-		}
-		if err != nil {
-			DPrintf("ProcessEnroll 查询竞赛信息发生错误:", err)
-			fail := session.Rollback()
-			if fail != nil {
-				DPrintf("回滚失败")
-				return 0, fail
-			}
-			return count, err
-		}
-		affected, err := session.Where("id = ?", id).Update(models.EnrollInformation{State: state})
-		if err != nil {
-			DPrintf("EnrollLogic Update 发生错误:", err)
-			fail := session.Rollback()
-			if fail != nil {
-				DPrintf("回滚失败")
-				return 0, fail
-			}
-			return count, err
-		}
-
-		if affected > 0 {
-			count += affected
-		}
-	}
-
-	return count, session.Commit()
-}
-
 func (self ContestLogic) UpdateContest(id, userID int64, contest, contestType, startTime, deadline string, contestState, state int) error {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
@@ -236,6 +183,70 @@ func (self ContestLogic) UpdateContest(id, userID int64, contest, contestType, s
 		updateContest.Deadline = models.FormatString2OftenTime(deadline)
 	}
 	_, err = session.Where("id = ?", id).Update(updateContest)
+	if err != nil {
+		fail := session.Rollback()
+		if err != nil {
+			logging.L.Error(err)
+			return fail
+		}
+		logging.L.Error(err)
+		return err
+	}
+	return session.Commit()
+}
+
+func (self ContestLogic) UploadContest(userID int64, contest, contestType, startTime, deadline string, describe *string) error {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("UploadContest session.Begin() 发生错误:", err)
+		logging.L.Error(err)
+		return err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			logging.L.Error(err)
+			DPrintf("UploadContest session.Close() 发生错误:", err)
+		}
+	}()
+
+	account, err := public.SearchAccountByID(userID)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
+	searchContestType, err := public.SearchContestTypeByName(contestType)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
+	teacher, err := public.SearchTeacherByID(account.UserID)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
+	newContest := &models.ContestInfo{
+		TeacherID:    account.UserID,
+		Contest:      contest,
+		ContestType:  searchContestType.ContestTypeID,
+		SchoolID:     teacher.SchoolID,
+		CollegeID:    teacher.CollegeID,
+		ContestState: 2,
+		CreateTime:   models.NewOftenTime(),
+		Describe:     *describe,
+		State:        3,
+	}
+
+	if startTime != "" {
+		newContest.StartTime = models.FormatString2OftenTime(startTime)
+	}
+	if deadline != "" {
+		newContest.Deadline = models.FormatString2OftenTime(deadline)
+	}
+	_, err = session.Insert(newContest)
 	if err != nil {
 		fail := session.Rollback()
 		if err != nil {

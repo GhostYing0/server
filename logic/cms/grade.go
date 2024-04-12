@@ -70,9 +70,9 @@ func (self CmsGradeLogic) Display(paginator *Paginator, username, name, contest,
 	list := make([]models.ReturnGradeInformation, len(*data))
 	for i := 0; i < len(*data); i++ {
 		list[i].ID = (*data)[i].GradeInformation.ID
-		list[i].Username = (*data)[i].Account.Username
+		list[i].Username = (*data)[i].Username
 		list[i].Name = (*data)[i].Name
-		list[i].Contest = (*data)[i].Contest.Contest
+		list[i].Contest = (*data)[i].Contest
 		list[i].School = (*data)[i].School.School
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].GradeInformation.CreateTime)
 		list[i].Certificate = (*data)[i].Certificate

@@ -57,9 +57,8 @@ func (self CmsContestLogic) Display(paginator *Paginator, contest, contestType s
 		return nil, 0, err
 	}
 
-	list := make([]models.ContestReturn, total)
+	list := make([]models.ContestReturn, len(*data))
 	for i := 0; i < len(list); i++ {
-		fmt.Println((*data)[i])
 		list[i].Username = (*data)[i].Username
 		list[i].Name = (*data)[i].Name
 		list[i].School = (*data)[i].School
@@ -68,6 +67,7 @@ func (self CmsContestLogic) Display(paginator *Paginator, contest, contestType s
 		list[i].State = (*data)[i].Contest.State
 		list[i].Contest = (*data)[i].Contest.Contest
 		list[i].ContestType = (*data)[i].ContestType
+		list[i].Describe = (*data)[i].Describe
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].Contest.CreateTime)
 		list[i].StartTime = models.MysqlFormatString2String((*data)[i].Contest.StartTime)
 		list[i].Deadline = models.MysqlFormatString2String((*data)[i].Contest.Deadline)
@@ -267,4 +267,41 @@ func (self CmsContestLogic) GetContestCount() (int64, error) {
 		return count, err
 	}
 	return count, err
+}
+
+func (self CmsContestLogic) ProcessContest(id int64, state int) error {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("CmsContestLogic UpdateContest session.Begin() 发生错误:", err)
+		return err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("CmsContestLogic UpdateContest session.Close() 发生错误:", err)
+		}
+	}()
+
+	exist, err := session.Table("contest").Where("id = ?", id).Exist()
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+	if !exist {
+		logging.L.Error("竞赛不存在")
+		return errors.New("竞赛不存在")
+	}
+
+	_, err = session.Where("id = ?", id).Update(&models.ContestInfo{State: state})
+	if err != nil {
+		fail := session.Rollback()
+		if fail != nil {
+			logging.L.Error(fail)
+			return fail
+		}
+		logging.L.Error(err)
+		return err
+	}
+
+	return session.Commit()
 }

@@ -8,6 +8,7 @@ import (
 	logic "server/logic/cms"
 	"server/models"
 	"server/utils/app"
+	. "server/utils/e"
 	. "server/utils/mydebug"
 	"strconv"
 )
@@ -20,7 +21,10 @@ func (self ContestController) RegisterRoutes(g *gin.RouterGroup) {
 	g.POST("/addContest", self.AddContest)         // 添加竞赛信息
 	g.POST("/updateContest", self.UpdateContest)   // 更改竞赛信息
 	g.DELETE("/deleteContest", self.DeleteContest) // 删除竞赛信息
-	g.POST("/processContest", self.ProcessContest) //审核竞赛
+
+	g.POST("/processPassContest", self.ProcessPassContest)       // 管理员审核竞赛通过
+	g.POST("/processRejectContest", self.ProcessRejectContest)   // 管理员审核竞赛驳回
+	g.POST("/processRecoverContest", self.ProcessRecoverContest) // 管理员审核竞赛恢复
 
 	g.GET("/getContestCount", self.GetCount)
 }
@@ -124,9 +128,6 @@ func (ContestController) DeleteContest(c *gin.Context) {
 	appG.ResponseSuc(ret, "删除", strconv.Itoa(int(count)), "个竞赛成功")
 }
 
-func (ContestController) ProcessContest(c *gin.Context) {
-}
-
 // GetCount
 func (ContestController) GetCount(c *gin.Context) {
 	appG := app.Gin{C: c}
@@ -142,4 +143,61 @@ func (ContestController) GetCount(c *gin.Context) {
 	data["count"] = count
 
 	appG.ResponseSucMsg(data, "查询成功")
+}
+
+func (ContestController) ProcessPassContest(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	form := &models.Contest{}
+	err := c.ShouldBindJSON(form)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultCmsContest.ProcessContest(form.ID, Pass)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSucMsg("success")
+}
+
+func (ContestController) ProcessRejectContest(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	form := &models.Contest{}
+	err := c.ShouldBindJSON(form)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultCmsContest.ProcessContest(form.ID, Reject)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSucMsg("success")
+}
+
+func (ContestController) ProcessRecoverContest(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	form := &models.Contest{}
+	err := c.ShouldBindJSON(form)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultCmsContest.ProcessContest(form.ID, Processing)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSucMsg("success")
 }

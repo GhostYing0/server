@@ -6,6 +6,7 @@ type ContestForm struct {
 	ContestType string `json:"contest_type"`
 	StartTime   string `json:"start_time"`
 	Deadline    string `json:"deadline"`
+	Describe    string `json:"desc"`
 	State       int    `json:"state"`
 }
 
@@ -21,6 +22,7 @@ type ContestInfo struct {
 	StartTime    OftenTime `json:"start_time" xorm:"start_time"`
 	Deadline     OftenTime `json:"deadline" xorm:"deadline"`
 	State        int       `json:"state" xorm:"state"`
+	Describe     string    `json:"describe" xorm:"describe"`
 	Deleted      OftenTime `json:"deleted" xorm:"deleted"`
 }
 
@@ -46,6 +48,7 @@ type ContestReturn struct {
 	StartTime    string    `json:"start_time" xorm:"start_time"`
 	Deadline     string    `json:"deadline" xorm:"deadline"`
 	State        int       `json:"state" xorm:"state"`
+	Describe     string    `json:"desc" xorm:"describe"`
 	Deleted      OftenTime `json:"deleted" xorm:"deleted"`
 }
 
@@ -54,11 +57,12 @@ type Contest struct {
 	Username     string    `json:"username" xorm:"username"`
 	Contest      string    `json:"contest" xorm:"contest"`
 	ContestState int       `json:"contest_state" xorm:"contest_state"`
-	ContestType  string    `json:"contest_type" xorm:"contest_type"`
+	ContestType  string    `json:"type" xorm:"type"`
 	CreateTime   string    `json:"create_time" xorm:"create_time"`
 	StartTime    string    `json:"start_time" xorm:"start_time"`
 	Deadline     string    `json:"deadline" xorm:"deadline"`
 	State        int       `json:"state" xorm:"state"`
+	Describe     string    `json:"desc" xorm:"describe"`
 	Deleted      OftenTime `json:"deleted" xorm:"deleted"`
 }
 

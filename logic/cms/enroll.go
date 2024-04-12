@@ -72,19 +72,14 @@ func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, s
 
 	list := make([]models.EnrollInformationReturn, len(*data))
 	for i := 0; i < len(*data); i++ {
-		searchSchool, err := public.SearchSchoolByID((*data)[i].EnrollInformation.SchoolID)
-		if err != nil {
-			logging.L.Error(err)
-		}
-
 		list[i].ID = (*data)[i].EnrollInformation.ID
-		list[i].Username = (*data)[i].Account.Username
+		list[i].Username = (*data)[i].Username
 		list[i].StudentID = (*data)[i].Student.StudentID
 		list[i].Name = (*data)[i].Name
 		list[i].TeamID = (*data)[i].TeamID
 		list[i].Contest = (*data)[i].Contest.Contest
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].EnrollInformation.CreateTime)
-		list[i].School = searchSchool.School
+		list[i].School = (*data)[i].School
 		list[i].Phone = (*data)[i].Phone
 		list[i].Email = (*data)[i].Email
 		list[i].State = (*data)[i].EnrollInformation.State

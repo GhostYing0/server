@@ -9,7 +9,6 @@ import (
 	"server/utils/app"
 	"server/utils/logging"
 	. "server/utils/mydebug"
-	"strconv"
 )
 
 type ContestController struct{}
@@ -21,10 +20,6 @@ func (self ContestController) RegisterRoutes(g *gin.RouterGroup) {
 	g.POST("/uploadContest", self.UploadContest)          //教师上传竞赛信息
 	g.POST("/updateContest", self.UpdateContest)          //教师更改竞赛信息
 	g.DELETE("/deleteContest", self.DeleteContest)        //教师删除竞赛信息(暂时没用)
-
-	g.POST("/processPassEnroll", self.ProcessPassEnroll)       // 教师审核报名通过
-	g.POST("/processRejectEnroll", self.ProcessRejectEnroll)   // 教师审核报名驳回
-	g.POST("/processRecoverEnroll", self.ProcessRecoverEnroll) // 教师审核报名恢复
 }
 
 // Viewcontest
@@ -114,7 +109,31 @@ func (ContestController) ViewTeacherContest(c *gin.Context) {
 }
 
 // UploadContest
-func (ContestController) UploadContest(c *gin.Context) {}
+func (ContestController) UploadContest(c *gin.Context) {
+	appG := app.Gin{C: c}
+	form := &models.ContestForm{}
+
+	userID, exist := c.Get("user_id")
+	if !exist {
+		appG.ResponseErr("用户不存在")
+		return
+	}
+
+	err := c.ShouldBindJSON(form)
+	if err != nil {
+		fmt.Println("ShouldBindJSON error:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultContestLogic.UploadContest(userID.(int64), form.Contest, form.ContestType, form.StartTime, form.Deadline, &form.Describe)
+	if err != nil {
+		fmt.Println("logic.UploadContest error:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+	appG.ResponseSuc()
+}
 
 // UpdateContest
 func (ContestController) UpdateContest(c *gin.Context) {
@@ -145,108 +164,3 @@ func (ContestController) UpdateContest(c *gin.Context) {
 
 // DeleteContest
 func (ContestController) DeleteContest(c *gin.Context) {}
-
-// ProcessPassEnroll
-// 审核通过
-func (ContestController) ProcessPassEnroll(c *gin.Context) {
-	appG := app.Gin{C: c}
-
-	role, exist := appG.C.Get("role")
-	if !exist {
-		DPrintf("无效身份")
-		appG.ResponseErr("无效身份")
-		return
-	}
-	if role != 2 {
-		DPrintf("无教师权限")
-		appG.ResponseErr("无教师权限")
-		return
-	}
-
-	request := models.EnrollIds{}
-	err := c.ShouldBindJSON(&request)
-	if err != nil {
-		DPrintf("ProcessEnroll c.ShouldBindJSON 发生错误:", err)
-		appG.ResponseErr(err.Error())
-		return
-	}
-
-	count, err := logic.DefaultContestLogic.ProcessEnroll(&request.ID, 1)
-	if err != nil {
-		DPrintf("logic.DefaultRegistrationContest.Process 发生错误:", err)
-		appG.ResponseErr(err.Error())
-		return
-	}
-
-	appG.ResponseSuc(strconv.Itoa(int(count)))
-}
-
-// ProcessRejectEnroll
-// 审核驳回
-func (ContestController) ProcessRejectEnroll(c *gin.Context) {
-	appG := app.Gin{C: c}
-
-	role, exist := appG.C.Get("role")
-	if !exist {
-		DPrintf("无效身份")
-		appG.ResponseErr("无效身份")
-		return
-	}
-	if role != 2 {
-		DPrintf("无教师权限")
-		appG.ResponseErr("无教师权限")
-		return
-	}
-
-	request := models.EnrollIds{}
-	err := c.ShouldBindJSON(&request)
-	if err != nil {
-		DPrintf("ProcessEnroll c.ShouldBindJSON 发生错误:", err)
-		appG.ResponseErr(err.Error())
-		return
-	}
-
-	count, err := logic.DefaultContestLogic.ProcessEnroll(&request.ID, 2)
-	if err != nil {
-		DPrintf("logic.DefaultRegistrationContest.Process 发生错误:", err)
-		appG.ResponseErr(err.Error())
-		return
-	}
-
-	appG.ResponseSuc(strconv.Itoa(int(count)))
-}
-
-// ProcessRecoverEnroll
-// 审核恢复
-func (ContestController) ProcessRecoverEnroll(c *gin.Context) {
-	appG := app.Gin{C: c}
-
-	role, exist := appG.C.Get("role")
-	if !exist {
-		DPrintf("无效身份")
-		appG.ResponseErr("无效身份")
-		return
-	}
-	if role != 2 {
-		DPrintf("无教师权限")
-		appG.ResponseErr("无教师权限")
-		return
-	}
-
-	request := models.EnrollIds{}
-	err := c.ShouldBindJSON(&request)
-	if err != nil {
-		DPrintf("ProcessEnroll c.ShouldBindJSON 发生错误:", err)
-		appG.ResponseErr(err.Error())
-		return
-	}
-
-	count, err := logic.DefaultContestLogic.ProcessEnroll(&request.ID, 3)
-	if err != nil {
-		DPrintf("logic.DefaultRegistrationContest.Process 发生错误:", err)
-		appG.ResponseErr(err.Error())
-		return
-	}
-
-	appG.ResponseSuc(strconv.Itoa(int(count)))
-}

@@ -27,8 +27,9 @@ type GradeStudentSchoolContestAccount struct {
 	GradeInformation `xorm:"extends"`
 	Student          `xorm:"extends"`
 	School           `xorm:"extends"`
-	Contest          `xorm:"extends"`
-	Account          `xorm:"extends"`
+	Contest          string `xorm:"contest"`
+	ContestType      string `xorm:"contest_type"`
+	Username         string `xorm:"username"`
 }
 
 func (GradeStudentSchoolContestAccount) TableName() string {
