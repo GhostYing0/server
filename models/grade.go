@@ -28,7 +28,7 @@ type GradeStudentSchoolContestAccount struct {
 	Student          `xorm:"extends"`
 	School           `xorm:"extends"`
 	Contest          string `xorm:"contest"`
-	ContestType      string `xorm:"contest_type"`
+	ContestType      string `xorm:"type"`
 	Username         string `xorm:"username"`
 }
 
@@ -45,6 +45,7 @@ type ReturnGradeInformation struct {
 	Grade       string `json:"grade" xorm:"grade"`
 	Certificate string `json:"certificate" xorm:"certificate"`
 	State       int    `json:"state" xorm:"state"`
+	ContestType string `json:"contest_type" xorm:"contest_type"`
 	CreateTime  string `json:"create_time" xorm:"create_time"`
 }
 

@@ -3,12 +3,13 @@ package logic
 import (
 	"errors"
 	"fmt"
-	"github.com/polaris1119/times"
 	. "server/database"
 	"server/logic/public"
 	"server/models"
 	"server/utils/logging"
 	. "server/utils/mydebug"
+
+	"github.com/polaris1119/times"
 )
 
 type GradeLogic struct{}
@@ -122,6 +123,7 @@ func (self GradeLogic) Search(paginator *Paginator, grade string, contest string
 
 	session.Table("account").Where("user_id = ?", account.UserID)
 	session.Join("LEFT", "contest", "contest.teacher_id = account.user_id")
+	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
 	session.Join("LEFT", "grade as g", "g.contest_id = contest.id")
 	session.Join("RIGHT", "student", "student.student_id = g.student_id")
 
@@ -147,7 +149,7 @@ func (self GradeLogic) Search(paginator *Paginator, grade string, contest string
 
 	data := &[]models.GradeStudentSchoolContestAccount{}
 
-	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).Select("g.id as id, g.*, account.*, student.*, contest.*").FindAndCount(data)
+	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).Select("g.id as id, g.*, account.*, student.*, contest.*, contest_type.*").FindAndCount(data)
 	if err != nil {
 		logging.L.Error(err)
 		DPrintf("Search 查找成绩信息失败:", err)
@@ -161,6 +163,7 @@ func (self GradeLogic) Search(paginator *Paginator, grade string, contest string
 		list[i].Contest = (*data)[i].Contest
 		list[i].Username = (*data)[i].Username
 		list[i].Name = (*data)[i].Name
+		list[i].ContestType = (*data)[i].ContestType
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].GradeInformation.CreateTime)
 		list[i].Certificate = (*data)[i].Certificate
 		list[i].Grade = (*data)[i].Grade

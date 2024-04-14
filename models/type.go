@@ -70,3 +70,23 @@ func MysqlFormatString2String(str string) string {
 	formattedTime := parsedTime.Format("2006-01-02 15:04:05")
 	return formattedTime
 }
+
+func (this *OftenTime) AddDate(years int, months int, days int) OftenTime {
+	t := time.Time(*this)
+	return OftenTime(t.AddDate(years, months, days))
+}
+
+func (this *OftenTime) Year() int {
+	t := time.Time(*this)
+	return t.Year()
+}
+
+func (this *OftenTime) Month() time.Month {
+	t := time.Time(*this)
+	return t.Month()
+}
+
+func (this *OftenTime) Day() int {
+	t := time.Time(*this)
+	return t.Day()
+}
