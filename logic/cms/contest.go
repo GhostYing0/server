@@ -28,6 +28,12 @@ func (self CmsContestLogic) Display(paginator *Paginator, contest, contestType s
 		}
 	}()
 
+	session.Join("LEFT", "teacher", "contest.teacher_id = teacher.teacher_id")
+	session.Join("LEFT", "account", "account.user_id = teacher.teacher_id")
+	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
+	session.Join("LEFT", "school", "teacher.school_id = school.school_id")
+	session.Join("LEFT", "college", "teacher.college_id = college.college_id")
+
 	searchContest, err := public.SearchContestByName(contest)
 	if err != nil {
 		logging.L.Error(err)
@@ -40,14 +46,8 @@ func (self CmsContestLogic) Display(paginator *Paginator, contest, contestType s
 		session.Where("contest.contest_type_id = ?", searchContest.ID)
 	}
 	if state != -1 {
-		session.Table("contest").Where("state = ?", state)
+		session.Where("contest.state = ?", state)
 	}
-
-	session.Join("LEFT", "teacher", "contest.teacher_id = teacher.teacher_id")
-	session.Join("LEFT", "account", "account.user_id = teacher.teacher_id")
-	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
-	session.Join("LEFT", "school", "teacher.school_id = school.school_id")
-	session.Join("LEFT", "college", "teacher.college_id = college.college_id")
 
 	data := &[]models.ContestContestTypeTeacher{}
 
@@ -66,7 +66,7 @@ func (self CmsContestLogic) Display(paginator *Paginator, contest, contestType s
 		list[i].ID = (*data)[i].Contest.ID
 		list[i].State = (*data)[i].Contest.State
 		list[i].Contest = (*data)[i].Contest.Contest
-		list[i].ContestType = (*data)[i].ContestType
+		list[i].ContestType = (*data)[i].Contest.ContestType
 		list[i].Describe = (*data)[i].Describe
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].Contest.CreateTime)
 		list[i].StartTime = models.MysqlFormatString2String((*data)[i].Contest.StartTime)

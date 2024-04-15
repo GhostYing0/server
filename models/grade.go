@@ -23,6 +23,15 @@ type GradeInformation struct {
 	Deleted     OftenTime `json:"deleted" xorm:"deleted"`
 }
 
+type CurStudentGrade struct {
+	GradeInformation `xorm:"extends"`
+	Contest          string `xorm:"contest"`
+}
+
+func (CurStudentGrade) TableName() string {
+	return "grade"
+}
+
 type GradeStudentSchoolContestAccount struct {
 	GradeInformation `xorm:"extends"`
 	Student          `xorm:"extends"`

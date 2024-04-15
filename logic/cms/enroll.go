@@ -33,6 +33,7 @@ func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, s
 	session.Join("LEFT", "student", "student.student_id = enroll_information.student_id")
 	session.Join("LEFT", "contest", "contest.id = enroll_information.contest_id")
 	session.Join("LEFT", "account", "account.user_id = student.student_id")
+	session.Join("LEFT", "school", "school.school_id = student.school_id")
 	if name != "" {
 		session.Where("student.name = ?", name)
 	}

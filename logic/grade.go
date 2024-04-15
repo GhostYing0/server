@@ -121,35 +121,39 @@ func (self GradeLogic) Search(paginator *Paginator, grade string, contest string
 		return nil, 0, err
 	}
 
-	session.Table("account").Where("user_id = ?", account.UserID)
-	session.Join("LEFT", "contest", "contest.teacher_id = account.user_id")
-	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
-	session.Join("LEFT", "grade as g", "g.contest_id = contest.id")
-	session.Join("RIGHT", "student", "student.student_id = g.student_id")
+	//session.Table("account").Where("user_id = ?", account.UserID)
+	//session.Join("LEFT", "contest", "contest.teacher_id = account.user_id")
+	//session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
+	//session.Join("LEFT", "grade as g", "g.contest_id = contest.id")
+	//session.Join("RIGHT", "student", "student.student_id = g.student_id")
+
+	session.Table("grade").Where("student_id = ?", account.UserID)
+	session.Join("LEFT", "contest", "contest.id = grade.contest_id")
 
 	if len(grade) > 0 {
-		session.Where("g.grade = ?", grade)
+		session.Where("grade.grade = ?", grade)
 	}
 	if len(contest) > 0 {
 		searchContest, err := public.SearchContestByName(contest)
 		if err != nil {
 			logging.L.Error(err)
 		} else {
-			session.Where("g.contest_id = ?", searchContest.ID)
+			session.Where("grade.contest_id = ?", searchContest.ID)
 		}
 	}
 	if len(startTime) > 0 && len(endTime) > 0 {
 		start := times.StrToLocalTime(startTime)
 		end := times.StrToLocalTime(endTime)
-		session.Where("g.createTime >= ? AND g.createTime <= ?", start, end)
+		session.Where("grade.createTime >= ? AND grade.createTime <= ?", start, end)
 	}
 	if state > 0 {
-		session.Where("g.state = ?", state)
+		session.Where("grade.state = ?", state)
 	}
 
-	data := &[]models.GradeStudentSchoolContestAccount{}
+	data := &[]models.CurStudentGrade{}
 
-	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).Select("g.id as id, g.*, account.*, student.*, contest.*, contest_type.*").FindAndCount(data)
+	total, err := session.Where("student_id = ?", account.UserID).Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(data)
+	//total, err := session.Limit(paginator.PerPage(), paginator.Offset()).Select("g.id as id, g.*, account.*, student.*, contest.*, contest_type.*").FindAndCount(data)
 	if err != nil {
 		logging.L.Error(err)
 		DPrintf("Search 查找成绩信息失败:", err)
@@ -158,12 +162,8 @@ func (self GradeLogic) Search(paginator *Paginator, grade string, contest string
 
 	list := make([]models.ReturnGradeInformation, len(*data))
 	for i := 0; i < len(*data); i++ {
-		list[i].School = (*data)[i].School.School
-		list[i].ID = (*data)[i].GradeInformation.ID
+		list[i].ID = (*data)[i].ID
 		list[i].Contest = (*data)[i].Contest
-		list[i].Username = (*data)[i].Username
-		list[i].Name = (*data)[i].Name
-		list[i].ContestType = (*data)[i].ContestType
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].GradeInformation.CreateTime)
 		list[i].Certificate = (*data)[i].Certificate
 		list[i].Grade = (*data)[i].Grade

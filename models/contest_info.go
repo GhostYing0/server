@@ -67,11 +67,10 @@ type Contest struct {
 }
 
 type ContestContestTypeTeacher struct {
-	Contest     `xorm:"extends"`
-	ContestType string `xorm:"type"`
-	Name        string `xorm:"name"`
-	School      string `xorm:"school"`
-	College     string `xorm:"college"`
+	Contest `xorm:"extends"`
+	Name    string `xorm:"name"`
+	School  string `xorm:"school"`
+	College string `xorm:"college"`
 }
 
 func (ContestContestTypeTeacher) TableName() string {
