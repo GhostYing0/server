@@ -6,7 +6,6 @@ type TotalEnrollCountOfPerYear struct {
 
 type PreTypeEnrollCountOfPerYear struct {
 	EnrollData map[string]map[string]int64 `json:"contest_type_with_enroll_data"` //KEY:年份 VALUE:{key:竞赛类型 value:数量}
-	NowYear    string                      `json:"now_year"`                      // 当前年份
 }
 
 type MysqlSelectEnrollYear struct {

@@ -137,12 +137,24 @@ type Semester struct {
 	Semester   string `xorm:"semester"`
 }
 
+func (Semester) TableName() string {
+	return "semester"
+}
+
 type School struct {
 	SchoolID int64  `xorm:"school_id"`
 	School   string `xorm:"school"`
 }
 
+func (School) TableName() string {
+	return "school"
+}
+
 type College struct {
 	CollegeID int64  `xorm:"college_id"`
 	College   string `xorm:"college"`
+}
+
+func (College) TableName() string {
+	return "college"
 }

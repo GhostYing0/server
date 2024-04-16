@@ -72,6 +72,36 @@ func (self PublicLogic) GetContestType() (*[]models.ContestType, error) {
 	return list, err
 }
 
+func (self PublicLogic) GetSchool() (*[]models.School, error) {
+	list := &[]models.School{}
+	err := MasterDB.Find(list)
+	if err != nil {
+		logging.L.Error(err)
+		return nil, err
+	}
+	return list, err
+}
+
+func (self PublicLogic) GetCollege() (*[]models.College, error) {
+	list := &[]models.College{}
+	err := MasterDB.Find(list)
+	if err != nil {
+		logging.L.Error(err)
+		return nil, err
+	}
+	return list, err
+}
+
+func (self PublicLogic) GetSemester() (*[]models.Semester, error) {
+	list := &[]models.Semester{}
+	err := MasterDB.Find(list)
+	if err != nil {
+		logging.L.Error(err)
+		return nil, err
+	}
+	return list, err
+}
+
 func (self PublicLogic) UploadImg(file *multipart.FileHeader) (string, error) {
 	extName := path.Ext(file.Filename)
 	allowExtMap := map[string]bool{

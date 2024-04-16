@@ -74,7 +74,6 @@ func (CmsAnalysisLogic) GetPreTypeEnrollCountOfPerYear() (*models.PreTypeEnrollC
 	data := &models.PreTypeEnrollCountOfPerYear{}
 	data.EnrollData = make(map[string]map[string]int64, 5)
 
-	data.NowYear = strconv.Itoa(startYear.Year())
 	for i := int64(0); i < 5; i++ {
 		data.EnrollData[yearMap[i]] = make(map[string]int64)
 		for _, value := range typeMap {
@@ -83,7 +82,7 @@ func (CmsAnalysisLogic) GetPreTypeEnrollCountOfPerYear() (*models.PreTypeEnrollC
 	}
 
 	for i := 0; i < int(len(list)); i++ {
-		//data.EnrollData[strconv.Itoa(int(list[i].Date.Year()))[typeMap[list[i].ContestType]] += 1
+		data.EnrollData[strconv.Itoa(int(list[i].Date.Year()))][typeMap[list[i].ContestType]] += 1
 	}
 	return data, err
 }

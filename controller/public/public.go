@@ -19,6 +19,9 @@ func (self PublicController) RegisterRoutes(g *gin.RouterGroup) {
 	g.POST("/v1/upload" /*jwt.JwtTokenCheck(),*/, self.Upload)
 	g.StaticFS("/picture", http.Dir("D:/GDesign/picture/img"))
 	g.GET("/getContestType", self.GetContestType)
+	g.GET("/getSchool", self.GetSchool)
+	g.GET("/getCollege", self.GetCollege)
+	g.GET("/getSemester", self.GetSemester)
 }
 
 func (PublicController) GetInfo(c *gin.Context) {
@@ -113,6 +116,48 @@ func (PublicController) GetContestType(c *gin.Context) {
 	appG := app.Gin{C: c}
 
 	data, err := logic.DefaultPublic.GetContestType()
+	if err != nil {
+		DPrintf("登出发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSucMsg(data)
+}
+
+// GetSchool
+func (PublicController) GetSchool(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	data, err := logic.DefaultPublic.GetSchool()
+	if err != nil {
+		DPrintf("登出发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSucMsg(data)
+}
+
+// GetCollege
+func (PublicController) GetCollege(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	data, err := logic.DefaultPublic.GetCollege()
+	if err != nil {
+		DPrintf("登出发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSucMsg(data)
+}
+
+// GetSemester
+func (PublicController) GetSemester(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	data, err := logic.DefaultPublic.GetSemester()
 	if err != nil {
 		DPrintf("登出发生错误:", err)
 		appG.ResponseErr(err.Error())
