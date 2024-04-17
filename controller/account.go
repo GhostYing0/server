@@ -61,7 +61,7 @@ func (AccountController) Register(c *gin.Context) {
 
 	err = logic.DefaultUserAccount.Register(
 		form.Username, form.Password, form.ConfirmPassword, form.Role,
-		form.Name, form.Gender, form.Semester, form.College, form.School, form.Class)
+		form.Name, form.Gender, form.Semester, form.College, form.School, form.Class, form.Phone, form.Email)
 	if err != nil {
 		DPrintf("Register 注册发生错误:", err)
 		appG.ResponseErr(err.Error())

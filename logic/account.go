@@ -81,7 +81,7 @@ func (self UserAccountLogic) Login(username string, password string, role int) (
 	return token, session.Commit()
 }
 
-func (self UserAccountLogic) Register(username string, password string, confirmPassword string, role int, name, gender, semester, college, school, class string) error {
+func (self UserAccountLogic) Register(username string, password string, confirmPassword string, role int, name, gender, semester, college, school, class, phone, email string) error {
 	if username == "" || password == "" {
 		return errors.New("用户名或密码不能为空")
 	}
@@ -137,6 +137,8 @@ func (self UserAccountLogic) Register(username string, password string, confirmP
 		Username: username,
 		Password: util.EncodeMD5(password),
 		Role:     role,
+		Phone:    phone,
+		Email:    email,
 		UserID:   uuid.CreateUUIDByNameSpace(username, password, name, gender, semester, college, school, class, role, time.Now()).String(),
 	}
 

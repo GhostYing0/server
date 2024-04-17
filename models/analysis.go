@@ -16,3 +16,7 @@ type MysqlSelectEnrollYearAndContestType struct {
 	Date        OftenTime `xorm:"create_time"`
 	ContestType int64     `xorm:"contest_type_id"`
 }
+
+type CompareEnrollCount struct {
+	EnrollCompare map[string]float64 `json:"enroll_compare"`
+}

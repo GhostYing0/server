@@ -16,6 +16,8 @@ type RegisterForm struct {
 	School          string `json:"school" xorm:"school"`
 	College         string `json:"college" xorm:"college"`
 	Semester        string `json:"semester" xorm:"semester"`
+	Phone           string `json:"phone" xorm:"phone"`
+	Email           string `json:"email" xorm:"email"`
 	Class           string `json:"class" xorm:"class"`
 }
 
@@ -37,6 +39,8 @@ type Account struct {
 	Password string    `json:"password" xorm:"password"`
 	Role     int       `json:"role" xorm:"role"`
 	UserID   string    `json:"user_id" xorm:"user_id"`
+	Phone    string    `json:"phone" xorm:"phone"`
+	Email    string    `json:"email" xorm:"email"`
 	Deleted  OftenTime `json:"deleted" xorm:"deleted"`
 }
 
