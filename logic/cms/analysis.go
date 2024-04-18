@@ -162,3 +162,78 @@ func (CmsAnalysisLogic) CompareEnrollCount() (*models.CompareEnrollCount, error)
 	}
 	return data, err
 }
+
+func (CmsAnalysisLogic) SchoolEnrollCount() (*models.CompareEnrollCount, error) {
+	nowDate := time.Now()
+
+	curYear := time.Date(nowDate.Year(), time.January, 1, 0, 0, 0, 0, time.Local)
+	lastYear := time.Date(nowDate.Year()-1, time.January, 1, 0, 0, 0, 0, time.Local)
+
+	allContestType := &[]models.ContestType{}
+	_, err := MasterDB.Table("contest_type").FindAndCount(allContestType)
+
+	typeMap := make(map[int64]string)
+	for i := 0; i < len(*allContestType); i++ {
+		typeMap[(*allContestType)[i].ContestTypeID] = (*allContestType)[i].ContestType
+	}
+
+	if err != nil {
+		logging.L.Error(err)
+		return nil, err
+	}
+
+	compareData := make([][]int64, 2)
+	for i := 0; i < len(compareData); i++ {
+		compareData[i] = make([]int64, len(typeMap))
+	}
+
+	index := 0
+	for key, _ := range typeMap {
+		// 统计今年的
+		compareData[0][index], err = MasterDB.
+			Table("enroll_information").
+			Join("LEFT", "contest", "contest.id = enroll_information.contest_id").
+			Where("enroll_information.create_time > ? and contest.contest_type_id = ?", curYear, key).
+			Count()
+		if err != nil {
+			logging.L.Error(err)
+			return nil, err
+		}
+
+		// 统计去年的
+		compareData[1][index], err = MasterDB.
+			Table("enroll_information").
+			Join("LEFT", "contest", "contest.id = enroll_information.contest_id").
+			Where("enroll_information.create_time > ? and enroll_information.create_time < ? and contest.contest_type_id = ?", lastYear, curYear, key).
+			Count()
+		if err != nil {
+			logging.L.Error(err)
+			return nil, err
+		}
+		index++
+	}
+
+	data := &models.CompareEnrollCount{}
+	data.EnrollCompare = make(map[string]float64)
+
+	curr_sum := float64(0)
+	prev_sum := float64(0)
+	for i := 0; i < len(compareData[0]); i++ {
+		curr := float64(compareData[0][i])
+		prev := float64(compareData[1][i])
+		rate := float64(0)
+		if prev != 0 {
+			rate = (curr - prev) / prev
+		}
+		data.EnrollCompare[typeMap[int64(i)+1]], _ = strconv.ParseFloat(fmt.Sprintf("%.2f", rate), 64)
+		curr_sum += curr
+		prev_sum += prev
+	}
+	if prev_sum != 0 {
+		rate := (curr_sum - prev_sum) / prev_sum
+		data.EnrollCompare["总共"], _ = strconv.ParseFloat(fmt.Sprintf("%.2f", rate), 64)
+	} else {
+		data.EnrollCompare["总共"] = 0
+	}
+	return data, err
+}

@@ -21,6 +21,9 @@ func (self GradeController) RegisterRoutes(g *gin.RouterGroup) {
 	g.POST("/processPassGrade", self.ProcessPassGrade)       // 教师审核成绩通过
 	g.POST("/processRejectGrade", self.ProcessRejectGrade)   // 教师审核成绩驳回
 	g.POST("/processRecoverGrade", self.ProcessRecoverGrade) // 教师审核成绩恢复
+
+	g.POST("/revokeGrade", self.RevokeGrade)
+	g.POST("/studentUpdateGrade", self.StudentUpdateGrade)
 }
 
 func (self GradeController) UploadGrade(c *gin.Context) {
@@ -142,7 +145,7 @@ func (self GradeController) TeacherDisplayGrade(c *gin.Context) {
 		return
 	}
 
-	list, total, err := logic.DefaultGradeLogic.Search(paginator, grade, contest, startTime, endTime, state, user_id.(int64), role.(int))
+	list, total, err := logic.DefaultGradeLogic.TeacherSearch(paginator, grade, contest, startTime, endTime, state, user_id.(int64), role.(int))
 
 	if err != nil {
 		DPrintf("DisplayGrade 发生错误:", err)
@@ -264,4 +267,70 @@ func (GradeController) ProcessRecoverGrade(c *gin.Context) {
 	}
 
 	appG.ResponseSuc()
+}
+
+func (GradeController) RevokeGrade(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	role, exist := appG.C.Get("role")
+	if !exist {
+		DPrintf("无效身份")
+		appG.ResponseErr("无效身份")
+		return
+	}
+	if role != StudentRole {
+		DPrintf("无学生权限")
+		appG.ResponseErr("无学生权限")
+		return
+	}
+
+	form := models.GradeForm{}
+	err := c.ShouldBindJSON(&form)
+	if err != nil {
+		DPrintf("ProcessEnroll c.ShouldBindJSON 发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultGradeLogic.ProcessGrade(form.ID, Revoked)
+	if err != nil {
+		DPrintf("logic.DefaultRegistrationContest.Process 发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSuc()
+}
+
+func (GradeController) StudentUpdateGrade(c *gin.Context) {
+	appG := app.Gin{C: c}
+	form := &models.GradeForm{}
+
+	role, exist := appG.C.Get("role")
+	if !exist {
+		DPrintf("无效身份")
+		appG.ResponseErr("无效身份")
+		return
+	}
+	if role != StudentRole {
+		DPrintf("无学生权限")
+		appG.ResponseErr("无学生权限")
+		return
+	}
+
+	err := c.ShouldBindJSON(form)
+	if err != nil {
+		DPrintf("UpdateGradeInformation c.ShouldBindJSON 发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultGradeLogic.Update(form.ID, form.Grade, form.Certificate)
+	if err != nil {
+		DPrintf("UpdateGradeInformation 发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSuc("操作成功")
 }

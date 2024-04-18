@@ -87,6 +87,8 @@ type StudentReturn struct {
 	Semester  string `json:"semester" xorm:"semester"`
 	College   string `json:"college" xorm:"college"`
 	Class     string `json:"class" xorm:"class"`
+	Phone     string `json:"phone" xorm:"phone"`
+	Email     string `json:"email" xorm:"email"`
 	Avatar    string `json:"avatar" xorm:"avatar"`
 }
 
@@ -125,6 +127,8 @@ type TeacherReturn struct {
 	Gender    string `json:"gender" xorm:"gender"`
 	School    string `json:"school" xorm:"school"`
 	College   string `json:"college" xorm:"college"`
+	Phone     string `json:"phone" xorm:"phone"`
+	Email     string `json:"email" xorm:"email"`
 	Avatar    string `json:"avatar" xorm:"avatar"`
 }
 

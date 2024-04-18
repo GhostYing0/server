@@ -28,20 +28,31 @@ type UpdatePasswordForm struct {
 	Role            int    `json:"role" xorm:"role"`
 }
 
+type UpdateUserPassword struct {
+	Password        string `json:"password" xorm:"password"`
+	ConfirmPassword string `json:"confirm_password"`
+}
+
 type LoginReturn struct {
 	ID       int64  `xorm:"id"`
 	Password string `xorm:"password"`
 }
 
 type Account struct {
-	ID       int64     `json:"id" xorm:"id"`
-	Username string    `json:"username" xorm:"username"`
-	Password string    `json:"password" xorm:"password"`
-	Role     int       `json:"role" xorm:"role"`
-	UserID   string    `json:"user_id" xorm:"user_id"`
-	Phone    string    `json:"phone" xorm:"phone"`
-	Email    string    `json:"email" xorm:"email"`
-	Deleted  OftenTime `json:"deleted" xorm:"deleted"`
+	ID            int64     `json:"id" xorm:"id"`
+	Username      string    `json:"username" xorm:"username"`
+	Password      string    `json:"password" xorm:"password"`
+	Role          int       `json:"role" xorm:"role"`
+	UserID        string    `json:"user_id" xorm:"user_id"`
+	Phone         string    `json:"phone" xorm:"phone"`
+	Email         string    `json:"email" xorm:"email"`
+	CreateTime    OftenTime `json:"create_time" xorm:"create_time"`
+	LastLoginTime OftenTime `json:"last_login_time" xorm:"last_login_time"`
+	Deleted       OftenTime `json:"deleted" xorm:"deleted"`
+}
+
+type Avatar struct {
+	Avatar string `json:"avatar" xorm:"avatar"`
 }
 
 type NewAccount LoginForm

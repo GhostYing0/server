@@ -20,12 +20,16 @@ type GradeInformation struct {
 	Certificate string    `json:"certificate" xorm:"certificate"`
 	State       int       `json:"state" xorm:"state"`
 	CreateTime  string    `json:"create_time" xorm:"create_time"`
+	UpdateTime  string    `json:"update_time" xorm:"update_time"`
 	Deleted     OftenTime `json:"deleted" xorm:"deleted"`
 }
 
 type CurStudentGrade struct {
 	GradeInformation `xorm:"extends"`
+	School           string `xorm:"school"`
+	Name             string `xorm:"name"`
 	Contest          string `xorm:"contest"`
+	ContestType      string `xorm:"type"`
 }
 
 func (CurStudentGrade) TableName() string {

@@ -6,6 +6,7 @@ import (
 	. "server/database"
 	"server/logic/public"
 	"server/models"
+	. "server/utils/e"
 	"server/utils/gredis"
 	"server/utils/logging"
 	. "server/utils/mydebug"
@@ -77,6 +78,11 @@ func (self UserAccountLogic) Login(username string, password string, role int) (
 		DPrintf("login Set 失败:", err)
 		return "", err
 	}
+	_, err = session.Where("id = ?", account.ID).Update(models.Account{LastLoginTime: models.NewOftenTime()})
+	if err != nil {
+		logging.L.Error(err)
+		return "", err
+	}
 
 	return token, session.Commit()
 }
@@ -134,12 +140,13 @@ func (self UserAccountLogic) Register(username string, password string, confirmP
 	}
 
 	newAccount := models.Account{
-		Username: username,
-		Password: util.EncodeMD5(password),
-		Role:     role,
-		Phone:    phone,
-		Email:    email,
-		UserID:   uuid.CreateUUIDByNameSpace(username, password, name, gender, semester, college, school, class, role, time.Now()).String(),
+		Username:   username,
+		Password:   util.EncodeMD5(password),
+		Role:       role,
+		Phone:      phone,
+		Email:      email,
+		CreateTime: models.NewOftenTime(),
+		UserID:     uuid.CreateUUIDByNameSpace(username, password, name, gender, semester, college, school, class, role, time.Now()).String(),
 	}
 
 	_, err = session.Insert(newAccount)
@@ -209,11 +216,11 @@ func (self UserAccountLogic) Register(username string, password string, confirmP
 	return session.Commit()
 }
 
-func (self UserAccountLogic) UpdatePassword(username string, newPassword string, confirmPassword string, role int) error {
-	if username == "" || newPassword == "" {
+func (self UserAccountLogic) UpdatePassword(userID int64, role int, password string, confirmPassword string) error {
+	if password == "" || confirmPassword == "" {
 		return errors.New("用户名或密码不能为空")
 	}
-	if newPassword != confirmPassword {
+	if password != confirmPassword {
 		return errors.New("密码两次输入不一致")
 	}
 
@@ -229,7 +236,7 @@ func (self UserAccountLogic) UpdatePassword(username string, newPassword string,
 		}
 	}()
 
-	has, err := session.Table("account").Where("username = ?", username).And("role = ?", role).Exist()
+	has, err := session.Table("account").Where("id = ?", userID).And("role = ?", role).Exist()
 	if err != nil {
 		DPrintf("UpdatePassword 查找用户发生错误:", err)
 		fail := session.Rollback()
@@ -249,7 +256,8 @@ func (self UserAccountLogic) UpdatePassword(username string, newPassword string,
 		return errors.New("用户不存在")
 	}
 
-	_, err = session.Table("account").Where("username = ?", username).Cols("password").Update(&models.Account{Password: newPassword})
+	newPassword := util.EncodeMD5(password)
+	_, err = session.Table("account").Where("id = ? and role = ?", userID, role).Cols("password").Update(&models.Account{Password: newPassword})
 	if err != nil {
 		DPrintf("UpdatePassword 修改密码发生错误:", err)
 		fail := session.Rollback()
@@ -314,6 +322,8 @@ func (self UserAccountLogic) GetProfileStudent(userID int64) (*models.StudentRet
 		Semester: semester.Semester,
 		College:  college.College,
 		Class:    data.Class,
+		Phone:    data.Phone,
+		Email:    data.Email,
 		Avatar:   data.Avatar,
 	}
 	return studentReturn, err
@@ -363,7 +373,112 @@ func (self UserAccountLogic) GetProfileTeacher(userID int64) (*models.TeacherRet
 		Gender:  data.Gender,
 		School:  school.School,
 		College: college.College,
+		Phone:   data.Phone,
+		Email:   data.Email,
 		Avatar:  data.Avatar,
 	}
 	return teacherReturn, err
+}
+
+func (self UserAccountLogic) UpdateProfile(userID int64, role int, phone, email string) error {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("Register session.Begin() 发生错误:", err)
+		logging.L.Error(err)
+		return err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("Register session.Close() 发生错误:", err)
+			logging.L.Error(err)
+		}
+	}()
+
+	data := &models.Account{}
+
+	exist, err := session.Table("account").Where("id = ? and role = ?", userID, role).Get(data)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+	if !exist {
+		logging.L.Error("用户不存在")
+		return errors.New("用户不存在")
+	}
+
+	_, err = session.Table("account").Where("id = ? and role = ?", userID, role).Update(&models.Account{Phone: phone, Email: email})
+	if err != nil {
+		fail := session.Rollback()
+		if fail != nil {
+			logging.L.Error(err)
+			return fail
+		}
+		logging.L.Error(err)
+		return err
+	}
+	return session.Commit()
+}
+
+func (self UserAccountLogic) UpdateAvatar(userID int64, role int, avatar string) error {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("Register session.Begin() 发生错误:", err)
+		logging.L.Error(err)
+		return err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("Register session.Close() 发生错误:", err)
+			logging.L.Error(err)
+		}
+	}()
+
+	data := &models.Account{}
+
+	exist, err := session.Table("account").Where("id = ? and role = ?", userID, role).Get(data)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+	if !exist {
+		logging.L.Error("用户不存在")
+		return errors.New("用户不存在")
+	}
+
+	if role == StudentRole {
+		student, err := public.SearchStudentByID(data.UserID)
+		if err != nil {
+			logging.L.Error(err)
+			return err
+		}
+		_, err = session.Table("student").Where("student_id = ?", student.StudentID).Update(&models.Student{Avatar: avatar})
+		if err != nil {
+			fail := session.Rollback()
+			if fail != nil {
+				logging.L.Error(err)
+				return fail
+			}
+			logging.L.Error(err)
+			return err
+		}
+	} else if role == TeacherRole {
+		teacher, err := public.SearchTeacherByID(data.UserID)
+		if err != nil {
+			logging.L.Error(err)
+			return err
+		}
+		_, err = session.Table("teacher").Where("teacher_id = ?", teacher.TeacherID).Update(&models.Teacher{Avatar: avatar})
+		if err != nil {
+			fail := session.Rollback()
+			if fail != nil {
+				logging.L.Error(err)
+				return fail
+			}
+			logging.L.Error(err)
+			return err
+		}
+	}
+	return session.Commit()
 }

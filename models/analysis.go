@@ -8,6 +8,15 @@ type PreTypeEnrollCountOfPerYear struct {
 	EnrollData map[string]map[string]int64 `json:"contest_type_with_enroll_data"` //KEY:年份 VALUE:{key:竞赛类型 value:数量}
 }
 
+type SchoolEnrollCount struct {
+	SchoolEnrollData []SchoolEnroll
+}
+
+type SchoolEnroll struct {
+	School      string `json:"school"`
+	EnrollCount int64  `json:"enroll_count"`
+}
+
 type MysqlSelectEnrollYear struct {
 	Date OftenTime `xorm:"create_time"`
 }

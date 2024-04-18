@@ -52,7 +52,7 @@ func (self ContestLogic) DisplayContest(paginator *Paginator, contest, contestTy
 		return nil, 0, err
 	}
 
-	list := make([]models.ContestReturn, total)
+	list := make([]models.ContestReturn, len(*data))
 	for i := 0; i < len(*data); i++ {
 		list[i].ContestState = (*data)[i].ContestState
 		list[i].ID = (*data)[i].ID
@@ -115,7 +115,7 @@ func (self ContestLogic) ViewTeacherContest(paginator *Paginator, userID int64, 
 		return nil, 0, err
 	}
 
-	list := make([]models.ContestReturn, total)
+	list := make([]models.ContestReturn, len(*data))
 	for i := 0; i < len(*data); i++ {
 		list[i].ID = (*data)[i].ID
 		list[i].ContestState = (*data)[i].ContestState

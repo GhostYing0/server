@@ -19,8 +19,10 @@ func (self AccountController) RegisterRoutes(g *gin.RouterGroup) {
 	g.POST("/register", self.Register)            // 普通用户注册
 	g.POST("/update_passwd", self.UpdatePasswd)   // 普通用户修改密码
 	g.GET("/profileStudent", self.ProfileStudent) //学生获取个人信息
-	g.GET("/profileTeacher", self.ProfileTeacher) //学生获取个人信息
-	g.POST("/updateProfile", self.UpdateProfile)  //更新个人信息
+	g.GET("/profileTeacher", self.ProfileTeacher) //教师获取个人信息
+	g.POST("/updateProfile", self.UpdateProfile)
+	g.POST("/updateTeacherProfile", self.UpdateTeacherProfile)
+	g.POST("/updateAvatar", self.UpdateAvatar)
 }
 
 // Login
@@ -73,16 +75,30 @@ func (AccountController) Register(c *gin.Context) {
 // UpdatePasswd
 func (AccountController) UpdatePasswd(c *gin.Context) {
 	appG := app.Gin{C: c}
-	param := &models.UpdatePasswordForm{}
+	form := &models.UpdateUserPassword{}
 
-	err := c.ShouldBindJSON(&param)
+	userID, exist := c.Get("user_id")
+	if !exist {
+		appG.ResponseErr("用户查找错误")
+		logging.L.Error("用户查找错误")
+		return
+	}
+
+	role, exist := c.Get("role")
+	if !exist {
+		appG.ResponseErr("权限错误")
+		logging.L.Error("权限错误")
+		return
+	}
+
+	err := c.ShouldBindJSON(form)
 	if err != nil {
 		DPrintf("UpdatePasswd c.ShouldBindJSON()发生错误:", err)
 		appG.ResponseErr(err.Error())
 		return
 	}
 
-	err = logic.DefaultUserAccount.UpdatePassword(param.Username, param.NewPassword, param.ConfirmPassword, param.Role)
+	err = logic.DefaultUserAccount.UpdatePassword(userID.(int64), role.(int), form.Password, form.ConfirmPassword)
 	if err != nil {
 		DPrintf("UpdatePasswd 发生错误:", err)
 		appG.ResponseErr(err.Error())
@@ -129,5 +145,71 @@ func (AccountController) ProfileTeacher(c *gin.Context) {
 }
 
 func (AccountController) UpdateProfile(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	userID, exist := c.Get("user_id")
+	if !exist {
+		appG.ResponseErr("用户查找错误")
+		logging.L.Error("用户查找错误")
+		return
+	}
+
+	role, exist := c.Get("role")
+	if !exist {
+		appG.ResponseErr("权限错误")
+		logging.L.Error("权限错误")
+		return
+	}
+
+	form := &models.Account{}
+	err := c.ShouldBindJSON(form)
+	if err != nil {
+		logging.L.Error(err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultUserAccount.UpdateProfile(userID.(int64), role.(int), form.Phone, form.Email)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+	appG.ResponseSuc()
+}
+
+func (AccountController) UpdateAvatar(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	userID, exist := c.Get("user_id")
+	if !exist {
+		appG.ResponseErr("用户查找错误")
+		logging.L.Error("用户查找错误")
+		return
+	}
+
+	role, exist := c.Get("role")
+	if !exist {
+		appG.ResponseErr("权限错误")
+		logging.L.Error("权限错误")
+		return
+	}
+
+	form := &models.Avatar{}
+	err := c.ShouldBindJSON(form)
+	if err != nil {
+		logging.L.Error(err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultUserAccount.UpdateAvatar(userID.(int64), role.(int), form.Avatar)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+	appG.ResponseSuc()
+}
+
+func (AccountController) UpdateTeacherProfile(c *gin.Context) {
 
 }

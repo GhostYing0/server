@@ -91,7 +91,7 @@ func (self CmsStudentLogic) DisplayStudent(paginator *Paginator, username, gende
 		return nil, 0, err
 	}
 
-	list := make([]models.StudentReturn, total)
+	list := make([]models.StudentReturn, len(*data))
 
 	for i := 0; i < len(*data); i++ {
 		list[i].ID = (*data)[i].ID

@@ -21,6 +21,8 @@ func (self EnrollController) RegisterRoutes(g *gin.RouterGroup) {
 	g.POST("/processPassEnroll", self.ProcessPassEnroll)       // 教师审核报名通过
 	g.POST("/processRejectEnroll", self.ProcessRejectEnroll)   // 教师审核报名驳回
 	g.POST("/processRecoverEnroll", self.ProcessRecoverEnroll) // 教师审核报名恢复
+
+	g.POST("/revokeEnroll", self.RevokeEnroll) //学生用户撤回报名信息
 }
 
 func (EnrollController) TeacherSearchEnroll(c *gin.Context) {
@@ -260,6 +262,39 @@ func (EnrollController) ProcessRecoverEnroll(c *gin.Context) {
 	}
 
 	err = logic.DefaultEnrollLogic.ProcessEnroll(form.ID, Processing)
+	if err != nil {
+		DPrintf("logic.DefaultRegistrationContest.Process 发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSuc()
+}
+
+func (EnrollController) RevokeEnroll(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	role, exist := appG.C.Get("role")
+	if !exist {
+		DPrintf("无效身份")
+		appG.ResponseErr("无效身份")
+		return
+	}
+	if role != StudentRole {
+		DPrintf("无学生权限")
+		appG.ResponseErr("无学生权限")
+		return
+	}
+
+	form := models.EnrollInformation{}
+	err := c.ShouldBindJSON(&form)
+	if err != nil {
+		DPrintf("ProcessEnroll c.ShouldBindJSON 发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultEnrollLogic.ProcessEnroll(form.ID, Revoked)
 	if err != nil {
 		DPrintf("logic.DefaultRegistrationContest.Process 发生错误:", err)
 		appG.ResponseErr(err.Error())
