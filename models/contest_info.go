@@ -88,6 +88,11 @@ type ContestType struct {
 	ContestType   string `json:"type" xorm:"type"`
 }
 
+type ContestAndType struct {
+	Contest string `json:"contest" xrom:"contest"`
+	Type    string `json:"type" xorm:"type"`
+}
+
 type DisplayContestForm ContestInfo
 
 type NewContest ContestInfo

@@ -2,13 +2,14 @@ package public
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	logic "server/logic/public"
 	"server/middleware/jwt"
 	"server/utils/app"
 	. "server/utils/mydebug"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 type PublicController struct{}
@@ -22,6 +23,7 @@ func (self PublicController) RegisterRoutes(g *gin.RouterGroup) {
 	g.GET("/getSchool", self.GetSchool)
 	g.GET("/getCollege", self.GetCollege)
 	g.GET("/getSemester", self.GetSemester)
+	g.GET("/getContest", self.GetContest)
 }
 
 func (PublicController) GetInfo(c *gin.Context) {
@@ -158,6 +160,20 @@ func (PublicController) GetSemester(c *gin.Context) {
 	appG := app.Gin{C: c}
 
 	data, err := logic.DefaultPublic.GetSemester()
+	if err != nil {
+		DPrintf("登出发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSucMsg(data)
+}
+
+// GetContest
+func (PublicController) GetContest(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	data, err := logic.DefaultPublic.GetContest()
 	if err != nil {
 		DPrintf("登出发生错误:", err)
 		appG.ResponseErr(err.Error())

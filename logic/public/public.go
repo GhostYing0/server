@@ -8,6 +8,7 @@ import (
 	"path"
 	. "server/database"
 	"server/models"
+	. "server/utils/e"
 	"server/utils/gredis"
 	"server/utils/logging"
 	. "server/utils/mydebug"
@@ -317,4 +318,19 @@ func SearchContestTypeByName(name string) (*models.ContestType, error) {
 		return contestType, errors.New("竞赛类型不存在")
 	}
 	return contestType, err
+}
+
+func (self PublicLogic) GetContest() (*[]models.ContestAndType, error) {
+	contest := &[]models.ContestAndType{}
+
+	_, err := MasterDB.
+		Table("contest").
+		Join("LEFT", "contest_type", "contest.contest_type_id = contest_type.id").
+		Where("contest.state = ?", Pass).
+		FindAndCount(contest)
+	if err != nil {
+		return nil, err
+	}
+
+	return contest, err
 }

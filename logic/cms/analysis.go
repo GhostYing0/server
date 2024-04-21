@@ -68,7 +68,7 @@ func (CmsAnalysisLogic) GetPreTypeEnrollCountOfPerYear() (*models.PreTypeEnrollC
 	_, err = MasterDB.
 		Table("enroll_information").
 		Join("LEFT", "contest", "contest.id = enroll_information.contest_id").
-		Where("enroll_information.create_time > ? and enroll_information.create_time < ? and  and enroll_information.state = ?", startYear, endYear, Pass).
+		Where("enroll_information.create_time > ? and enroll_information.create_time < ? and enroll_information.state = ?", startYear, endYear, Pass).
 		FindAndCount(&list)
 	if err != nil {
 		logging.L.Error(err)
@@ -272,6 +272,8 @@ func (CmsAnalysisLogic) StudentRewardRate(contest string) (*models.RewardRate, e
 		logging.L.Error(err)
 		return nil, err
 	}
+
+	fmt.Println(rewardCount)
 
 	enrollCount, err := MasterDB.
 		Table("enroll_information").
