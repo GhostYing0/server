@@ -148,7 +148,12 @@ func (self EnrollLogic) Search(paginator *Paginator, userID int64, contest strin
 		list[i].Phone = (*data)[i].Phone
 		list[i].Email = (*data)[i].Email
 		list[i].State = (*data)[i].EnrollInformation.State
-
+		startTime := models.FormatString2OftenTime(models.MysqlFormatString2String((*data)[i].Contest.StartTime))
+		if models.NewOftenTime().After(&startTime) && list[i].State == Pass {
+			fmt.Println("Start:", startTime)
+			fmt.Println("timeNow:", models.NewOftenTime())
+			list[i].DoUpload = true
+		}
 	}
 
 	return &list, total, session.Rollback()

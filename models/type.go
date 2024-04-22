@@ -90,3 +90,9 @@ func (this *OftenTime) Day() int {
 	t := time.Time(*this)
 	return t.Day()
 }
+
+func (this OftenTime) After(target *OftenTime) bool {
+	t := time.Time(this)
+	u := time.Time(*target)
+	return t.After(u)
+}

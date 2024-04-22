@@ -62,6 +62,26 @@ func (self GradeLogic) InsertGradeInformation(user_id int64, contest, grade, cer
 		return err
 	}
 
+	exist, err := session.Table("enroll_information").Where("student_id = ? and contest_id = ?", student.StudentID, searchContest.ID).Exist()
+	if !exist {
+		logging.L.Error("未报名该竞赛，无法上传成绩")
+		return errors.New("未报名该竞赛，无法上传成绩")
+	}
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
+	exist, err = session.Table("grade").Where("student_id = ? and contest_id = ?", student.StudentID, searchContest.ID).Exist()
+	if exist {
+		logging.L.Error("已上传成绩，不能重复上传")
+		return errors.New("已上传成绩，不能重复上传")
+	}
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
 	gradeInformation := &models.GradeInformation{
 		StudentID:   account.UserID,
 		SchoolID:    student.SchoolID,
@@ -69,6 +89,7 @@ func (self GradeLogic) InsertGradeInformation(user_id int64, contest, grade, cer
 		CreateTime:  models.NewOftenTime().String(),
 		Certificate: certificate,
 		Grade:       grade,
+		UpdateTime:  models.NewOftenTime().String(),
 		State:       3,
 	}
 

@@ -99,6 +99,7 @@ type EnrollInformationReturn struct {
 	State       int    `json:"state" xorm:"state"`
 	Name        string `json:"name" xorm:"name"`
 	Contest     string `json:"contest" xorm:"contest"`
+	DoUpload    bool   `json:"do_upload"`
 }
 
 func (EnrollInformationReturn) TableName() string {
