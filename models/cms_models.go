@@ -64,3 +64,24 @@ func (LoginForm) TableName() string {
 func (Account) TableName() string {
 	return "account"
 }
+
+type Manager struct {
+	ID            int64     `json:"id" xorm:"id"`
+	Username      string    `json:"username" xorm:"username"`
+	Password      string    `json:"password" xorm:"password"`
+	Role          int       `json:"role" xorm:"role"`
+	CreateTime    string    `json:"create_time" xorm:"create_time"`
+	LastLoginTime string    `json:"last_login_time" xorm:"last_login_time"`
+	UpdateTime    string    `json:"update_time" xorm:"update_time"`
+	Deleted       OftenTime `json:"deleted" xorm:"deleted"`
+}
+
+func (Manager) TableName() string {
+	return "cms_account"
+}
+
+type NewManager struct {
+	Username        string `json:"username" xorm:"username"`
+	Password        string `json:"password" xorm:"password"`
+	ConfirmPassword string `json:"confirm_password" xorm:"confirm_password"`
+}

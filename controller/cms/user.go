@@ -26,8 +26,15 @@ func (self UserController) RegisterRoutes(g *gin.RouterGroup) {
 	g.POST("/updateTeacher", self.UpdateTeacher)    // 更新教师用户
 	g.DELETE("/deleteTeacher", self.DeleteTeacher)  // 删除教师用户
 	g.GET("/getTeacherCount", self.GetTeacherCount) // 获取教师用户数量
+
+	g.GET("/getManager", self.GetManager)           // 查看管理员用户
+	g.POST("/addManager", self.AddManager)          // 添加管理员用户
+	g.POST("/updateManager", self.UpdateManager)    // 修改管理员用户
+	g.DELETE("/deleteManager", self.DeleteManager)  // 删除管理员用户
+	g.GET("/getManagerCount", self.GetManagerCount) // 获取管理员用户数量
 }
 
+// =================================================学生用户
 // GetStudentUser
 func (UserController) GetStudent(c *gin.Context) {
 	appG := app.Gin{C: c}
@@ -150,6 +157,7 @@ func (UserController) GetStudentCount(c *gin.Context) {
 	appG.ResponseSucMsg(data, "查询成功")
 }
 
+// =================================================教师用户
 // GetTeacher
 func (UserController) GetTeacher(c *gin.Context) {
 	appG := app.Gin{C: c}
@@ -256,6 +264,121 @@ func (UserController) GetTeacherCount(c *gin.Context) {
 	appG := app.Gin{C: c}
 
 	count, err := logic.DefaultCmsTeacher.GetTeacherCount()
+
+	if err != nil {
+		DPrintf("GetUserCount 出错:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+	data := make(map[string]interface{})
+	data["count"] = count
+
+	appG.ResponseSucMsg(data, "查询成功")
+}
+
+// =================================================管理员用户
+// GetStudentUser
+func (UserController) GetManager(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
+	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
+	username := c.DefaultQuery("searchUser", "")
+
+	fmt.Println("limit:", limit, " curPage:", curPage)
+	fmt.Println(c.Request.URL)
+	paginator := NewPaginator(curPage, limit)
+
+	data := make(map[string]interface{})
+	list, total, err := logic.DefaultCmsManager.DisplayManager(paginator, username)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	paginator.SetTotalPage(total)
+
+	if list != nil {
+		data["list"] = list
+		data["total"] = total
+		data["page_size"] = limit
+		data["page_number"] = curPage
+		data["total_page"] = paginator.GetTotalPage()
+	}
+
+	appG.ResponseSucMsg(data)
+}
+
+// AddUser
+func (UserController) AddManager(c *gin.Context) {
+	appG := app.Gin{C: c}
+	var form models.NewManager
+
+	err := c.ShouldBindJSON(&form)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultCmsManager.AddManager(form.Username, form.Password, form.ConfirmPassword)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSuc()
+}
+
+// UpdateUser
+func (UserController) UpdateManager(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	form := &models.Manager{}
+
+	err := c.ShouldBindJSON(&form)
+	if err != nil {
+		DPrintf("UpdateUser c.ShouldBindJSON err:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultCmsManager.UpdateManager(form.ID, form.Username, form.Password)
+	if err != nil {
+		DPrintf("UpdateUser logic.DefaultCmsUser.UpdateUser err:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSuc("更新成功")
+}
+
+// DeleteUser
+func (UserController) DeleteManager(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	request := models.UserDeleteId{}
+	err := c.ShouldBindJSON(&request)
+	if err != nil {
+		DPrintf("DeleteUser c.ShouldBindJSON 发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	count, err := logic.DefaultCmsManager.DeleteManager(&request.ID)
+	if err != nil {
+		DPrintf("DeleteUser logic.DefaultCmsUser.DeleteUser 发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseNumber(count)
+}
+
+// GetCount
+func (UserController) GetManagerCount(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	count, err := logic.DefaultCmsManager.GetManagerCount()
 
 	if err != nil {
 		DPrintf("GetUserCount 出错:", err)
