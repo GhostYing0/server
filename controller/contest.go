@@ -7,6 +7,7 @@ import (
 	"server/logic"
 	"server/models"
 	"server/utils/app"
+	"server/utils/e"
 	"server/utils/logging"
 	. "server/utils/mydebug"
 )
@@ -16,10 +17,13 @@ type ContestController struct{}
 func (self ContestController) RegisterRoutes(g *gin.RouterGroup) {
 	g.GET("/viewContest", self.ViewContest) // 查看竞赛信息
 
-	g.GET("/viewTeacherContest", self.ViewTeacherContest) // 教师查看自身上传的竞赛信息
-	g.POST("/uploadContest", self.UploadContest)          //教师上传竞赛信息
-	g.POST("/updateContest", self.UpdateContest)          //教师更改竞赛信息
-	g.DELETE("/deleteContest", self.DeleteContest)        //教师删除竞赛信息(暂时没用)
+	g.GET("/viewTeacherContest", self.ViewTeacherContest)     // 教师查看自身上传的竞赛信息
+	g.GET("/getContestForTeacher", self.GetContestForTeacher) // 获取自身竞赛，给选择框用
+	g.POST("/uploadContest", self.UploadContest)              //教师上传竞赛信息
+	g.POST("/updateContest", self.UpdateContest)              //教师更改竞赛信息
+	g.POST("/transformState", self.TransformState)            //教师开关竞赛报名
+	g.DELETE("/deleteContest", self.DeleteContest)            //教师删除竞赛信息(暂时没用)
+	g.POST("/cancelContest", self.CancelContest)              //教师撤回竞赛
 }
 
 // Viewcontest
@@ -164,3 +168,98 @@ func (ContestController) UpdateContest(c *gin.Context) {
 
 // DeleteContest
 func (ContestController) DeleteContest(c *gin.Context) {}
+
+// GetContest
+func (ContestController) GetContestForTeacher(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	userID, exist := c.Get("user_id")
+	if !exist {
+		appG.ResponseErr("用户不存在")
+		return
+	}
+
+	role, exist := c.Get("role")
+	if !exist {
+		appG.ResponseErr("权限错误")
+		return
+	}
+
+	if role != e.TeacherRole {
+		appG.ResponseErr("无权限")
+		return
+	}
+
+	data, err := logic.DefaultContestLogic.GetContestForTeacher(userID.(int64))
+	if err != nil {
+		DPrintf("教师获取自身竞赛出错:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSucMsg(data)
+}
+
+func (ContestController) TransformState(c *gin.Context) {
+	appG := app.Gin{C: c}
+	form := &models.UpdateContestForm{}
+
+	userID, exist := c.Get("user_id")
+	if !exist {
+		appG.ResponseErr("用户不存在")
+		return
+	}
+
+	role, exist := c.Get("role")
+	if !exist {
+		appG.ResponseErr("权限错误")
+		return
+	}
+
+	if role != e.TeacherRole {
+		appG.ResponseErr("无权限")
+		return
+	}
+
+	err := c.ShouldBindJSON(form)
+	if err != nil {
+		fmt.Println("ShouldBindJSON error:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultContestLogic.TransformState(userID.(int64), form.ID, form.ContestState)
+	if err != nil {
+		DPrintf("教师获取自身竞赛出错:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSuc()
+}
+
+func (ContestController) CancelContest(c *gin.Context) {
+	appG := app.Gin{C: c}
+	form := &models.UpdateContestForm{}
+
+	userID, exist := c.Get("user_id")
+	if !exist {
+		appG.ResponseErr("用户不存在")
+		return
+	}
+
+	err := c.ShouldBindJSON(form)
+	if err != nil {
+		fmt.Println("ShouldBindJSON error:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultContestLogic.CancelContest(form.ID, userID.(int64))
+	if err != nil {
+		fmt.Println("logic.UpdateContestInfo error:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+	appG.ResponseSuc()
+}

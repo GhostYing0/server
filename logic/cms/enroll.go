@@ -213,6 +213,16 @@ func (self CmsEnrollLogic) Update(id int64, username string, name string, contes
 		return errors.New("报名信息不存在")
 	}
 
+	exist, err := session.Table("enroll_information").Where("student_id = ? && contest_id = ?", student.StudentID, contestInfo.ID).Exist()
+	if exist {
+		logging.L.Error("已有相同报名信息")
+		return errors.New("已有相同报名信息")
+	}
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
 	_, err = session.Where("id = ?", id).Update(&models.NewEnroll{
 		StudentID:  student.StudentID,
 		ContestID:  contestInfo.ID,

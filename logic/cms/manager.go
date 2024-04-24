@@ -54,12 +54,22 @@ func (self CmsManagerLogic) DisplayManager(paginator *Paginator, username string
 		return nil, 0, err
 	}
 
+	for i := 0; i < len(*data); i++ {
+		(*data)[i].CreateTime = models.MysqlFormatString2String((*data)[i].CreateTime)
+		(*data)[i].UpdateTime = models.MysqlFormatString2String((*data)[i].UpdateTime)
+		(*data)[i].LastLoginTime = models.MysqlFormatString2String((*data)[i].LastLoginTime)
+	}
+
 	return data, total, session.Commit()
 }
 
 func (self CmsManagerLogic) AddManager(username, password, confirmPassword string) error {
 	if len(username) == 0 || len(password) == 0 {
 		logging.L.Error("账号和密码不能为空")
+		return nil
+	}
+	if password != confirmPassword {
+		logging.L.Error("两次密码输入不相同")
 		return nil
 	}
 
@@ -76,23 +86,26 @@ func (self CmsManagerLogic) AddManager(username, password, confirmPassword strin
 		}
 	}()
 
-	exist, err := session.Table("account").Where("username = ? and role = 1", username).Exist()
+	exist, err := session.Table("cms_account").Where("username = ?", username).Exist()
 	if exist {
 		logging.L.Error("用户已存在")
 		return errors.New("用户已存在")
 	}
 
 	if err != nil {
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			logging.L.Error(err)
-			return fail
-		}
 		logging.L.Error(err)
 		return err
 	}
 
+	newManager := &models.ManagerInfo{
+		Username:   username,
+		Password:   util.EncodeMD5(password),
+		Role:       0,
+		CreateTime: models.NewOftenTime(),
+		UpdateTime: models.NewOftenTime(),
+	}
+
+	_, err = session.Insert(newManager)
 	if err != nil {
 		fail := session.Rollback()
 		if fail != nil {
@@ -107,8 +120,12 @@ func (self CmsManagerLogic) AddManager(username, password, confirmPassword strin
 	return session.Commit()
 }
 
-func (self CmsManagerLogic) UpdateManager(id int64, username, password string) error {
+func (self CmsManagerLogic) UpdateManager(id int64, username, password, confirmPassword string) error {
 	session := MasterDB.NewSession()
+	if password != confirmPassword {
+		logging.L.Error("密码两次输入不同")
+		return errors.New("密码两次输入不同")
+	}
 	if err := session.Begin(); err != nil {
 		DPrintf("cmsUser UpdateUser session.Begin() 发生错误:", err)
 		logging.L.Error(err)
@@ -122,8 +139,7 @@ func (self CmsManagerLogic) UpdateManager(id int64, username, password string) e
 		}
 	}()
 
-	searchAccount := &models.Account{}
-	exist, err := session.Table("account").Where("id = ?", id).Get(searchAccount)
+	exist, err := session.Table("cms_account").Where("id = ?", id).Exist()
 	if !exist {
 		logging.L.Error("用户不存在")
 		return errors.New("用户不存在")
@@ -134,23 +150,22 @@ func (self CmsManagerLogic) UpdateManager(id int64, username, password string) e
 		return err
 	}
 
-	_, err = session.Where("id = ?", id).
-		Update(&models.Account{
-			Username: username,
-			Password: util.EncodeMD5(password),
-		})
+	exist, err = session.Table("cms_account").Where("username = ?", username).Exist()
+	if exist {
+		logging.L.Error("已有同名用户")
+		return errors.New("已有同名用户")
+	}
 	if err != nil {
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			logging.L.Error(fail)
-			return fail
-		}
 		logging.L.Error(err)
-		DPrintf("UpdateUser Update 更新用户失败:", err)
 		return err
 	}
 
+	_, err = session.Where("id = ?", id).
+		Update(&models.ManagerInfo{
+			Username:   username,
+			Password:   util.EncodeMD5(password),
+			UpdateTime: models.NewOftenTime(),
+		})
 	if err != nil {
 		fail := session.Rollback()
 		if fail != nil {
@@ -169,14 +184,14 @@ func (self CmsManagerLogic) UpdateManager(id int64, username, password string) e
 func (self CmsManagerLogic) DeleteManager(ids *[]int64) (int64, error) {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
-		DPrintf("cmsUser DeleteUser session.Begin() 发生错误:", err)
+		DPrintf("cmsUser DeleteManager session.Begin() 发生错误:", err)
 		logging.L.Error(err)
 		return 0, err
 	}
 	defer func() {
 		err := session.Close()
 		if err != nil {
-			DPrintf("cmsUser DeleteUser session.Close() 发生错误:", err)
+			DPrintf("cmsUser DeleteManager session.Close() 发生错误:", err)
 			logging.L.Error(err)
 		}
 	}()
@@ -184,7 +199,7 @@ func (self CmsManagerLogic) DeleteManager(ids *[]int64) (int64, error) {
 	var count int64
 
 	for _, id := range *ids {
-		account := &models.Account{}
+		account := &models.Manager{}
 		if id < 1 {
 			fmt.Println("非法id")
 			continue
@@ -196,7 +211,7 @@ func (self CmsManagerLogic) DeleteManager(ids *[]int64) (int64, error) {
 			return 0, err
 		}
 
-		_, err = session.Delete(account)
+		affected, err := session.Delete(account)
 		if err != nil {
 			fail := session.Rollback()
 			if fail != nil {
@@ -208,19 +223,6 @@ func (self CmsManagerLogic) DeleteManager(ids *[]int64) (int64, error) {
 			return 0, err
 		}
 
-		student := &models.Student{StudentID: account.UserID}
-
-		affected, err := session.Delete(student)
-		if err != nil {
-			fail := session.Rollback()
-			if fail != nil {
-				DPrintf("回滚失败")
-				logging.L.Error(fail)
-				return 0, fail
-			}
-			logging.L.Error(err)
-			return 0, err
-		}
 		if affected > 0 {
 			count += affected
 		}
@@ -232,7 +234,7 @@ func (self CmsManagerLogic) DeleteManager(ids *[]int64) (int64, error) {
 func (self CmsManagerLogic) GetManagerCount() (int64, error) {
 	session := MasterDB.NewSession()
 
-	count, err := session.Table("student").Count()
+	count, err := session.Table("cms_account").Count()
 	if err != nil {
 		DPrintf("GetUserCount Count 发生错误:", err)
 		logging.L.Error(err)

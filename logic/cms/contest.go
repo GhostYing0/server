@@ -186,8 +186,18 @@ func (self CmsContestLogic) UpdateContest(id int64, username, contest, contestTy
 		return err
 	}
 
+	exist, err := session.Table("contest").Where("contest = ?", contest).Exist()
+	if exist {
+		logging.L.Error("已有同名竞赛")
+		return errors.New("已有同名竞赛")
+	}
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
 	searchType := &models.ContestType{}
-	exist, err := session.Where("type = ?", contestType).Get(searchType)
+	exist, err = session.Where("type = ?", contestType).Get(searchType)
 	if err != nil {
 		DPrintf("UpdateContest查询竞赛类型:", err)
 		logging.L.Error(err)

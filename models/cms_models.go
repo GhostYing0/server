@@ -76,6 +76,28 @@ type Manager struct {
 	Deleted       OftenTime `json:"deleted" xorm:"deleted"`
 }
 
+type ManagerUpdate struct {
+	ID              int64  `json:"id" xorm:"id"`
+	Username        string `json:"username" xorm:"username"`
+	Password        string `json:"password" xorm:"password"`
+	ConfirmPassword string `json:"confirm_password"`
+}
+
+type ManagerInfo struct {
+	ID            int64     `json:"id" xorm:"id"`
+	Username      string    `json:"username" xorm:"username"`
+	Password      string    `json:"password" xorm:"password"`
+	Role          int       `json:"role" xorm:"role"`
+	CreateTime    OftenTime `json:"create_time" xorm:"create_time"`
+	LastLoginTime OftenTime `json:"last_login_time" xorm:"last_login_time"`
+	UpdateTime    OftenTime `json:"update_time" xorm:"update_time"`
+	Deleted       OftenTime `json:"deleted" xorm:"deleted"`
+}
+
+func (ManagerInfo) TableName() string {
+	return "cms_account"
+}
+
 func (Manager) TableName() string {
 	return "cms_account"
 }

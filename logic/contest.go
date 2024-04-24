@@ -5,6 +5,7 @@ import (
 	. "server/database"
 	"server/logic/public"
 	"server/models"
+	"server/utils/e"
 	"server/utils/logging"
 	. "server/utils/mydebug"
 )
@@ -125,6 +126,7 @@ func (self ContestLogic) ViewTeacherContest(paginator *Paginator, userID int64, 
 		list[i].CreateTime = (*data)[i].CreateTime.String()
 		list[i].StartTime = (*data)[i].StartTime.String()
 		list[i].Deadline = (*data)[i].Deadline.String()
+		list[i].Describe = (*data)[i].Describe
 	}
 
 	return &list, total, session.Commit()
@@ -151,29 +153,50 @@ func (self ContestLogic) UpdateContest(id, userID int64, contest, contestType, s
 		return err
 	}
 
-	session.Table("contest")
-	session.Where("teacher_id = ?", account.UserID)
-	exist, err := session.Where("id = ?", id).Exist()
-	if err != nil {
-		logging.L.Error(err)
-		return err
-	}
-	if !exist {
-		logging.L.Error("竞赛不存在")
-		return errors.New("竞赛不存在")
-	}
+	if contest != "" {
+		session.Table("contest")
+		session.Where("teacher_id = ?", account.UserID)
+		exist, err := session.Where("id = ?", id).Exist()
+		if err != nil {
+			logging.L.Error(err)
+			return err
+		}
+		if !exist {
+			logging.L.Error("竞赛不存在")
+			return errors.New("竞赛不存在")
+		}
 
-	searchContestType, err := public.SearchContestTypeByName(contestType)
-	if err != nil {
-		logging.L.Error(err)
-		return err
+		searchContestType, err := public.SearchContestTypeByName(contestType)
+		if err != nil {
+			logging.L.Error(err)
+			return err
+		}
+
+		exist, err = session.Table("contest").Where("contest = ? and contest_type_id = ?", contest, searchContestType.ContestTypeID).Exist()
+		if exist {
+			logging.L.Error("已有同名竞赛")
+			return errors.New("已有同名竞赛")
+		}
+		if err != nil {
+			logging.L.Error(err)
+			return err
+		}
+	}
+	newContestType := int64(0)
+	if contestType != "" {
+		searchContestType, err := public.SearchContestTypeByName(contestType)
+		if err != nil {
+			logging.L.Error(err)
+			return err
+		}
+		newContestType = searchContestType.ContestTypeID
 	}
 
 	updateContest := &models.ContestInfo{
 		Contest:      contest,
-		ContestType:  searchContestType.ContestTypeID,
+		ContestType:  newContestType,
 		ContestState: contestState,
-		State:        state,
+		State:        e.Processing,
 	}
 
 	if startTime != "" {
@@ -228,6 +251,16 @@ func (self ContestLogic) UploadContest(userID int64, contest, contestType, start
 		return err
 	}
 
+	exist, err := session.Table("contest").Where("contest = ? and contest_type_id = ?", contest, searchContestType.ContestTypeID).Exist()
+	if exist {
+		logging.L.Error("已有同名竞赛")
+		return errors.New("已有同名竞赛")
+	}
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
 	newContest := &models.ContestInfo{
 		TeacherID:    account.UserID,
 		Contest:      contest,
@@ -247,6 +280,124 @@ func (self ContestLogic) UploadContest(userID int64, contest, contestType, start
 		newContest.Deadline = models.FormatString2OftenTime(deadline)
 	}
 	_, err = session.Insert(newContest)
+	if err != nil {
+		fail := session.Rollback()
+		if err != nil {
+			logging.L.Error(err)
+			return fail
+		}
+		logging.L.Error(err)
+		return err
+	}
+	return session.Commit()
+}
+
+func (self ContestLogic) GetContestForTeacher(userID int64) (*[]models.ContestAndType, error) {
+	contest := &[]models.ContestAndType{}
+
+	teacher, err := public.SearchAccountByID(userID)
+	if err != nil {
+		logging.L.Error(err)
+		return nil, err
+	}
+
+	if teacher.Role != e.TeacherRole {
+		logging.L.Error("无权限")
+		return nil, errors.New("无权限")
+	}
+
+	_, err = MasterDB.
+		Table("contest").
+		Join("LEFT", "contest_type", "contest.contest_type_id = contest_type.id").
+		Where("contest.teacher_id = ?", teacher.UserID).
+		FindAndCount(contest)
+	if err != nil {
+		return nil, err
+	}
+
+	return contest, err
+}
+
+func (self ContestLogic) TransformState(userID, id int64, contestState int) error {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("ProcessEnroll session.Begin() 发生错误:", err)
+		logging.L.Error(err)
+		return err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			logging.L.Error(err)
+			DPrintf("ProcessEnroll session.Close() 发生错误:", err)
+		}
+	}()
+
+	account, err := public.SearchAccountByID(userID)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
+	session.Table("contest")
+	session.Where("teacher_id = ?", account.UserID)
+	exist, err := session.Where("id = ?", id).Exist()
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+	if !exist {
+		logging.L.Error("竞赛不存在")
+		return errors.New("竞赛不存在")
+	}
+
+	_, err = session.Where("id = ?", id).Update(models.Contest{ContestState: contestState})
+	if err != nil {
+		fail := session.Rollback()
+		if err != nil {
+			logging.L.Error(err)
+			return fail
+		}
+		logging.L.Error(err)
+		return err
+	}
+	return session.Commit()
+}
+
+func (self ContestLogic) CancelContest(id, userID int64) error {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("ProcessEnroll session.Begin() 发生错误:", err)
+		logging.L.Error(err)
+		return err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			logging.L.Error(err)
+			DPrintf("ProcessEnroll session.Close() 发生错误:", err)
+		}
+	}()
+
+	account, err := public.SearchAccountByID(userID)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
+	session.Table("contest")
+	session.Where("teacher_id = ?", account.UserID)
+	exist, err := session.Where("id = ?", id).Exist()
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+	if !exist {
+		logging.L.Error("竞赛不存在")
+		return errors.New("竞赛不存在")
+	}
+
+	_, err = session.Where("id = ?", id).Update(models.Contest{State: e.Revoked})
 	if err != nil {
 		fail := session.Rollback()
 		if err != nil {

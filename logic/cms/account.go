@@ -6,6 +6,7 @@ import (
 	. "server/database"
 	"server/models"
 	"server/utils/gredis"
+	"server/utils/logging"
 	"server/utils/util"
 	"time"
 )
@@ -48,6 +49,12 @@ func (self CmsAccountLogic) Login(param *models.LoginForm) (string, string, erro
 	err = gredis.Set(token, 1, time.Minute*60)
 	if err != nil {
 		fmt.Println("login Set err:", err)
+	}
+
+	_, err = tx.Where("id = ?", loginReturn.ID).Update(models.ManagerInfo{LastLoginTime: models.NewOftenTime()})
+	if err != nil {
+		logging.L.Error(err)
+		return "登录失败", "", err
 	}
 	tx.Commit()
 	return "登陆成功", token, err

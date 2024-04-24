@@ -7,6 +7,7 @@ import (
 	. "server/logic"
 	"server/logic/public"
 	"server/models"
+	"server/utils/e"
 	"server/utils/logging"
 	. "server/utils/mydebug"
 	"server/utils/util"
@@ -241,6 +242,16 @@ func (self CmsStudentLogic) UpdateStudent(id int64, username, password, name, ge
 	if err != nil {
 		logging.L.Error(err)
 		DPrintf("UpdateUser 查询用户失败:", err)
+		return err
+	}
+
+	exist, err = session.Table("account").Where("username = ? and role = ?", username, e.StudentRole).Exist()
+	if exist {
+		logging.L.Error("已有同名用户")
+		return errors.New("已有同名用户")
+	}
+	if err != nil {
+		logging.L.Error(err)
 		return err
 	}
 

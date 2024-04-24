@@ -283,7 +283,7 @@ func (UserController) GetManager(c *gin.Context) {
 
 	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
 	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
-	username := c.DefaultQuery("searchUser", "")
+	username := c.DefaultQuery("username", "")
 
 	fmt.Println("limit:", limit, " curPage:", curPage)
 	fmt.Println(c.Request.URL)
@@ -333,7 +333,7 @@ func (UserController) AddManager(c *gin.Context) {
 func (UserController) UpdateManager(c *gin.Context) {
 	appG := app.Gin{C: c}
 
-	form := &models.Manager{}
+	form := &models.ManagerUpdate{}
 
 	err := c.ShouldBindJSON(&form)
 	if err != nil {
@@ -342,7 +342,7 @@ func (UserController) UpdateManager(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultCmsManager.UpdateManager(form.ID, form.Username, form.Password)
+	err = logic.DefaultCmsManager.UpdateManager(form.ID, form.Username, form.Password, form.ConfirmPassword)
 	if err != nil {
 		DPrintf("UpdateUser logic.DefaultCmsUser.UpdateUser err:", err)
 		appG.ResponseErr(err.Error())
