@@ -6,6 +6,7 @@ import (
 	. "server/database"
 	"server/logic/public"
 	"server/models"
+	"server/utils/e"
 	"server/utils/logging"
 	. "server/utils/mydebug"
 
@@ -16,7 +17,7 @@ type GradeLogic struct{}
 
 var DefaultGradeLogic = GradeLogic{}
 
-func (self GradeLogic) InsertGradeInformation(user_id int64, contest, grade, certificate string) error {
+func (self GradeLogic) InsertGradeInformation(user_id int64, contest, grade, certificate, ps string) error {
 	if len(contest) <= 0 {
 		logging.L.Info("请填写竞赛名称")
 		return errors.New("请填写竞赛名称")
@@ -90,6 +91,7 @@ func (self GradeLogic) InsertGradeInformation(user_id int64, contest, grade, cer
 		Certificate: certificate,
 		Grade:       grade,
 		UpdateTime:  models.NewOftenTime().String(),
+		PS:          ps,
 		State:       3,
 	}
 
@@ -189,6 +191,8 @@ func (self GradeLogic) Search(paginator *Paginator, grade string, contest string
 		list[i].Certificate = (*data)[i].Certificate
 		list[i].Grade = (*data)[i].Grade
 		list[i].State = (*data)[i].GradeInformation.State
+		list[i].PS = (*data)[i].PS
+		list[i].RejectReason = (*data)[i].RejectReason
 	}
 
 	return &list, total, session.Rollback()
@@ -280,12 +284,14 @@ func (self GradeLogic) TeacherSearch(paginator *Paginator, grade string, contest
 		list[i].ContestType = (*data)[i].ContestType
 		list[i].Name = (*data)[i].Name
 		list[i].State = (*data)[i].GradeInformation.State
+		list[i].RejectReason = (*data)[i].GradeInformation.RejectReason
+		list[i].PS = (*data)[i].PS
 	}
 
 	return &list, total, session.Rollback()
 }
 
-func (self GradeLogic) ProcessGrade(id int64, state int) error {
+func (self GradeLogic) ProcessGrade(id int64, state int, rejectReason string) error {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("ProcessEnroll session.Begin() 发生错误:", err)
@@ -312,7 +318,13 @@ func (self GradeLogic) ProcessGrade(id int64, state int) error {
 		logging.L.Error(err)
 		return err
 	}
-	_, err = session.Where("id = ?", id).Update(models.GradeInformation{State: state})
+
+	newInfo := &models.GradeInformation{State: state}
+	if state == e.Reject {
+		newInfo.RejectReason = rejectReason
+	}
+
+	_, err = session.Where("id = ?", id).Update(newInfo)
 	if err != nil {
 		DPrintf("EnrollLogic Update 发生错误:", err)
 		fail := session.Rollback()

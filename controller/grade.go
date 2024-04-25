@@ -44,7 +44,7 @@ func (self GradeController) UploadGrade(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultGradeLogic.InsertGradeInformation(userID.(int64), form.Contest, form.Grade, form.Certificate)
+	err = logic.DefaultGradeLogic.InsertGradeInformation(userID.(int64), form.Contest, form.Grade, form.Certificate, form.PS)
 	if err != nil {
 		DPrintf("EnrollContest logic.DefaultEnrollLogic.InsertEnrollInformation() 发生错误:", err)
 		appG.ResponseErr("上传成绩失败", err.Error())
@@ -189,7 +189,7 @@ func (GradeController) ProcessPassGrade(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultGradeLogic.ProcessGrade(form.ID, Pass)
+	err = logic.DefaultGradeLogic.ProcessGrade(form.ID, Pass, form.RejectReason)
 	if err != nil {
 		DPrintf("logic.DefaultRegistrationContest.Process 发生错误:", err)
 		appG.ResponseErr(err.Error())
@@ -224,7 +224,7 @@ func (GradeController) ProcessRejectGrade(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultGradeLogic.ProcessGrade(form.ID, Reject)
+	err = logic.DefaultGradeLogic.ProcessGrade(form.ID, Reject, form.RejectReason)
 	if err != nil {
 		DPrintf("logic.DefaultRegistrationContest.Process 发生错误:", err)
 		appG.ResponseErr(err.Error())
@@ -259,7 +259,7 @@ func (GradeController) ProcessRecoverGrade(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultGradeLogic.ProcessGrade(form.ID, Processing)
+	err = logic.DefaultGradeLogic.ProcessGrade(form.ID, Processing, form.RejectReason)
 	if err != nil {
 		DPrintf("logic.DefaultRegistrationContest.Process 发生错误:", err)
 		appG.ResponseErr(err.Error())
@@ -292,7 +292,7 @@ func (GradeController) RevokeGrade(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultGradeLogic.ProcessGrade(form.ID, Revoked)
+	err = logic.DefaultGradeLogic.ProcessGrade(form.ID, Revoked, form.RejectReason)
 	if err != nil {
 		DPrintf("logic.DefaultRegistrationContest.Process 发生错误:", err)
 		appG.ResponseErr(err.Error())

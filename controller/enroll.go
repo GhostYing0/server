@@ -191,7 +191,7 @@ func (EnrollController) ProcessPassEnroll(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultEnrollLogic.ProcessEnroll(form.ID, Pass)
+	err = logic.DefaultEnrollLogic.ProcessEnroll(form.ID, Pass, form.RejectReason)
 	if err != nil {
 		DPrintf("logic.DefaultRegistrationContest.Process 发生错误:", err)
 		appG.ResponseErr(err.Error())
@@ -226,7 +226,7 @@ func (EnrollController) ProcessRejectEnroll(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultEnrollLogic.ProcessEnroll(form.ID, Reject)
+	err = logic.DefaultEnrollLogic.ProcessEnroll(form.ID, Reject, form.RejectReason)
 	if err != nil {
 		DPrintf("logic.DefaultRegistrationContest.Process 发生错误:", err)
 		appG.ResponseErr(err.Error())
@@ -261,7 +261,7 @@ func (EnrollController) ProcessRecoverEnroll(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultEnrollLogic.ProcessEnroll(form.ID, Processing)
+	err = logic.DefaultEnrollLogic.ProcessEnroll(form.ID, Processing, form.RejectReason)
 	if err != nil {
 		DPrintf("logic.DefaultRegistrationContest.Process 发生错误:", err)
 		appG.ResponseErr(err.Error())
@@ -294,7 +294,7 @@ func (EnrollController) RevokeEnroll(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultEnrollLogic.ProcessEnroll(form.ID, Revoked)
+	err = logic.DefaultEnrollLogic.ProcessEnroll(form.ID, Revoked, form.RejectReason)
 	if err != nil {
 		DPrintf("logic.DefaultRegistrationContest.Process 发生错误:", err)
 		appG.ResponseErr(err.Error())

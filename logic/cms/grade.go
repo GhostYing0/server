@@ -78,6 +78,7 @@ func (self CmsGradeLogic) Display(paginator *Paginator, username, name, contest,
 		list[i].Certificate = (*data)[i].Certificate
 		list[i].Grade = (*data)[i].Grade
 		list[i].State = (*data)[i].GradeInformation.State
+		list[i].PS = (*data)[i].PS
 	}
 
 	return &list, total, session.Commit()

@@ -7,6 +7,7 @@ import (
 	. "server/logic"
 	"server/logic/public"
 	"server/models"
+	"server/utils/e"
 	"server/utils/logging"
 	. "server/utils/mydebug"
 )
@@ -89,7 +90,7 @@ func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, s
 	return &list, total, session.Commit()
 }
 
-func (self CmsEnrollLogic) Add(username string, name string, contest string, createTime string, school string, phone string, email string, state int) error {
+func (self CmsEnrollLogic) Add(username string, name string, contest string, createTime string, school string, state int) error {
 	if len(username) <= 0 {
 		return errors.New("请填写姓名")
 	}
@@ -113,7 +114,7 @@ func (self CmsEnrollLogic) Add(username string, name string, contest string, cre
 		return err
 	}
 
-	_, err = public.SearchAccountByUsernameAndRole(username, 1)
+	account, err := public.SearchAccountByUsernameAndRole(username, e.StudentRole)
 	if err != nil {
 		logging.L.Error(err)
 		return err
@@ -149,10 +150,10 @@ func (self CmsEnrollLogic) Add(username string, name string, contest string, cre
 	enroll := &models.NewEnroll{
 		StudentID:  student.StudentID,
 		ContestID:  contestInfo.ID,
-		CreateTime: models.NewOftenTime(),
+		CreateTime: models.FormatString2OftenTime(createTime),
 		SchoolID:   searchSchool.SchoolID,
-		Phone:      phone,
-		Email:      email,
+		Phone:      account.Phone,
+		Email:      account.Email,
 		State:      state,
 	}
 

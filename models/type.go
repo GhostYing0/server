@@ -96,3 +96,9 @@ func (this OftenTime) After(target *OftenTime) bool {
 	u := time.Time(*target)
 	return t.After(u)
 }
+
+func (this OftenTime) Before(target *OftenTime) bool {
+	t := time.Time(this)
+	u := time.Time(*target)
+	return t.Before(u)
+}

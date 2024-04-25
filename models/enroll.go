@@ -27,16 +27,17 @@ type EnrollInformationForm struct {
 }
 
 type EnrollInformation struct {
-	ID         int64     `json:"id" xorm:"id"`
-	StudentID  string    `json:"student_id" xorm:"student_id"`
-	TeamID     string    `json:"team_id" xorm:"team_id"`
-	ContestID  string    `json:"contest_id" xorm:"contest_id"`
-	CreateTime string    `json:"create_time" xorm:"create_time"`
-	SchoolID   int64     `json:"school_id" xorm:"school_id"`
-	Phone      string    `json:"phone" xorm:"phone"`
-	Email      string    `json:"email" xorm:"email"`
-	State      int       `json:"state" xorm:"state"`
-	Deleted    OftenTime `json:"deleted" xorm:"deleted"`
+	ID           int64     `json:"id" xorm:"id"`
+	StudentID    string    `json:"student_id" xorm:"student_id"`
+	TeamID       string    `json:"team_id" xorm:"team_id"`
+	ContestID    string    `json:"contest_id" xorm:"contest_id"`
+	CreateTime   string    `json:"create_time" xorm:"create_time"`
+	SchoolID     int64     `json:"school_id" xorm:"school_id"`
+	Phone        string    `json:"phone" xorm:"phone"`
+	Email        string    `json:"email" xorm:"email"`
+	State        int       `json:"state" xorm:"state"`
+	RejectReason string    `json:"reject_reason" xorm:"reject_reason"`
+	Deleted      OftenTime `json:"deleted" xorm:"deleted"`
 }
 
 type NewEnroll struct {
@@ -84,22 +85,24 @@ type ContestInfoAccount struct {
 }
 
 type EnrollInformationReturn struct {
-	ID          int64  `json:"id" xorm:"id"`
-	Username    string `json:"username" xorm:"username"`
-	StudentID   string `json:"student_id" xorm:"student_id"`
-	TeamID      string `json:"team_id" xorm:"team_id"`
-	ContestType string `json:"contest_type" xorm:"contest_type"`
-	CreateTime  string `json:"create_time" xorm:"create_time"`
-	School      string `json:"school" xorm:"school"`
-	College     string `json:"college" xorm:"college"`
-	Semester    string `json:"semester" xorm:"semester"`
-	Class       string `json:"student_class" xorm:"student_class"`
-	Phone       string `json:"phone" xorm:"phone"`
-	Email       string `json:"email" xorm:"email"`
-	State       int    `json:"state" xorm:"state"`
-	Name        string `json:"name" xorm:"name"`
-	Contest     string `json:"contest" xorm:"contest"`
-	DoUpload    bool   `json:"do_upload"`
+	ID           int64  `json:"id" xorm:"id"`
+	Username     string `json:"username" xorm:"username"`
+	StudentID    string `json:"student_id" xorm:"student_id"`
+	TeamID       string `json:"team_id" xorm:"team_id"`
+	ContestType  string `json:"contest_type" xorm:"contest_type"`
+	CreateTime   string `json:"create_time" xorm:"create_time"`
+	StartTime    string `json:"start_time" xorm:"start_time"`
+	School       string `json:"school" xorm:"school"`
+	College      string `json:"college" xorm:"college"`
+	Semester     string `json:"semester" xorm:"semester"`
+	Class        string `json:"student_class" xorm:"student_class"`
+	Phone        string `json:"phone" xorm:"phone"`
+	Email        string `json:"email" xorm:"email"`
+	State        int    `json:"state" xorm:"state"`
+	Name         string `json:"name" xorm:"name"`
+	Contest      string `json:"contest" xorm:"contest"`
+	RejectReason string `json:"reject_reason" xorm:"reject_reason"`
+	DoUpload     bool   `json:"do_upload"`
 }
 
 func (EnrollInformationReturn) TableName() string {

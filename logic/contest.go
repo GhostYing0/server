@@ -55,7 +55,6 @@ func (self ContestLogic) DisplayContest(paginator *Paginator, contest, contestTy
 
 	list := make([]models.ContestReturn, len(*data))
 	for i := 0; i < len(*data); i++ {
-		list[i].ContestState = (*data)[i].ContestState
 		list[i].ID = (*data)[i].ID
 		list[i].State = (*data)[i].State
 		list[i].Contest = (*data)[i].Contest
@@ -63,6 +62,13 @@ func (self ContestLogic) DisplayContest(paginator *Paginator, contest, contestTy
 		list[i].CreateTime = (*data)[i].CreateTime.String()
 		list[i].StartTime = (*data)[i].StartTime.String()
 		list[i].Deadline = (*data)[i].Deadline.String()
+		list[i].Describe = (*data)[i].Describe
+		// 竞赛可报名条件，审核通过，在报名截至时间之前，且教师未关闭报名
+		if (*data)[i].State == e.Pass && (*data)[i].ContestState == e.EnrollOpen && models.NewOftenTime().Before(&(*data)[i].Deadline) {
+			list[i].ContestState = e.EnrollOpen
+		} else {
+			list[i].ContestState = e.EnrollClose
+		}
 	}
 
 	return &list, total, session.Commit()
@@ -119,7 +125,6 @@ func (self ContestLogic) ViewTeacherContest(paginator *Paginator, userID int64, 
 	list := make([]models.ContestReturn, len(*data))
 	for i := 0; i < len(*data); i++ {
 		list[i].ID = (*data)[i].ID
-		list[i].ContestState = (*data)[i].ContestState
 		list[i].State = (*data)[i].State
 		list[i].Contest = (*data)[i].Contest
 		list[i].ContestType = (*data)[i].ContestType.ContestType
@@ -127,6 +132,12 @@ func (self ContestLogic) ViewTeacherContest(paginator *Paginator, userID int64, 
 		list[i].StartTime = (*data)[i].StartTime.String()
 		list[i].Deadline = (*data)[i].Deadline.String()
 		list[i].Describe = (*data)[i].Describe
+		// 竞赛可报名条件，审核通过，在报名截至时间之前，且教师未关闭报名
+		if (*data)[i].State == e.Pass && (*data)[i].ContestState == e.EnrollOpen && models.NewOftenTime().Before(&(*data)[i].Deadline) {
+			list[i].ContestState = e.EnrollOpen
+		} else {
+			list[i].ContestState = e.EnrollClose
+		}
 	}
 
 	return &list, total, session.Commit()

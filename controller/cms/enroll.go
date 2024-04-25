@@ -79,7 +79,7 @@ func (RegistrationController) AddEnrollInformation(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultEnrollContest.Add(form.UserName, form.Name, form.Contest, form.CreateTime, form.School, form.Phone, form.Email, form.State)
+	err = logic.DefaultEnrollContest.Add(form.UserName, form.Name, form.Contest, form.CreateTime, form.School, form.State)
 	if err != nil {
 		DPrintf("AddEnrollInformation 发生错误:", err)
 		appG.ResponseErr(err.Error())

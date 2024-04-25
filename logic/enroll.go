@@ -16,6 +16,10 @@ type EnrollLogic struct{}
 var DefaultEnrollLogic = EnrollLogic{}
 
 func (self EnrollLogic) InsertEnrollInformation(userID int64, name, teamID, contest string, school string, phone string, email string) error {
+	if phone == "" || email == "" {
+		logging.L.Error("请手机号和邮箱")
+		return errors.New("请手机号和邮箱")
+	}
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("InsertEnrollInformation session.Begin() 发生错误:", err)
@@ -148,7 +152,9 @@ func (self EnrollLogic) Search(paginator *Paginator, userID int64, contest strin
 		list[i].Phone = (*data)[i].Phone
 		list[i].Email = (*data)[i].Email
 		list[i].State = (*data)[i].EnrollInformation.State
+		list[i].RejectReason = (*data)[i].RejectReason
 		startTime := models.FormatString2OftenTime(models.MysqlFormatString2String((*data)[i].Contest.StartTime))
+		list[i].StartTime = startTime.String()
 		if models.NewOftenTime().After(&startTime) && list[i].State == Pass {
 			fmt.Println("Start:", startTime)
 			fmt.Println("timeNow:", models.NewOftenTime())
@@ -159,7 +165,7 @@ func (self EnrollLogic) Search(paginator *Paginator, userID int64, contest strin
 	return &list, total, session.Rollback()
 }
 
-func (self EnrollLogic) ProcessEnroll(id int64, state int) error {
+func (self EnrollLogic) ProcessEnroll(id int64, state int, rejectReason string) error {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("ProcessEnroll session.Begin() 发生错误:", err)
@@ -188,7 +194,12 @@ func (self EnrollLogic) ProcessEnroll(id int64, state int) error {
 		return errors.New("报名信息不存在")
 	}
 
-	_, err = session.Where("id = ?", id).Update(models.EnrollInformation{State: state})
+	newInfo := &models.EnrollInformation{State: state}
+	if state == Reject {
+		newInfo.RejectReason = rejectReason
+	}
+
+	_, err = session.Where("id = ?", id).Update(newInfo)
 	if err != nil {
 		DPrintf("EnrollLogic Update 发生错误:", err)
 		fail := session.Rollback()
@@ -285,6 +296,7 @@ func (self EnrollLogic) TeacherSearch(paginator *Paginator, userID int64, contes
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].EnrollInformation.CreateTime)
 		list[i].Phone = (*data)[i].Phone
 		list[i].Email = (*data)[i].Email
+		list[i].RejectReason = (*data)[i].EnrollInformation.RejectReason
 		list[i].State = (*data)[i].EnrollInformation.State
 	}
 
