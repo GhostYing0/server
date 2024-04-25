@@ -68,6 +68,7 @@ func (self CmsContestLogic) Display(paginator *Paginator, contest, contestType s
 		list[i].Contest = (*data)[i].Contest.Contest
 		list[i].ContestType = (*data)[i].Contest.ContestType
 		list[i].Describe = (*data)[i].Describe
+		list[i].RejectReason = (*data)[i].RejectReason
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].Contest.CreateTime)
 		list[i].StartTime = models.MysqlFormatString2String((*data)[i].Contest.StartTime)
 		list[i].Deadline = models.MysqlFormatString2String((*data)[i].Contest.Deadline)

@@ -132,6 +132,7 @@ func (self ContestLogic) ViewTeacherContest(paginator *Paginator, userID int64, 
 		list[i].StartTime = (*data)[i].StartTime.String()
 		list[i].Deadline = (*data)[i].Deadline.String()
 		list[i].Describe = (*data)[i].Describe
+		list[i].RejectReason = (*data)[i].RejectReason
 		// 竞赛可报名条件，审核通过，在报名截至时间之前，且教师未关闭报名
 		if (*data)[i].State == e.Pass && (*data)[i].ContestState == e.EnrollOpen && models.NewOftenTime().Before(&(*data)[i].Deadline) {
 			list[i].ContestState = e.EnrollOpen

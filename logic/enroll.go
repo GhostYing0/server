@@ -152,7 +152,7 @@ func (self EnrollLogic) Search(paginator *Paginator, userID int64, contest strin
 		list[i].Phone = (*data)[i].Phone
 		list[i].Email = (*data)[i].Email
 		list[i].State = (*data)[i].EnrollInformation.State
-		list[i].RejectReason = (*data)[i].RejectReason
+		list[i].RejectReason = (*data)[i].EnrollInformation.RejectReason
 		startTime := models.FormatString2OftenTime(models.MysqlFormatString2String((*data)[i].Contest.StartTime))
 		list[i].StartTime = startTime.String()
 		if models.NewOftenTime().After(&startTime) && list[i].State == Pass {

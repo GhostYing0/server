@@ -23,6 +23,7 @@ type ContestInfo struct {
 	Deadline     OftenTime `json:"deadline" xorm:"deadline"`
 	State        int       `json:"state" xorm:"state"`
 	Describe     string    `json:"describe" xorm:"describe"`
+	RejectReason string    `json:"reject_reason" xorm:"reject_reason"`
 	Deleted      OftenTime `json:"deleted" xorm:"deleted"`
 }
 
@@ -49,6 +50,7 @@ type ContestReturn struct {
 	Deadline     string    `json:"deadline" xorm:"deadline"`
 	State        int       `json:"state" xorm:"state"`
 	Describe     string    `json:"desc" xorm:"describe"`
+	RejectReason string    `json:"reject_reason" xorm:"reject_reason"`
 	Deleted      OftenTime `json:"deleted" xorm:"deleted"`
 }
 
@@ -63,6 +65,7 @@ type Contest struct {
 	Deadline     string    `json:"deadline" xorm:"deadline"`
 	State        int       `json:"state" xorm:"state"`
 	Describe     string    `json:"desc" xorm:"describe"`
+	RejectReason string    `json:"reject_reason" xorm:"reject_reason"`
 	Deleted      OftenTime `json:"deleted" xorm:"deleted"`
 }
 
