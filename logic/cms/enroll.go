@@ -85,6 +85,7 @@ func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, s
 		list[i].Phone = (*data)[i].Phone
 		list[i].Email = (*data)[i].Email
 		list[i].State = (*data)[i].EnrollInformation.State
+		list[i].RejectReason = (*data)[i].EnrollInformation.RejectReason
 	}
 
 	return &list, total, session.Commit()
