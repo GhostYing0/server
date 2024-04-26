@@ -482,3 +482,162 @@ func (self UserAccountLogic) UpdateAvatar(userID int64, role int, avatar string)
 	}
 	return session.Commit()
 }
+
+func (self UserAccountLogic) DepartmentRegister(username, password, confirmPassword string, role int, name, school, college, department, phone, email string) error {
+	if password != confirmPassword {
+		logging.L.Error("两次密码输入不同")
+		return errors.New("两次密码输入不同")
+	}
+	if password == "" {
+		logging.L.Error("密码不能为空")
+		return errors.New("密码不能为空")
+	}
+	if username == "" {
+		logging.L.Error("用户名不能为空")
+		return errors.New("用户名不能为空")
+	}
+	if name == "" {
+		logging.L.Error("姓名不能为空")
+		return errors.New("姓名不能为空")
+	}
+	if email == "" {
+		logging.L.Error("邮箱不能为空")
+		return errors.New("邮箱不能为空")
+	}
+	if phone == "" {
+		logging.L.Error("电话不能为空")
+		return errors.New("电话不能为空")
+	}
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("DepartmentRegister session.Begin() 发生错误:", err)
+		logging.L.Error(err)
+		return err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("DepartmentRegister session.Close() 发生错误:", err)
+			logging.L.Error(err)
+		}
+	}()
+
+	exist, err := session.Table("department_account").Where("username = ?", username).Exist()
+	if exist {
+		logging.L.Error("用户名已存在")
+		return errors.New("用户名已存在")
+	}
+
+	searchSchool, err := public.SearchSchoolByName(school)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
+	searchCollege, err := public.SearchCollegeByName(college)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
+	searchDepartment, err := public.SearchDepartmentByName(department)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
+	newDepartmentAccount := &models.DepartmentAccount{
+		Username:     username,
+		Password:     util.EncodeMD5(password),
+		Role:         DepartmentRole,
+		Name:         name,
+		SchoolID:     searchSchool.SchoolID,
+		CollegeID:    searchCollege.CollegeID,
+		DepartmentID: searchDepartment.DepartmentID,
+		Phone:        phone,
+		Email:        email,
+		CreateTime:   models.NewOftenTime(),
+		UpdateTime:   models.NewOftenTime(),
+	}
+
+	_, err = session.Insert(newDepartmentAccount)
+	if err != nil {
+		fail := session.Rollback()
+		if fail != nil {
+			logging.L.Error(fail)
+			return fail
+		}
+		logging.L.Error(err)
+		return err
+	}
+
+	return session.Commit()
+}
+
+func (self UserAccountLogic) DepartmentLogin(username string, password string, role int) (string, error) {
+	if username == "" || password == "" {
+		DPrintf("用户名和密码不能为空")
+		return "", errors.New("用户名和密码不能为空")
+	}
+
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("InsertEnrollInformation session.Begin() 发生错误:", err)
+		return "", err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("InsertEnrollInformation session.Close() 发生错误:", err)
+		}
+	}()
+
+	account := &models.DepartmentAccount{}
+	has, err := session.Where("username = ?", username).And("role = ?", role).Get(account)
+	if err != nil {
+		DPrintf("Login 查询用户失败:", err)
+		fail := session.Rollback()
+		if fail != nil {
+			DPrintf("回滚失败")
+			return "", fail
+		}
+		return "", err
+	}
+	if !has {
+		DPrintf("Login 用户不存在:")
+		fail := session.Rollback()
+		if fail != nil {
+			DPrintf("回滚失败")
+			return "", fail
+		}
+		return "", errors.New("用户不存在")
+	}
+
+	if username != account.Username || util.EncodeMD5(password) != account.Password {
+		fail := session.Rollback()
+		if fail != nil {
+			DPrintf("回滚失败")
+			return "", fail
+		}
+		return "", errors.New("用户名或密码错误")
+	}
+
+	token, err := util.GenerateToken(com.ToStr(account.ID), account.Username, account.Role)
+	if err != nil {
+		DPrintf("生成token失败")
+		return "", err
+	}
+
+	err = gredis.Set(token, 1, time.Minute*60)
+	if err != nil {
+		DPrintf("login Set 失败:", err)
+		return "", err
+	}
+	_, err = session.Where("id = ?", account.ID).Update(models.DepartmentAccount{LastLoginTime: models.NewOftenTime()})
+	if err != nil {
+		logging.L.Error(err)
+		return "", err
+	}
+
+	return token, session.Commit()
+}

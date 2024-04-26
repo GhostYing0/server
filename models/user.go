@@ -51,15 +51,16 @@ func (OldUser) TableName() string {
 }
 
 type Student struct {
-	StudentID  string    `json:"student_id" xorm:"student_id"`
-	Name       string    `json:"name" xorm:"name"`
-	Gender     string    `json:"gender" xorm:"gender"`
-	SchoolID   int64     `json:"school_id" xorm:"school_id"`
-	SemesterID int64     `json:"semester_id" xorm:"semester_id"`
-	CollegeID  int64     `json:"college_id" xorm:"college_id"`
-	Class      string    `json:"class" xorm:"class"`
-	Avatar     string    `json:"avatar" xorm:"avatar"`
-	Deleted    OftenTime `xorm:"deleted"`
+	StudentID    string    `json:"student_id" xorm:"student_id"`
+	Name         string    `json:"name" xorm:"name"`
+	Gender       string    `json:"gender" xorm:"gender"`
+	SchoolID     int64     `json:"school_id" xorm:"school_id"`
+	SemesterID   int64     `json:"semester_id" xorm:"semester_id"`
+	CollegeID    int64     `json:"college_id" xorm:"college_id"`
+	DepartmentID int64     `json:"department_id" xorm:"department_id"`
+	Class        string    `json:"class" xorm:"class"`
+	Avatar       string    `json:"avatar" xorm:"avatar"`
+	Deleted      OftenTime `xorm:"deleted"`
 }
 
 type StudentForm struct {

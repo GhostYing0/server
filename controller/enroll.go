@@ -18,9 +18,15 @@ func (self EnrollController) RegisterRoutes(g *gin.RouterGroup) {
 	g.GET("/searchEnrollResult", self.DisplayEnrollResult)  // 用户查看报名结果
 	g.GET("/teacherSearchEnroll", self.TeacherSearchEnroll) // 教师查看报名结果
 
-	g.POST("/processPassEnroll", self.ProcessPassEnroll)       // 教师审核报名通过
-	g.POST("/processRejectEnroll", self.ProcessRejectEnroll)   // 教师审核报名驳回
-	g.POST("/processRecoverEnroll", self.ProcessRecoverEnroll) // 教师审核报名恢复
+	g.GET("/departmentManagerSearchEnroll", self.DepartmentManagerSearchEnroll) // 系部管理员查看报名结果
+
+	//g.POST("/processPassEnroll", self.ProcessPassEnroll)       // 教师审核报名通过
+	//g.POST("/processRejectEnroll", self.ProcessRejectEnroll)   // 教师审核报名驳回
+	//g.POST("/processRecoverEnroll", self.ProcessRecoverEnroll) // 教师审核报名恢复
+
+	g.POST("/processPassEnroll", self.ProcessPassEnroll)       // 系部管理员审核报名通过
+	g.POST("/processRejectEnroll", self.ProcessRejectEnroll)   // 系部管理员审核报名驳回
+	g.POST("/processRecoverEnroll", self.ProcessRecoverEnroll) // 系部管理员审核报名恢复
 
 	g.POST("/revokeEnroll", self.RevokeEnroll) //学生用户撤回报名信息
 }
@@ -177,7 +183,7 @@ func (EnrollController) ProcessPassEnroll(c *gin.Context) {
 		appG.ResponseErr("无效身份")
 		return
 	}
-	if role != TeacherRole {
+	if role != DepartmentRole {
 		DPrintf("无教师权限")
 		appG.ResponseErr("无教师权限")
 		return
@@ -212,7 +218,7 @@ func (EnrollController) ProcessRejectEnroll(c *gin.Context) {
 		appG.ResponseErr("无效身份")
 		return
 	}
-	if role != TeacherRole {
+	if role != DepartmentRole {
 		DPrintf("无教师权限")
 		appG.ResponseErr("无教师权限")
 		return
@@ -247,7 +253,7 @@ func (EnrollController) ProcessRecoverEnroll(c *gin.Context) {
 		appG.ResponseErr("无效身份")
 		return
 	}
-	if role != TeacherRole {
+	if role != DepartmentRole {
 		DPrintf("无教师权限")
 		appG.ResponseErr("无教师权限")
 		return
@@ -302,4 +308,57 @@ func (EnrollController) RevokeEnroll(c *gin.Context) {
 	}
 
 	appG.ResponseSuc()
+}
+
+func (EnrollController) DepartmentManagerSearchEnroll(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
+	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
+
+	contest := c.DefaultQuery("contest", "")
+	contestType := c.DefaultQuery("type", "")
+	startTime := c.DefaultQuery("start_time", "")
+	endTime := c.DefaultQuery("end_time", "")
+	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
+
+	key, exist := appG.C.Get("user_id")
+	if !exist {
+		appG.ResponseErr("用户不存在")
+		return
+	}
+	userID, ok := key.(int64)
+	if !ok {
+		DPrintf("DisplayEnrollResult userID类型错误")
+		appG.ResponseErr("userID类型错误")
+		return
+	}
+
+	if limit < 1 || curPage < 1 {
+		DPrintf("DisplayEnrollResult 查询表容量和页码应大于0")
+		appG.ResponseErr("查询表容量和页码应大于0")
+		return
+	}
+
+	data := make(map[string]interface{})
+
+	paginator := logic.NewPaginator(curPage, limit)
+
+	list, total, err := logic.DefaultEnrollLogic.DepartmentManagerSearchEnroll(paginator, userID, contest, startTime, endTime, state, contestType)
+
+	if err != nil {
+		DPrintf("DisplayEnrollResult 发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	paginator.SetTotalPage(total)
+
+	data["list"] = list
+	data["pageNumber"] = curPage
+	data["perSize"] = limit
+	data["total"] = total
+	data["totalPage"] = paginator.GetTotalPage()
+
+	appG.ResponseSucMsg(data, "查询成功")
 }

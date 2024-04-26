@@ -19,11 +19,16 @@ func (self ContestController) RegisterRoutes(g *gin.RouterGroup) {
 
 	g.GET("/viewTeacherContest", self.ViewTeacherContest)     // 教师查看自身上传的竞赛信息
 	g.GET("/getContestForTeacher", self.GetContestForTeacher) // 获取自身竞赛，给选择框用
+	g.GET("getDepartmentContest", self.GetDepartmentContest)  // 系部管理员获取同校同院系竞赛
 	g.POST("/uploadContest", self.UploadContest)              //教师上传竞赛信息
 	g.POST("/updateContest", self.UpdateContest)              //教师更改竞赛信息
 	g.POST("/transformState", self.TransformState)            //教师开关竞赛报名
 	g.DELETE("/deleteContest", self.DeleteContest)            //教师删除竞赛信息(暂时没用)
 	g.POST("/cancelContest", self.CancelContest)              //教师撤回竞赛
+
+	g.POST("/processPassContest", self.ProcessPassContest)       // 系部管理员审核竞赛通过
+	g.POST("/processRejectContest", self.ProcessRejectContest)   // 系部管理员审核竞赛驳回
+	g.POST("/processRecoverContest", self.ProcessRecoverContest) // 系部管理员审核竞赛恢复
 }
 
 // Viewcontest
@@ -42,10 +47,16 @@ func (ContestController) ViewContest(c *gin.Context) {
 		return
 	}
 
+	userID, exist := c.Get("user_id")
+	if !exist {
+		appG.ResponseErr("请登录")
+		return
+	}
+
 	paginator := logic.NewPaginator(curPage, limit)
 
 	data := make(map[string]interface{})
-	list, total, err := logic.DefaultContestLogic.DisplayContest(paginator, contest, contestType)
+	list, total, err := logic.DefaultContestLogic.DisplayContest(paginator, contest, contestType, userID.(int64))
 	if err != nil {
 		DPrintf(" logic.DefaultEnrollLogic.DisplayContest 错误:", err)
 		appG.ResponseErr(err.Error())
@@ -262,4 +273,162 @@ func (ContestController) CancelContest(c *gin.Context) {
 		return
 	}
 	appG.ResponseSuc()
+}
+
+func (ContestController) GetDepartmentContest(c *gin.Context) {
+	appG := app.Gin{C: c}
+	var err error
+	var ret string
+
+	userID, exist := c.Get("user_id")
+	if !exist {
+		appG.ResponseErr("用户不存在")
+		return
+	}
+
+	role, exist := c.Get("role")
+	if !exist {
+		appG.ResponseErr("权限错误")
+		return
+	}
+
+	if role != e.DepartmentRole {
+		appG.ResponseErr("无权限")
+		return
+	}
+
+	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
+	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
+	contest := c.DefaultQuery("contest", "")
+	contestType := c.DefaultQuery("contest_type", "")
+	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
+
+	paginator := logic.NewPaginator(curPage, limit)
+
+	data := make(map[string]interface{})
+	list, total, err := logic.DefaultContestLogic.DepartmentManagerGetContest(paginator, contest, contestType, state, userID.(int64))
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	paginator.SetTotalPage(total)
+
+	if list != nil {
+		data["list"] = list
+		data["total"] = total
+		data["page_size"] = limit
+		data["page_number"] = curPage
+		data["total_page"] = paginator.GetTotalPage()
+	}
+
+	appG.ResponseSucMsg(data, ret)
+}
+
+func (ContestController) ProcessPassContest(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	userID, exist := c.Get("user_id")
+	if !exist {
+		appG.ResponseErr("用户不存在")
+		return
+	}
+
+	role, exist := c.Get("role")
+	if !exist {
+		appG.ResponseErr("权限错误")
+		return
+	}
+
+	if role != e.DepartmentRole {
+		appG.ResponseErr("无权限")
+		return
+	}
+
+	form := &models.ProcessContest{}
+	err := c.ShouldBindJSON(form)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultContestLogic.ProcessContest(form.ID, e.Pass, userID.(int64), form.RejectReason)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSucMsg("success")
+}
+
+func (ContestController) ProcessRejectContest(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	userID, exist := c.Get("user_id")
+	if !exist {
+		appG.ResponseErr("用户不存在")
+		return
+	}
+
+	role, exist := c.Get("role")
+	if !exist {
+		appG.ResponseErr("权限错误")
+		return
+	}
+
+	if role != e.DepartmentRole {
+		appG.ResponseErr("无权限")
+		return
+	}
+
+	form := &models.ProcessContest{}
+	err := c.ShouldBindJSON(form)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultContestLogic.ProcessContest(form.ID, e.Reject, userID.(int64), form.RejectReason)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSucMsg("success")
+}
+
+func (ContestController) ProcessRecoverContest(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	userID, exist := c.Get("user_id")
+	if !exist {
+		appG.ResponseErr("用户不存在")
+		return
+	}
+
+	role, exist := c.Get("role")
+	if !exist {
+		appG.ResponseErr("权限错误")
+		return
+	}
+
+	if role != e.DepartmentRole {
+		appG.ResponseErr("无权限")
+		return
+	}
+
+	form := &models.ProcessContest{}
+	err := c.ShouldBindJSON(form)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultContestLogic.ProcessContest(form.ID, e.Processing, userID.(int64), form.RejectReason)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSucMsg("success")
 }

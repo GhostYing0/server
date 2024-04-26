@@ -22,6 +22,8 @@ const (
 )
 
 const (
-	StudentRole = 1
-	TeacherRole = 2
+	CmsManagerRole = 0
+	StudentRole    = 1
+	TeacherRole    = 2
+	DepartmentRole = 3
 )

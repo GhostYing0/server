@@ -13,6 +13,13 @@ type GradeForm struct {
 	State        int    `json:"state" xorm:"state"`
 }
 
+type UploadGradeForm struct {
+	ID          int64  `json:"id"`
+	Grade       string `json:"grade"`
+	Certificate string `json:"certificate"`
+	PS          string `json:"ps"`
+}
+
 type GradeInformation struct {
 	ID           int64     `json:"id" xorm:"id"`
 	StudentID    string    `json:"student_id" xorm:"student_id" `

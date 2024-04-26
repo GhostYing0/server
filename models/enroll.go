@@ -27,10 +27,11 @@ type EnrollInformationForm struct {
 }
 
 type EnrollInformation struct {
-	ID           int64     `json:"id" xorm:"id"`
-	StudentID    string    `json:"student_id" xorm:"student_id"`
-	TeamID       string    `json:"team_id" xorm:"team_id"`
-	ContestID    string    `json:"contest_id" xorm:"contest_id"`
+	ID        int64  `json:"id" xorm:"id"`
+	StudentID string `json:"student_id" xorm:"student_id"`
+	TeamID    string `json:"team_id" xorm:"team_id"`
+	//ContestID    string    `json:"contest_id" xorm:"contest_id"`
+	ContestID    int64     `json:"contest_id" xorm:"contest_id"`
 	CreateTime   string    `json:"create_time" xorm:"create_time"`
 	SchoolID     int64     `json:"school_id" xorm:"school_id"`
 	Phone        string    `json:"phone" xorm:"phone"`
@@ -57,7 +58,16 @@ func (NewEnroll) TableName() string {
 
 type EnrollContestStudent struct {
 	EnrollInformation `xorm:"extends"`
-	Contest           `xorm:"extends"`
+	Username          string    `json:"username" xorm:"username"`
+	Contest           string    `json:"contest" xorm:"contest"`
+	ContestState      int       `json:"contest_state" xorm:"contest_state"`
+	ContestType       string    `json:"type" xorm:"type"`
+	CreateTime        string    `json:"create_time" xorm:"create_time"`
+	StartTime         string    `json:"start_time" xorm:"start_time"`
+	Deadline          string    `json:"deadline" xorm:"deadline"`
+	State             int       `json:"state" xorm:"state"`
+	Describe          string    `json:"desc" xorm:"describe"`
+	Deleted           OftenTime `json:"deleted" xorm:"deleted"`
 	Student           `xorm:"extends"`
 	//Account           `xorm:"extends"`
 	School   string `xorm:"school"`

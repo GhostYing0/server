@@ -14,7 +14,7 @@ type ContestLogic struct{}
 
 var DefaultContestLogic = ContestLogic{}
 
-func (self ContestLogic) DisplayContest(paginator *Paginator, contest, contestType string) (*[]models.ContestReturn, int64, error) {
+func (self ContestLogic) DisplayContest(paginator *Paginator, contest, contestType string, userID int64) (*[]models.ContestReturn, int64, error) {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("DisplayContest session.Begin() 发生错误:", err)
@@ -29,8 +29,30 @@ func (self ContestLogic) DisplayContest(paginator *Paginator, contest, contestTy
 		}
 	}()
 
-	session.Join("LEFT", "contest_type", "contest.contest_type_id = contest_type.id")
-	session.Where("contest.state = 1")
+	account, err := public.SearchAccountByID(userID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if account.Role == e.StudentRole {
+		student, err := public.SearchStudentByID(account.UserID)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		session.Join("LEFT", "contest_type", "contest.contest_type_id = contest_type.id")
+		session.Where("contest.state = 1")
+		session.Where("contest.school_id = ?", student.SchoolID)
+	} else if account.Role == e.TeacherRole {
+		teacher, err := public.SearchTeacherByID(account.UserID)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		session.Join("LEFT", "contest_type", "contest.contest_type_id = contest_type.id")
+		session.Where("contest.state = 1")
+		session.Where("contest.school_id = ?", teacher.SchoolID)
+	}
 
 	if contest != "" {
 		session.Where("contest = ?", contest)
@@ -132,6 +154,7 @@ func (self ContestLogic) ViewTeacherContest(paginator *Paginator, userID int64, 
 		list[i].StartTime = (*data)[i].StartTime.String()
 		list[i].Deadline = (*data)[i].Deadline.String()
 		list[i].Describe = (*data)[i].Describe
+		list[i].RejectReason = (*data)[i].RejectReason
 		// 竞赛可报名条件，审核通过，在报名截至时间之前，且教师未关闭报名
 		if (*data)[i].State == e.Pass && (*data)[i].ContestState == e.EnrollOpen && models.NewOftenTime().Before(&(*data)[i].Deadline) {
 			list[i].ContestState = e.EnrollOpen
@@ -418,5 +441,124 @@ func (self ContestLogic) CancelContest(id, userID int64) error {
 		logging.L.Error(err)
 		return err
 	}
+	return session.Commit()
+}
+
+func (self ContestLogic) DepartmentManagerGetContest(paginator *Paginator, contest, contestType string, state int, userID int64) (*[]models.ContestReturn, int64, error) {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("CmsContestLogic Display session.Begin() 发生错误:", err)
+		return nil, 0, err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("CmsContestLogic Display session.Close() 发生错误:", err)
+		}
+	}()
+
+	departmentAccount, err := public.SearchDepartmentManagerByID(userID)
+	if err != nil {
+		logging.L.Error()
+		return nil, 0, err
+	}
+
+	session.Table("teacher").Where("teacher.school_id = ? and teacher.college_id = ? and teacher.department_id = ?", departmentAccount.SchoolID, departmentAccount.CollegeID, departmentAccount.DepartmentID)
+	session.Join("LEFT", "contest", "contest.teacher_id = teacher.teacher_id")
+	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
+
+	if err != nil {
+		logging.L.Error(err)
+	}
+	searchContest := &models.ContestInfo{}
+	if contest != "" {
+		searchContest, err = public.SearchContestByName(contest)
+		if err != nil {
+			logging.L.Error(err)
+		}
+		session.Where("contest.id = ?", searchContest.ID)
+	}
+	if contestType != "" {
+		session.Where("contest.contest_type_id = ?", searchContest.ID)
+	}
+	if state != -1 {
+		session.Where("contest.state = ?", state)
+	}
+
+	data := &[]models.ContestContestTypeTeacher{}
+
+	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(data)
+	if err != nil {
+		logging.L.Error(err)
+		return nil, 0, err
+	}
+
+	list := make([]models.ContestReturn, len(*data))
+	for i := 0; i < len(list); i++ {
+		list[i].Username = (*data)[i].Username
+		list[i].Name = (*data)[i].Name
+		list[i].School = (*data)[i].School
+		list[i].College = (*data)[i].College
+		list[i].ID = (*data)[i].Contest.ID
+		list[i].State = (*data)[i].Contest.State
+		list[i].Contest = (*data)[i].Contest.Contest
+		list[i].ContestType = (*data)[i].Contest.ContestType
+		list[i].Describe = (*data)[i].Describe
+		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].Contest.CreateTime)
+		list[i].StartTime = models.MysqlFormatString2String((*data)[i].Contest.StartTime)
+		list[i].Deadline = models.MysqlFormatString2String((*data)[i].Contest.Deadline)
+	}
+
+	return &list, total, session.Commit()
+}
+
+func (self ContestLogic) ProcessContest(id int64, state int, userID int64, rejectReason string) error {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("CmsContestLogic UpdateContest session.Begin() 发生错误:", err)
+		return err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("CmsContestLogic UpdateContest session.Close() 发生错误:", err)
+		}
+	}()
+
+	departmentAccount, err := public.SearchDepartmentManagerByID(userID)
+	if err != nil {
+		logging.L.Error()
+		return err
+	}
+
+	session.Table("contest").Where("id = ?", id)
+	session.Join("LEFT", "teacher", "contest.teacher_id = teacher.teacher_id")
+
+	exist, err := session.Where("teacher.school_id = ? and teacher.college_id = ? and teacher.department_id = ?", departmentAccount.SchoolID, departmentAccount.CollegeID, departmentAccount.DepartmentID).Exist()
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+	if !exist {
+		logging.L.Error("竞赛不存在")
+		return errors.New("竞赛不存在")
+	}
+
+	newContest := models.ContestInfo{State: state}
+	if state == e.Reject {
+		newContest.RejectReason = rejectReason
+	}
+
+	_, err = session.Where("id = ?", id).Update(&newContest)
+	if err != nil {
+		fail := session.Rollback()
+		if fail != nil {
+			logging.L.Error(fail)
+			return fail
+		}
+		logging.L.Error(err)
+		return err
+	}
+
 	return session.Commit()
 }

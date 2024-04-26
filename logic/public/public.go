@@ -334,3 +334,45 @@ func (self PublicLogic) GetContest() (*[]models.ContestAndType, error) {
 
 	return contest, err
 }
+
+func SearchDepartmentByName(name string) (*models.Department, error) {
+	department := &models.Department{}
+	exist, err := MasterDB.Where("department = ?", name).Get(department)
+	if err != nil {
+		logging.L.Error(err)
+		return department, err
+	}
+	if !exist {
+		logging.L.Error("系部不存在")
+		return department, errors.New("系部不存在")
+	}
+	return department, err
+}
+
+func SearchDepartmentManagerByName(name string) (*models.DepartmentAccount, error) {
+	account := &models.DepartmentAccount{}
+	exist, err := MasterDB.Where("username = ?", name).Get(account)
+	if err != nil {
+		logging.L.Error(err)
+		return account, err
+	}
+	if !exist {
+		logging.L.Error("系部不存在")
+		return account, errors.New("系部不存在")
+	}
+	return account, err
+}
+
+func SearchDepartmentManagerByID(id int64) (*models.DepartmentAccount, error) {
+	account := &models.DepartmentAccount{}
+	exist, err := MasterDB.Where("id = ?", id).Get(account)
+	if err != nil {
+		logging.L.Error(err)
+		return account, err
+	}
+	if !exist {
+		logging.L.Error("系部不存在")
+		return account, errors.New("系部不存在")
+	}
+	return account, err
+}

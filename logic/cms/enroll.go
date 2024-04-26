@@ -76,10 +76,10 @@ func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, s
 	for i := 0; i < len(*data); i++ {
 		list[i].ID = (*data)[i].EnrollInformation.ID
 		list[i].Username = (*data)[i].Username
-		list[i].StudentID = (*data)[i].Student.StudentID
+		list[i].StudentID = (*data)[i].EnrollInformation.StudentID
 		list[i].Name = (*data)[i].Name
 		list[i].TeamID = (*data)[i].TeamID
-		list[i].Contest = (*data)[i].Contest.Contest
+		list[i].Contest = (*data)[i].Contest
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].EnrollInformation.CreateTime)
 		list[i].School = (*data)[i].School
 		list[i].Phone = (*data)[i].Phone

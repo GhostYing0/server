@@ -15,11 +15,13 @@ type AccountController struct{}
 // 就是分为普通用户和管理员
 // RegisterRoutes
 func (self AccountController) RegisterRoutes(g *gin.RouterGroup) {
-	g.POST("/login", self.Login)                  // 普通用户登录
-	g.POST("/register", self.Register)            // 普通用户注册
-	g.POST("/update_passwd", self.UpdatePasswd)   // 普通用户修改密码
-	g.GET("/profileStudent", self.ProfileStudent) //学生获取个人信息
-	g.GET("/profileTeacher", self.ProfileTeacher) //教师获取个人信息
+	g.POST("/login", self.Login)                            // 普通用户登录
+	g.POST("/department_login", self.DepartmentLogin)       // 系部管理员登录
+	g.POST("/register", self.Register)                      // 普通用户注册
+	g.POST("/department_register", self.DepartmentRegister) // 系部管理员注册
+	g.POST("/update_passwd", self.UpdatePasswd)             // 普通用户修改密码
+	g.GET("/profileStudent", self.ProfileStudent)           //学生获取个人信息
+	g.GET("/profileTeacher", self.ProfileTeacher)           //教师获取个人信息
 	g.POST("/updateProfile", self.UpdateProfile)
 	g.POST("/updateTeacherProfile", self.UpdateTeacherProfile)
 	g.POST("/updateAvatar", self.UpdateAvatar)
@@ -212,4 +214,49 @@ func (AccountController) UpdateAvatar(c *gin.Context) {
 
 func (AccountController) UpdateTeacherProfile(c *gin.Context) {
 
+}
+
+func (AccountController) DepartmentLogin(c *gin.Context) {
+	appG := app.Gin{C: c}
+	form := &models.LoginForm{}
+	data := make(map[string]interface{})
+
+	err := c.ShouldBindJSON(form)
+
+	if err != nil {
+		DPrintf("Login c.ShouldBindJSON()发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	token, err := logic.DefaultUserAccount.DepartmentLogin(form.Username, form.Password, form.Role)
+	if err != nil {
+		DPrintf("Login 登录失败:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	data["token"] = token
+	appG.ResponseSucMsg(data, "登陆成功")
+}
+
+func (AccountController) DepartmentRegister(c *gin.Context) {
+	appG := app.Gin{C: c}
+	form := &models.DepartmentRegisterForm{}
+	err := c.ShouldBindJSON(form)
+	if err != nil {
+		DPrintf("Register 注册失败:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultUserAccount.DepartmentRegister(
+		form.Username, form.Password, form.ConfirmPassword, form.Role,
+		form.Name, form.School, form.College, form.Department, form.Phone, form.Email)
+	if err != nil {
+		DPrintf("Register 注册发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+	appG.ResponseSuc("注册成功")
 }

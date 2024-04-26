@@ -107,3 +107,46 @@ type NewManager struct {
 	Password        string `json:"password" xorm:"password"`
 	ConfirmPassword string `json:"confirm_password" xorm:"confirm_password"`
 }
+
+type DepartmentRegisterForm struct {
+	Username        string `json:"username" xorm:"username"`
+	Password        string `json:"password" xorm:"password"`
+	ConfirmPassword string `json:"confirm_password"`
+	Role            int    `json:"role" xorm:"role"`
+	Name            string `json:"name" xorm:"name"`
+	School          string `json:"school" xorm:"school"`
+	College         string `json:"college" xorm:"college"`
+	Department      string `json:"department" xorm:"department"`
+	Phone           string `json:"phone" xorm:"phone"`
+	Email           string `json:"email" xorm:"email"`
+}
+
+type Department struct {
+	DepartmentID int64  `json:"department_id" xorm:"department_id"`
+	Department   string `json:"department" xorm:"department"`
+}
+
+type DepartmentAccount struct {
+	ID            int64     `json:"id" xorm:"id"`
+	Username      string    `json:"username" xorm:"username"`
+	Password      string    `json:"password" xorm:"password"`
+	Role          int       `json:"role" xorm:"role"`
+	Name          string    `json:"name" xorm:"name"`
+	SchoolID      int64     `json:"school_id" xorm:"school_id"`
+	CollegeID     int64     `json:"college_id" xorm:"college_id"`
+	DepartmentID  int64     `json:"department_id" xorm:"department_id"`
+	Phone         string    `json:"phone" xorm:"phone"`
+	Email         string    `json:"email" xorm:"email"`
+	CreateTime    OftenTime `json:"create_time" xorm:"create_time"`
+	UpdateTime    OftenTime `json:"update_time" xorm:"update_time"`
+	LastLoginTime OftenTime `json:"last_login_time" xorm:"last_login_time"`
+	Deleted       OftenTime `json:"deleted" xorm:"deleted"`
+}
+
+func (Department) TableName() string {
+	return "department"
+}
+
+func (DepartmentAccount) TableName() string {
+	return "department_account"
+}
