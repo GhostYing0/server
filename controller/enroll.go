@@ -2,13 +2,14 @@ package controller
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/unknwon/com"
 	"server/logic"
 	"server/models"
 	"server/utils/app"
 	. "server/utils/e"
 	. "server/utils/mydebug"
+
+	"github.com/gin-gonic/gin"
+	"github.com/unknwon/com"
 )
 
 type EnrollController struct{}
@@ -317,6 +318,7 @@ func (EnrollController) DepartmentManagerSearchEnroll(c *gin.Context) {
 	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
 
 	contest := c.DefaultQuery("contest", "")
+	contestID := com.StrTo(c.DefaultQuery("id", "0")).MustInt64()
 	contestType := c.DefaultQuery("type", "")
 	startTime := c.DefaultQuery("start_time", "")
 	endTime := c.DefaultQuery("end_time", "")
@@ -344,7 +346,7 @@ func (EnrollController) DepartmentManagerSearchEnroll(c *gin.Context) {
 
 	paginator := logic.NewPaginator(curPage, limit)
 
-	list, total, err := logic.DefaultEnrollLogic.DepartmentManagerSearchEnroll(paginator, userID, contest, startTime, endTime, state, contestType)
+	list, total, err := logic.DefaultEnrollLogic.DepartmentManagerSearchEnroll(paginator, contestID, userID, contest, startTime, endTime, state, contestType)
 
 	if err != nil {
 		DPrintf("DisplayEnrollResult 发生错误:", err)

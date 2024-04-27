@@ -229,6 +229,19 @@ func SearchContestByName(name string) (*models.ContestInfo, error) {
 	return contest, err
 }
 
+func SearchContestLevlByName(name string) (*models.ContestLevel, error) {
+	level := &models.ContestLevel{}
+	exist, err := MasterDB.Where("contest_level = ?", name).Get(level)
+	if err != nil {
+		logging.L.Error(err)
+		return level, err
+	}
+	if !exist {
+		return level, errors.New("竞赛不存在")
+	}
+	return level, err
+}
+
 func SearchAccountByUsernameAndRole(username string, role int) (*models.Account, error) {
 	account := &models.Account{}
 	exist, err := MasterDB.Where("username = ? and role = ?", username, role).Get(account)

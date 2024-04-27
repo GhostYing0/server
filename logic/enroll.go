@@ -318,7 +318,7 @@ func (self EnrollLogic) TeacherSearch(paginator *Paginator, userID int64, contes
 	return &list, total, session.Rollback()
 }
 
-func (self EnrollLogic) DepartmentManagerSearchEnroll(paginator *Paginator, userID int64, contest string, startTime string, endTime string, state int, contestType string) (*[]models.EnrollInformationReturn, int64, error) {
+func (self EnrollLogic) DepartmentManagerSearchEnroll(paginator *Paginator, contestID, userID int64, contest string, startTime string, endTime string, state int, contestType string) (*[]models.EnrollInformationReturn, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
 		logging.L.Error("Search 分页器为空")
@@ -353,6 +353,10 @@ func (self EnrollLogic) DepartmentManagerSearchEnroll(paginator *Paginator, user
 	session.Join("RIGHT", "enroll_information", "student.student_id = enroll_information.student_id")
 	session.Join("LEFT", "contest", "contest.id = enroll_information.contest_id")
 	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
+	//session.Table("enroll_information")
+	if contestID > 0 {
+		session.Where("enroll_information.contest_id = ?", contestID)
+	}
 	if len(contest) > 0 {
 		session.Where("contest.contest = ?", contest)
 	}
@@ -372,7 +376,7 @@ func (self EnrollLogic) DepartmentManagerSearchEnroll(paginator *Paginator, user
 	data := &[]models.EnrollContestStudent{}
 
 	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).
-		Select("enroll_information.id as id , enroll_information.*,contest.*,contest_type.*,student.*,school.*,college.*,semester.*").
+		//Select("enroll_information.id as id , enroll_information.*,contest.*,contest_type.*,student.*,school.*,college.*,semester.*").
 		FindAndCount(data)
 	if err != nil {
 		DPrintf("Search 查找报名信息失败:", err)

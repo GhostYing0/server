@@ -490,7 +490,7 @@ func (self GradeLogic) Update(id int64, grade string, certificate string) error 
 	return session.Commit()
 }
 
-func (self GradeLogic) DepartmentManagerSearchGrade(paginator *Paginator, grade string, contest string, startTime string, endTime string, state int, user_id int64, role int) (*[]models.ReturnGradeInformation, int64, error) {
+func (self GradeLogic) DepartmentManagerSearchGrade(paginator *Paginator, grade string, contest string, startTime string, endTime string, state int, contestID, user_id int64, role int) (*[]models.ReturnGradeInformation, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
 		logging.L.Error("Search 分页器为空")
@@ -523,11 +523,14 @@ func (self GradeLogic) DepartmentManagerSearchGrade(paginator *Paginator, grade 
 		return nil, 0, err
 	}
 
-	session.Table("student").Where("student.school_id = ? and student.college_id = ? and student.department_id = ?", account.SchoolID, account.CollegeID, account.DepartmentID)
+	//session.Table("student").Where("student.school_id = ? and student.college_id = ? and student.department_id = ?", account.SchoolID, account.CollegeID, account.DepartmentID)
 	session.Join("RIGHT", "grade", "grade.student_id = student.student_id")
 	session.Join("LEFT", "contest", "contest.id = grade.contest_id")
 	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
 
+	if contestID > 0 {
+		session.Where("grade.contest_id = ?", contestID)
+	}
 	if len(grade) > 0 {
 		session.Where("grade.grade = ?", grade)
 	}

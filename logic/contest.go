@@ -444,7 +444,7 @@ func (self ContestLogic) CancelContest(id, userID int64) error {
 	return session.Commit()
 }
 
-func (self ContestLogic) DepartmentManagerGetContest(paginator *Paginator, contest, contestType string, state int, userID int64) (*[]models.ContestReturn, int64, error) {
+func (self ContestLogic) DepartmentManagerGetContest(paginator *Paginator, contest, contestType string, contestLevel int, userID int64) (*[]models.DepartmentContestEnrollReturn, int64, error) {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("CmsContestLogic Display session.Begin() 发生错误:", err)
@@ -466,11 +466,14 @@ func (self ContestLogic) DepartmentManagerGetContest(paginator *Paginator, conte
 	session.Table("teacher").Where("teacher.school_id = ? and teacher.college_id = ? and teacher.department_id = ?", departmentAccount.SchoolID, departmentAccount.CollegeID, departmentAccount.DepartmentID)
 	session.Join("LEFT", "contest", "contest.teacher_id = teacher.teacher_id")
 	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
+	session.Join("LEFT", "contest_level", "contest_level.contest_level_id = contest.contest_level_id")
+	session.Where("contest.state = ?", e.Pass)
 
 	if err != nil {
 		logging.L.Error(err)
 	}
 	searchContest := &models.ContestInfo{}
+	searchContestType := &models.ContestType{}
 	if contest != "" {
 		searchContest, err = public.SearchContestByName(contest)
 		if err != nil {
@@ -479,10 +482,14 @@ func (self ContestLogic) DepartmentManagerGetContest(paginator *Paginator, conte
 		session.Where("contest.id = ?", searchContest.ID)
 	}
 	if contestType != "" {
-		session.Where("contest.contest_type_id = ?", searchContest.ID)
+		searchContestType, err = public.SearchContestTypeByName(contest)
+		if err != nil {
+			logging.L.Error(err)
+		}
+		session.Where("contest.contest_type_id = ?", searchContestType.ContestTypeID)
 	}
-	if state != -1 {
-		session.Where("contest.state = ?", state)
+	if contestLevel != -1 {
+		session.Where("contest.contest_level_id = ?", contestLevel)
 	}
 
 	data := &[]models.ContestContestTypeTeacher{}
@@ -493,7 +500,9 @@ func (self ContestLogic) DepartmentManagerGetContest(paginator *Paginator, conte
 		return nil, 0, err
 	}
 
-	list := make([]models.ContestReturn, len(*data))
+	session.Join("LEFT", "enroll_information", "contest.id = enroll_information.contest_id")
+
+	list := make([]models.DepartmentContestEnrollReturn, len(*data))
 	for i := 0; i < len(list); i++ {
 		list[i].Username = (*data)[i].Username
 		list[i].Name = (*data)[i].Name
@@ -503,10 +512,12 @@ func (self ContestLogic) DepartmentManagerGetContest(paginator *Paginator, conte
 		list[i].State = (*data)[i].Contest.State
 		list[i].Contest = (*data)[i].Contest.Contest
 		list[i].ContestType = (*data)[i].Contest.ContestType
-		list[i].Describe = (*data)[i].Describe
+		list[i].ContestLevel = (*data)[i].Contest.ContestLevel
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].Contest.CreateTime)
 		list[i].StartTime = models.MysqlFormatString2String((*data)[i].Contest.StartTime)
 		list[i].Deadline = models.MysqlFormatString2String((*data)[i].Contest.Deadline)
+		list[i].RejectedCount, _ = session.Table("enroll_information").Where("state = ? and contest_id = ?", e.Reject, (*data)[i].Contest.ID).Count()
+		list[i].ProcessingCount, _ = session.Table("enroll_information").Where("state = ? and contest_id = ?", e.Processing, (*data)[i].Contest.ID).Count()
 	}
 
 	return &list, total, session.Commit()
@@ -561,4 +572,115 @@ func (self ContestLogic) ProcessContest(id int64, state int, userID int64, rejec
 	}
 
 	return session.Commit()
+}
+
+func (self ContestLogic) OnlyGetDepartmentContest(userID int64) (*[]models.ContestAndType, error) {
+	contest := &[]models.ContestAndType{}
+
+	departmentAccount, err := public.SearchDepartmentManagerByID(userID)
+	if err != nil {
+		logging.L.Error()
+		return nil, err
+	}
+
+	//MasterDB.Table("teacher").Where("teacher.school_id = ? and teacher.college_id = ? and teacher.department_id = ?", departmentAccount.SchoolID, departmentAccount.CollegeID, departmentAccount.DepartmentID)
+	//MasterDB.Join("LEFT", "contest", "contest.teacher_id = teacher.teacher_id")
+	//MasterDB.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
+	//MasterDB.Join("LEFT", "contest_level", "contest_level.contest_level_id = contest.contest_level_id")
+
+	_, err = MasterDB.
+		Table("teacher").
+		Where("teacher.school_id = ? and teacher.college_id = ? and teacher.department_id = ?", departmentAccount.SchoolID, departmentAccount.CollegeID, departmentAccount.DepartmentID).
+		Join("LEFT", "contest", "contest.teacher_id = teacher.teacher_id").
+		Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id").
+		Join("LEFT", "contest_level", "contest_level.contest_level_id = contest.contest_level_id").
+		Where("contest.state = ?", e.Pass).
+		FindAndCount(contest)
+	if err != nil {
+		logging.L.Error(err)
+		return nil, err
+	}
+
+	return contest, err
+}
+
+func (self ContestLogic) DepartmentManagerGetContestGrade(paginator *Paginator, contest, contestType string, contestLevel int, userID int64) (*[]models.DepartmentContestGradeReturn, int64, error) {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("CmsContestLogic Display session.Begin() 发生错误:", err)
+		return nil, 0, err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("CmsContestLogic Display session.Close() 发生错误:", err)
+		}
+	}()
+
+	departmentAccount, err := public.SearchDepartmentManagerByID(userID)
+	if err != nil {
+		logging.L.Error()
+		return nil, 0, err
+	}
+
+	session.Table("teacher").Where("teacher.school_id = ? and teacher.college_id = ? and teacher.department_id = ?", departmentAccount.SchoolID, departmentAccount.CollegeID, departmentAccount.DepartmentID)
+	session.Join("LEFT", "contest", "contest.teacher_id = teacher.teacher_id")
+	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
+	session.Join("LEFT", "contest_level", "contest_level.contest_level_id = contest.contest_level_id")
+	session.Where("contest.state = ?", e.Pass)
+
+	if err != nil {
+		logging.L.Error(err)
+	}
+	searchContest := &models.ContestInfo{}
+	searchContestType := &models.ContestType{}
+	if contest != "" {
+		searchContest, err = public.SearchContestByName(contest)
+		if err != nil {
+			logging.L.Error(err)
+		}
+		session.Where("contest.id = ?", searchContest.ID)
+	}
+	if contestType != "" {
+		searchContestType, err = public.SearchContestTypeByName(contest)
+		if err != nil {
+			logging.L.Error(err)
+		}
+		session.Where("contest.contest_type_id = ?", searchContestType.ContestTypeID)
+	}
+	if contestLevel != -1 {
+		session.Where("contest.contest_level_id = ?", contestLevel)
+	}
+
+	data := &[]models.ContestContestTypeTeacherGrade{}
+
+	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(data)
+	if err != nil {
+		logging.L.Error(err)
+		return nil, 0, err
+	}
+
+	session.Join("LEFT", "grade", "contest.id = grade.contest_id")
+
+	list := make([]models.DepartmentContestGradeReturn, len(*data))
+	for i := 0; i < len(list); i++ {
+		list[i].Username = (*data)[i].Username
+		list[i].School = (*data)[i].School
+		list[i].College = (*data)[i].College
+		list[i].ID = (*data)[i].Contest.ID
+		list[i].State = (*data)[i].Contest.State
+		list[i].Contest = (*data)[i].Contest.Contest
+		list[i].ContestType = (*data)[i].Contest.ContestType
+		list[i].ContestLevel = (*data)[i].Contest.ContestLevel
+		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].Contest.CreateTime)
+		list[i].RejectReason = (*data)[i].RejectReason
+		list[i].Prize1Count = (*data)[i].Prize1Count
+		list[i].Prize2Count = (*data)[i].Prize2Count
+		list[i].Prize3Count = (*data)[i].Prize3Count
+		list[i].Prize4Count = (*data)[i].Prize4Count
+		list[i].RejectedCount, _ = session.Table("grade").Where("state = ? and contest_id = ?", e.Reject, (*data)[i].Contest.ID).Count()
+		list[i].ProcessingCount, _ = session.Table("grade").Where("state = ? and contest_id = ?", e.Processing, (*data)[i].Contest.ID).Count()
+	}
+
+	return &list, total, session.Commit()
 }

@@ -1,14 +1,15 @@
 package controller
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/unknwon/com"
 	"server/logic"
 	"server/models"
 	"server/utils/app"
 	. "server/utils/e"
 	"server/utils/logging"
 	. "server/utils/mydebug"
+
+	"github.com/gin-gonic/gin"
+	"github.com/unknwon/com"
 )
 
 type GradeController struct{}
@@ -360,6 +361,7 @@ func (self GradeController) DepartmentManagerSearchGrade(c *gin.Context) {
 	contest := c.DefaultQuery("contest", "")
 	startTime := c.DefaultQuery("startTime", "")
 	endTime := c.DefaultQuery("endTime", "")
+	contestID := com.StrTo(c.DefaultQuery("id", "0")).MustInt64()
 	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
 
 	if limit < 1 || curPage < 1 {
@@ -389,7 +391,7 @@ func (self GradeController) DepartmentManagerSearchGrade(c *gin.Context) {
 		return
 	}
 
-	list, total, err := logic.DefaultGradeLogic.DepartmentManagerSearchGrade(paginator, grade, contest, startTime, endTime, state, user_id.(int64), role.(int))
+	list, total, err := logic.DefaultGradeLogic.DepartmentManagerSearchGrade(paginator, grade, contest, startTime, endTime, state, contestID, user_id.(int64), role.(int))
 
 	if err != nil {
 		DPrintf("DisplayGrade 发生错误:", err)
