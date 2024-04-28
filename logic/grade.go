@@ -300,7 +300,7 @@ func (self GradeLogic) Search(paginator *Paginator, grade string, contest string
 	return &list, total, session.Rollback()
 }
 
-func (self GradeLogic) TeacherSearch(paginator *Paginator, grade string, contest string, startTime string, endTime string, state int, user_id int64, role int) (*[]models.ReturnGradeInformation, int64, error) {
+func (self GradeLogic) TeacherSearch(paginator *Paginator, grade string, contest string, startTime string, endTime string, state int, contestID, user_id int64, role int) (*[]models.ReturnGradeInformation, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
 		logging.L.Error("Search 分页器为空")
@@ -344,7 +344,11 @@ func (self GradeLogic) TeacherSearch(paginator *Paginator, grade string, contest
 	session.Join("LEFT", "school", "grade.school_id = school.school_id")
 	session.Join("LEFT", "student", "grade.student_id = student.student_id")
 	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
+	session.Where("contest.id = ?", contestID)
 
+	if contestID <= 0 {
+		return nil, 0, err
+	}
 	if len(grade) > 0 {
 		session.Where("grade.grade = ?", grade)
 	}
@@ -442,6 +446,46 @@ func (self GradeLogic) ProcessGrade(id int64, state int, rejectReason string) er
 	return session.Commit()
 }
 
+func (self GradeLogic) PassGrade(ids *[]int64, state int) (int64, error) {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("InsertEnrollInformation session.Begin() 发生错误:", err)
+		return 0, err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("InsertEnrollInformation session.Close() 发生错误:", err)
+		}
+	}()
+
+	var count int64
+
+	for _, id := range *ids {
+		var gradeInformation models.GradeInformation
+		if id < 1 {
+			fmt.Println("非法id")
+			continue
+		}
+		gradeInformation.State = e.Pass
+		affected, err := session.Where("id = ?", id).Update(&gradeInformation)
+		if err != nil {
+			DPrintf("CmsRegistrationLogic Update 发生错误:", err)
+			fail := session.Rollback()
+			if fail != nil {
+				DPrintf("回滚失败")
+				return 0, fail
+			}
+			return count, err
+		}
+		if affected > 0 {
+			count += affected
+		}
+	}
+
+	return count, session.Commit()
+}
+
 func (self GradeLogic) Update(id int64, grade string, certificate string) error {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
@@ -523,7 +567,12 @@ func (self GradeLogic) DepartmentManagerSearchGrade(paginator *Paginator, grade 
 		return nil, 0, err
 	}
 
+<<<<<<< HEAD
 	session.Table("student").Where("student.school_id = ? and student.college_id = ? and student.department_id = ?", account.SchoolID, account.CollegeID, account.DepartmentID)
+=======
+	//session.Table("student").Where("student.school_id = ? and student.college_id = ? and student.department_id = ?", account.SchoolID, account.CollegeID, account.DepartmentID)
+	session.Table("student").Where("student.school_id = ?", account.SchoolID)
+>>>>>>> 3a93315c82fe0b73fb83f153cf95da595023f25a
 	session.Join("RIGHT", "grade", "grade.student_id = student.student_id")
 	session.Join("LEFT", "contest", "contest.id = grade.contest_id")
 	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")

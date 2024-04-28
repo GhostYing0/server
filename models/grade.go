@@ -14,7 +14,7 @@ type GradeForm struct {
 }
 
 type UploadGradeForm struct {
-	ID          int64  `json:"id"`
+	EnrollID    int64  `json:"enroll_id"`
 	Grade       string `json:"grade"`
 	Certificate string `json:"certificate"`
 	PS          string `json:"ps"`

@@ -19,6 +19,7 @@ func (self ContestController) RegisterRoutes(g *gin.RouterGroup) {
 	g.GET("/viewContest", self.ViewContest) // 查看竞赛信息
 
 	g.GET("/viewTeacherContest", self.ViewTeacherContest)              // 教师查看自身上传的竞赛信息
+	g.GET("/viewTeacherContestGrade", self.ViewTeacherContestGrade)    // 教师查看自身上传的竞赛信息成绩用
 	g.GET("/getContestForTeacher", self.GetContestForTeacher)          // 获取自身竞赛，给选择框用
 	g.GET("getDepartmentContest", self.GetDepartmentContest)           // 系部管理员获取同校同院系竞赛报名
 	g.GET("getDepartmentContestGrade", self.GetDepartmentContestGrade) // 系部管理员获取同校同院系竞赛成绩
@@ -107,6 +108,51 @@ func (ContestController) ViewTeacherContest(c *gin.Context) {
 
 	data := make(map[string]interface{})
 	list, total, err := logic.DefaultContestLogic.ViewTeacherContest(paginator, userID.(int64), contest, contestType, state)
+	if err != nil {
+		DPrintf(" logic.DefaultEnrollLogic.DisplayContest 错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	paginator.SetTotalPage(total)
+
+	if list != nil {
+		data["list"] = list
+		data["total"] = total
+		data["page_size"] = limit
+		data["page_number"] = curPage
+		data["total_page"] = paginator.GetTotalPage()
+	}
+
+	appG.ResponseSucMsg(data)
+}
+
+func (ContestController) ViewTeacherContestGrade(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
+	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
+	contestType := c.DefaultQuery("type", "")
+	contest := c.DefaultQuery("contest", "")
+	state := com.StrTo(c.DefaultQuery("", "-1")).MustInt()
+
+	userID, exist := c.Get("user_id")
+	if !exist {
+		appG.ResponseErr("分页器参数错误")
+		logging.L.Error("用户不存在")
+		return
+	}
+
+	if limit < 0 || curPage < 0 {
+		DPrintf("分页器参数错误")
+		appG.ResponseErr("分页器参数错误")
+		return
+	}
+
+	paginator := logic.NewPaginator(curPage, limit)
+
+	data := make(map[string]interface{})
+	list, total, err := logic.DefaultContestLogic.ViewTeacherContestGrade(paginator, userID.(int64), contest, contestType, state)
 	if err != nil {
 		DPrintf(" logic.DefaultEnrollLogic.DisplayContest 错误:", err)
 		appG.ResponseErr(err.Error())

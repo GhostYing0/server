@@ -7,6 +7,7 @@ import (
 	. "server/utils/e"
 	"server/utils/logging"
 	. "server/utils/mydebug"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/unknwon/com"
@@ -128,6 +129,7 @@ func (self GradeController) TeacherDisplayGrade(c *gin.Context) {
 	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
 	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
 
+	contestID := com.StrTo(c.DefaultQuery("id", "0")).MustInt64()
 	grade := c.DefaultQuery("grade", "")
 	contest := c.DefaultQuery("contest", "")
 	startTime := c.DefaultQuery("startTime", "")
@@ -161,7 +163,7 @@ func (self GradeController) TeacherDisplayGrade(c *gin.Context) {
 		return
 	}
 
-	list, total, err := logic.DefaultGradeLogic.TeacherSearch(paginator, grade, contest, startTime, endTime, state, user_id.(int64), role.(int))
+	list, total, err := logic.DefaultGradeLogic.TeacherSearch(paginator, grade, contest, startTime, endTime, state, contestID, user_id.(int64), role.(int))
 
 	if err != nil {
 		DPrintf("DisplayGrade 发生错误:", err)
@@ -197,7 +199,7 @@ func (GradeController) ProcessPassGrade(c *gin.Context) {
 		return
 	}
 
-	form := models.GradeForm{}
+	form := models.PassGradeID{}
 	err := c.ShouldBindJSON(&form)
 	if err != nil {
 		DPrintf("ProcessEnroll c.ShouldBindJSON 发生错误:", err)
@@ -205,14 +207,14 @@ func (GradeController) ProcessPassGrade(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultGradeLogic.ProcessGrade(form.ID, Pass, form.RejectReason)
+	count, err := logic.DefaultGradeLogic.PassGrade(&form.IDS, Pass)
 	if err != nil {
 		DPrintf("logic.DefaultRegistrationContest.Process 发生错误:", err)
 		appG.ResponseErr(err.Error())
 		return
 	}
 
-	appG.ResponseSuc()
+	appG.ResponseSuc("审核通过" + strconv.Itoa(int(count)) + "个成功")
 }
 
 // ProcessRejectGrade
