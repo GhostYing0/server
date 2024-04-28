@@ -523,7 +523,7 @@ func (self GradeLogic) DepartmentManagerSearchGrade(paginator *Paginator, grade 
 		return nil, 0, err
 	}
 
-	//session.Table("student").Where("student.school_id = ? and student.college_id = ? and student.department_id = ?", account.SchoolID, account.CollegeID, account.DepartmentID)
+	session.Table("student").Where("student.school_id = ? and student.college_id = ? and student.department_id = ?", account.SchoolID, account.CollegeID, account.DepartmentID)
 	session.Join("RIGHT", "grade", "grade.student_id = student.student_id")
 	session.Join("LEFT", "contest", "contest.id = grade.contest_id")
 	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
