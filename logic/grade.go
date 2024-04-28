@@ -112,8 +112,9 @@ var DefaultGradeLogic = GradeLogic{}
 //	return session.Commit()
 //}
 
-func (self GradeLogic) InsertGradeInformation(user_id, id int64, grade, certificate, ps string) error {
-	if len(grade) <= 0 {
+func (self GradeLogic) InsertGradeInformation(user_id, enrollID int64, grade int, rewardTime, certificate, teacherName, teahcerDepartment, teacherTitle string) error {
+	fmt.Print("asdasd:", grade)
+	if grade <= 0 {
 		logging.L.Info("请填写成绩")
 		return errors.New("请填写成绩")
 	}
@@ -129,12 +130,11 @@ func (self GradeLogic) InsertGradeInformation(user_id, id int64, grade, certific
 		if err != nil {
 			DPrintf("InsertGradeInformation session.Close() 发生错误:", err)
 			logging.L.Error(err)
-
 		}
 	}()
 
 	enroll := &models.EnrollInformation{}
-	exist, err := session.Where("id = ?", id).Get(enroll)
+	exist, err := session.Where("id = ?", enrollID).Get(enroll)
 	if err != nil {
 		logging.L.Error(err)
 		return err
@@ -175,7 +175,31 @@ func (self GradeLogic) InsertGradeInformation(user_id, id int64, grade, certific
 		return err
 	}
 
-	exist, err = session.Table("grade").Where("student_id = ? and contest_id = ? and state != ? and state != ?", enroll.StudentID, enroll.ContestID, e.Revoked, e.Reject).Exist()
+	department, err := public.SearchDepartmentByName(teahcerDepartment)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
+	teacherAccount := &models.Teacher{}
+	exist, err = MasterDB.Where("name = ? and department_id = ?", teacherName, department.DepartmentID).Get(teacherAccount)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+	if !exist {
+		logging.L.Error("教师不存在")
+		return errors.New("教师不存在")
+	}
+
+	prizeSearch, err := public.SearchPrizeByID(grade)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
+	exist, err = session.Table("grade").Where("enroll_id = ?", enrollID).Exist()
+	//exist, err = session.Table("grade").Where("student_id = ? and contest_id = ? and state != ? and state != ?", enroll.StudentID, enroll.ContestID, e.Revoked, e.Reject).Exist()
 	if exist {
 		logging.L.Error("已上传成绩，不能重复上传")
 		return errors.New("已上传成绩，不能重复上传")
@@ -186,15 +210,18 @@ func (self GradeLogic) InsertGradeInformation(user_id, id int64, grade, certific
 	}
 
 	gradeInformation := &models.GradeInformation{
-		StudentID:   enroll.StudentID,
-		SchoolID:    student.SchoolID,
-		ContestID:   enroll.ContestID,
-		CreateTime:  models.NewOftenTime().String(),
-		Certificate: certificate,
-		Grade:       grade,
-		UpdateTime:  models.NewOftenTime().String(),
-		PS:          ps,
-		State:       3,
+		StudentID:       enroll.StudentID,
+		SchoolID:        student.SchoolID,
+		ContestID:       enroll.ContestID,
+		CreateTime:      models.NewOftenTime().String(),
+		Certificate:     certificate,
+		Grade:           prizeSearch.PrizeID,
+		UpdateTime:      models.NewOftenTime().String(),
+		GuidanceTeacher: teacherAccount.TeacherID,
+		EnrollID:        enrollID,
+		RewardTime:      models.FormatString2OftenTime(rewardTime),
+		//PS:          ps,
+		State: 3,
 	}
 
 	_, err = session.Insert(gradeInformation)
@@ -291,7 +318,7 @@ func (self GradeLogic) Search(paginator *Paginator, grade string, contest string
 		list[i].Contest = (*data)[i].Contest
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].GradeInformation.CreateTime)
 		list[i].Certificate = (*data)[i].Certificate
-		list[i].Grade = (*data)[i].Grade
+		//list[i].Grade = (*data)[i].Grade
 		list[i].State = (*data)[i].GradeInformation.State
 		list[i].PS = (*data)[i].PS
 		list[i].RejectReason = (*data)[i].RejectReason
@@ -385,7 +412,7 @@ func (self GradeLogic) TeacherSearch(paginator *Paginator, grade string, contest
 		list[i].Contest = (*data)[i].Contest
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].GradeInformation.CreateTime)
 		list[i].Certificate = (*data)[i].Certificate
-		list[i].Grade = (*data)[i].Grade
+		//list[i].Grade = (*data)[i].Grade
 		list[i].School = (*data)[i].School
 		list[i].ContestType = (*data)[i].ContestType
 		list[i].Name = (*data)[i].Name
@@ -515,7 +542,7 @@ func (self GradeLogic) Update(id int64, grade string, certificate string) error 
 		Table("grade").
 		Where("id = ?", id).
 		Update(&models.GradeInformation{
-			Grade:       grade,
+			//Grade:       grade,
 			Certificate: certificate,
 			UpdateTime:  models.NewOftenTime().String(),
 		})
@@ -567,12 +594,8 @@ func (self GradeLogic) DepartmentManagerSearchGrade(paginator *Paginator, grade 
 		return nil, 0, err
 	}
 
-<<<<<<< HEAD
-	session.Table("student").Where("student.school_id = ? and student.college_id = ? and student.department_id = ?", account.SchoolID, account.CollegeID, account.DepartmentID)
-=======
 	//session.Table("student").Where("student.school_id = ? and student.college_id = ? and student.department_id = ?", account.SchoolID, account.CollegeID, account.DepartmentID)
 	session.Table("student").Where("student.school_id = ?", account.SchoolID)
->>>>>>> 3a93315c82fe0b73fb83f153cf95da595023f25a
 	session.Join("RIGHT", "grade", "grade.student_id = student.student_id")
 	session.Join("LEFT", "contest", "contest.id = grade.contest_id")
 	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
@@ -616,7 +639,7 @@ func (self GradeLogic) DepartmentManagerSearchGrade(paginator *Paginator, grade 
 		list[i].Contest = (*data)[i].Contest
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].GradeInformation.CreateTime)
 		list[i].Certificate = (*data)[i].Certificate
-		list[i].Grade = (*data)[i].Grade
+		//list[i].Grade = (*data)[i].Grade
 		list[i].School = (*data)[i].School
 		list[i].ContestType = (*data)[i].ContestType
 		list[i].Name = (*data)[i].Name

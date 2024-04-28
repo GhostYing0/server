@@ -76,7 +76,7 @@ func (self CmsGradeLogic) Display(paginator *Paginator, username, name, contest,
 		list[i].School = (*data)[i].School.School
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].GradeInformation.CreateTime)
 		list[i].Certificate = (*data)[i].Certificate
-		list[i].Grade = (*data)[i].Grade
+		//list[i].Grade = (*data)[i].Grade
 		list[i].State = (*data)[i].GradeInformation.State
 		list[i].RejectReason = (*data)[i].RejectReason
 		list[i].PS = (*data)[i].PS
@@ -125,11 +125,11 @@ func (self CmsGradeLogic) Add(username string, contest string, grade string, cre
 	}
 
 	enroll := &models.GradeInformation{
-		StudentID:   account.UserID,
-		ContestID:   searchContest.ID,
-		SchoolID:    student.SchoolID,
-		CreateTime:  models.MysqlFormatString2String(createTime),
-		Grade:       grade,
+		StudentID:  account.UserID,
+		ContestID:  searchContest.ID,
+		SchoolID:   student.SchoolID,
+		CreateTime: models.MysqlFormatString2String(createTime),
+		//Grade:       grade,
 		Certificate: certificate,
 		State:       state,
 	}
@@ -197,11 +197,11 @@ func (self CmsGradeLogic) Update(id int64, username string, contest string, grad
 	}
 
 	enroll := &models.GradeInformation{
-		StudentID:   account.UserID,
-		ContestID:   searchContest.ID,
-		SchoolID:    student.SchoolID,
-		CreateTime:  models.MysqlFormatString2String(createTime),
-		Grade:       grade,
+		StudentID:  account.UserID,
+		ContestID:  searchContest.ID,
+		SchoolID:   student.SchoolID,
+		CreateTime: models.MysqlFormatString2String(createTime),
+		//Grade:       grade,
 		Certificate: certificate,
 		State:       state,
 	}

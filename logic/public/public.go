@@ -362,6 +362,34 @@ func SearchDepartmentByName(name string) (*models.Department, error) {
 	return department, err
 }
 
+func SearchPrizeByName(name string) (*models.Prize, error) {
+	prize := &models.Prize{}
+	exist, err := MasterDB.Where("prize = ?", name).Get(prize)
+	if err != nil {
+		logging.L.Error(err)
+		return prize, err
+	}
+	if !exist {
+		logging.L.Error("奖项不存在")
+		return prize, errors.New("奖项不存在")
+	}
+	return prize, err
+}
+
+func SearchPrizeByID(id int) (*models.Prize, error) {
+	prize := &models.Prize{}
+	exist, err := MasterDB.Where("prize_id = ?", id).Get(prize)
+	if err != nil {
+		logging.L.Error(err)
+		return prize, err
+	}
+	if !exist {
+		logging.L.Error("奖项不存在")
+		return prize, errors.New("奖项不存在")
+	}
+	return prize, err
+}
+
 func SearchDepartmentManagerByName(name string) (*models.DepartmentAccount, error) {
 	account := &models.DepartmentAccount{}
 	exist, err := MasterDB.Where("username = ?", name).Get(account)

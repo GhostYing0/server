@@ -61,7 +61,8 @@ func (self GradeController) UploadGrade(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultGradeLogic.InsertGradeInformation(userID.(int64), form.ID, form.Grade, form.Certificate, form.PS)
+	err = logic.DefaultGradeLogic.InsertGradeInformation(userID.(int64), form.EnrollID, form.Grade, form.RewardTime, form.Certificate,
+		form.GuidanceTeacher, form.TeacherDepartment, form.TeacherTitle)
 	if err != nil {
 		DPrintf("EnrollContest logic.DefaultEnrollLogic.InsertEnrollInformation() 发生错误:", err)
 		appG.ResponseErr("上传成绩失败", err.Error())
