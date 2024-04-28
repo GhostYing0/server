@@ -166,6 +166,81 @@ func (self ContestLogic) ViewTeacherContest(paginator *Paginator, userID int64, 
 	return &list, total, session.Commit()
 }
 
+func (self ContestLogic) ViewTeacherContestGrade(paginator *Paginator, userID int64, contest, contestLevel string, state int) (*[]models.TeacherUploadGradeContestReturn, int64, error) {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("DisplayContest session.Begin() 发生错误:", err)
+		logging.L.Error(err)
+		return nil, 0, err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("DisplayContest session.Close() 发生错误:", err)
+			logging.L.Error(err)
+		}
+	}()
+
+	account, err := public.SearchAccountByID(userID)
+	if err != nil {
+		logging.L.Error(err)
+		return nil, 0, err
+	}
+
+	session.Join("LEFT", "contest_type", "contest.contest_type_id = contest_type.id")
+	session.Join("LEFT", "contest_level", "contest.contest_level_id = contest_level.contest_level_id")
+	session.Where("contest.teacher_id = ?", account.UserID)
+	session.Where("contest.state = ?", e.Pass)
+
+	if contest != "" {
+		session.Where("contest = ?", contest)
+	}
+	if contestLevel != "" {
+		searchContestLevel, err := public.SearchContestLevlByName(contestLevel)
+		if err != nil {
+
+		} else {
+			session.Where("contest.contest_level_id = ?", searchContestLevel.ID)
+		}
+	}
+
+	data := &[]models.ContestInfoType{}
+
+	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(data)
+	if err != nil {
+		DPrintf("InsertEnrollInformation 查询竞赛发生错误: ", err)
+		logging.L.Error(err)
+		return nil, 0, err
+	}
+
+	list := make([]models.TeacherUploadGradeContestReturn, len(*data))
+	for i := 0; i < len(*data); i++ {
+		list[i].ID = (*data)[i].ID
+		list[i].State = (*data)[i].State
+		list[i].Contest = (*data)[i].Contest
+		list[i].ContestType = (*data)[i].ContestType.ContestType
+		list[i].CreateTime = (*data)[i].CreateTime.String()
+		list[i].StartTime = (*data)[i].StartTime.String()
+		list[i].Deadline = (*data)[i].Deadline.String()
+		list[i].Describe = (*data)[i].Describe
+		list[i].RejectReason = (*data)[i].RejectReason
+		list[i].ContestLevel = (*data)[i].ContestLevel
+		list[i].Prize1Count = (*data)[i].Prize1Count
+		list[i].Prize2Count = (*data)[i].Prize2Count
+		list[i].Prize3Count = (*data)[i].Prize3Count
+		list[i].Prize4Count = (*data)[i].Prize4Count
+		list[i].EnrollCount, _ = session.Table("enroll_information").Where("state = ? and contest_id = ?", e.Pass, list[i].ID).Count()
+		// 竞赛可报名条件，审核通过，在报名截至时间之前，且教师未关闭报名
+		if (*data)[i].State == e.Pass && (*data)[i].ContestState == e.EnrollOpen && models.NewOftenTime().Before(&(*data)[i].Deadline) {
+			list[i].ContestState = e.EnrollOpen
+		} else {
+			list[i].ContestState = e.EnrollClose
+		}
+	}
+
+	return &list, total, session.Commit()
+}
+
 func (self ContestLogic) UpdateContest(id, userID int64, contest, contestType, startTime, deadline string, contestState, state int) error {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
@@ -516,6 +591,7 @@ func (self ContestLogic) DepartmentManagerGetContest(paginator *Paginator, conte
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].Contest.CreateTime)
 		list[i].StartTime = models.MysqlFormatString2String((*data)[i].Contest.StartTime)
 		list[i].Deadline = models.MysqlFormatString2String((*data)[i].Contest.Deadline)
+		list[i].PassCount, _ = session.Table("enroll_information").Where("state = ? and contest_id = ?", e.Pass, (*data)[i].Contest.ID).Count()
 		list[i].RejectedCount, _ = session.Table("enroll_information").Where("state = ? and contest_id = ?", e.Reject, (*data)[i].Contest.ID).Count()
 		list[i].ProcessingCount, _ = session.Table("enroll_information").Where("state = ? and contest_id = ?", e.Processing, (*data)[i].Contest.ID).Count()
 	}
@@ -678,6 +754,7 @@ func (self ContestLogic) DepartmentManagerGetContestGrade(paginator *Paginator, 
 		list[i].Prize2Count = (*data)[i].Prize2Count
 		list[i].Prize3Count = (*data)[i].Prize3Count
 		list[i].Prize4Count = (*data)[i].Prize4Count
+		list[i].RewardCount, _ = session.Table("grade").Where("state = ? and contest_id = ?", e.Pass, (*data)[i].Contest.ID).Count()
 		list[i].RejectedCount, _ = session.Table("grade").Where("state = ? and contest_id = ?", e.Reject, (*data)[i].Contest.ID).Count()
 		list[i].ProcessingCount, _ = session.Table("grade").Where("state = ? and contest_id = ?", e.Processing, (*data)[i].Contest.ID).Count()
 	}

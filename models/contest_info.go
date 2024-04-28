@@ -24,12 +24,17 @@ type ContestInfo struct {
 	State        int       `json:"state" xorm:"state"`
 	Describe     string    `json:"describe" xorm:"describe"`
 	RejectReason string    `json:"reject_reason" xorm:"reject_reason"`
+	Prize1Count  int64     `json:"prize1_count" xorm:"prize1_count"`
+	Prize2Count  int64     `json:"prize2_count" xorm:"prize2_count"`
+	Prize3Count  int64     `json:"prize3_count" xorm:"prize3_count"`
+	Prize4Count  int64     `json:"prize4_count" xorm:"prize4_count"`
 	Deleted      OftenTime `json:"deleted" xorm:"deleted"`
 }
 
 type ContestInfoType struct {
-	ContestInfo `xorm:"extends"`
-	ContestType `xorm:"extends"`
+	ContestInfo  `xorm:"extends"`
+	ContestType  `xorm:"extends"`
+	ContestLevel string `xorm:"contest_level"`
 }
 
 func (ContestInfoType) TableName() string {
@@ -54,6 +59,30 @@ type ContestReturn struct {
 	Deleted      OftenTime `json:"deleted" xorm:"deleted"`
 }
 
+type TeacherUploadGradeContestReturn struct {
+	ID           int64     `json:"id" xorm:"id"`
+	Contest      string    `json:"contest" xorm:"contest"`
+	ContestState int       `json:"contest_state" xorm:"contest_state"`
+	ContestType  string    `json:"contest_type" xorm:"contest_type"`
+	ContestLevel string    `json:"contest_level" xorm:"contest_level"`
+	CreateTime   string    `json:"create_time" xorm:"create_time"`
+	StartTime    string    `json:"start_time" xorm:"start_time"`
+	Deadline     string    `json:"deadline" xorm:"deadline"`
+	State        int       `json:"state" xorm:"state"`
+	Describe     string    `json:"desc" xorm:"describe"`
+	RejectReason string    `json:"reject_reason" xorm:"reject_reason"`
+	EnrollCount  int64     `json:"enroll_count" xorm:"enroll_count"`
+	Prize1Count  int64     `json:"prize1_count" xorm:"prize1_count"`
+	Prize2Count  int64     `json:"prize2_count" xorm:"prize2_count"`
+	Prize3Count  int64     `json:"prize3_count" xorm:"prize3_count"`
+	Prize4Count  int64     `json:"prize4_count" xorm:"prize4_count"`
+	Deleted      OftenTime `json:"deleted" xorm:"deleted"`
+}
+
+func (TeacherUploadGradeContestReturn) TableName() string {
+	return "contest"
+}
+
 type DepartmentContestEnrollReturn struct {
 	ID              int64     `json:"id" xorm:"id"`
 	ContestState    int       `json:"contest_state" xorm:"contest_state"`
@@ -68,6 +97,7 @@ type DepartmentContestEnrollReturn struct {
 	StartTime       string    `json:"start_time" xorm:"start_time"`
 	Deadline        string    `json:"deadline" xorm:"deadline"`
 	State           int       `json:"state" xorm:"state"`
+	PassCount       int64     `json:"pass_count"`
 	RejectedCount   int64     `json:"rejected_count"`
 	ProcessingCount int64     `json:"processing_count"`
 	Deleted         OftenTime `json:"deleted" xorm:"deleted"`
@@ -89,6 +119,7 @@ type DepartmentContestGradeReturn struct {
 	Certificate     string    `json:"certificate" xorm:"certificate"`
 	RejectReason    string    `json:"reject_reason" xorm:"reject_reason"`
 	ProcessingCount int64     `json:"processing_count"`
+	RewardCount     int64     `json:"reward_count"`
 	Prize1Count     int       `json:"prize1_count" xorm:"prize1_count"`
 	Prize2Count     int       `json:"prize2_count" xorm:"prize2_count"`
 	Prize3Count     int       `json:"prize3_count" xorm:"prize3_count"`
