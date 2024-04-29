@@ -8,13 +8,14 @@ import (
 	"server/utils/e"
 	"server/utils/logging"
 	. "server/utils/mydebug"
+	"time"
 )
 
 type ContestLogic struct{}
 
 var DefaultContestLogic = ContestLogic{}
 
-func (self ContestLogic) DisplayContest(paginator *Paginator, contest, contestType string, userID int64) (*[]models.ContestReturn, int64, error) {
+func (self ContestLogic) DisplayContest(paginator *Paginator, contest, contestType string, userID int64, contestLevel, isGroup, year int) (*[]models.ContestReturn, int64, error) {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("DisplayContest session.Begin() 发生错误:", err)
@@ -34,6 +35,9 @@ func (self ContestLogic) DisplayContest(paginator *Paginator, contest, contestTy
 		return nil, 0, err
 	}
 
+	startTime := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+	endTime := time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+
 	if account.Role == e.StudentRole {
 		student, err := public.SearchStudentByID(account.UserID)
 		if err != nil {
@@ -43,6 +47,8 @@ func (self ContestLogic) DisplayContest(paginator *Paginator, contest, contestTy
 		session.Join("LEFT", "contest_type", "contest.contest_type_id = contest_type.id")
 		session.Where("contest.state = 1")
 		session.Where("contest.school_id = ?", student.SchoolID)
+		session.Where("contest.start_time > ? and contest.start_time < ?", startTime, endTime)
+		session.Join("LEFT", "contest_level", "contest.contest_level_id = contest_level.contest_level_id")
 	} else if account.Role == e.TeacherRole {
 		teacher, err := public.SearchTeacherByID(account.UserID)
 		if err != nil {
@@ -52,6 +58,7 @@ func (self ContestLogic) DisplayContest(paginator *Paginator, contest, contestTy
 		session.Join("LEFT", "contest_type", "contest.contest_type_id = contest_type.id")
 		session.Where("contest.state = 1")
 		session.Where("contest.school_id = ?", teacher.SchoolID)
+		session.Where("contest.start_time > ? and contest.start_time < ?", startTime, endTime)
 	}
 
 	if contest != "" {
@@ -64,6 +71,12 @@ func (self ContestLogic) DisplayContest(paginator *Paginator, contest, contestTy
 		} else {
 			session.Where("contest.contest_type_id = ?", searchContestType.ContestTypeID)
 		}
+	}
+	if contestLevel > 0 {
+		session.Where("contest.contest_level_id = ?", contestLevel)
+	}
+	if isGroup > 0 {
+		session.Where("contest.is_group = ?", isGroup)
 	}
 
 	data := &[]models.ContestInfoType{}
@@ -85,6 +98,91 @@ func (self ContestLogic) DisplayContest(paginator *Paginator, contest, contestTy
 		list[i].StartTime = (*data)[i].StartTime.String()
 		list[i].Deadline = (*data)[i].Deadline.String()
 		list[i].Describe = (*data)[i].Describe
+		list[i].ContestLevel = (*data)[i].ContestLevel
+		list[i].StartTime = (*data)[i].StartTime.String()
+		list[i].EnrollTime = (*data)[i].EnrollTime.String()
+		// 竞赛可报名条件，审核通过，在报名截至时间之前，且教师未关闭报名
+		if (*data)[i].State == e.Pass && (*data)[i].ContestState == e.EnrollOpen && models.NewOftenTime().Before(&(*data)[i].Deadline) {
+			list[i].ContestState = e.EnrollOpen
+		} else {
+			list[i].ContestState = e.EnrollClose
+		}
+	}
+
+	return &list, total, session.Commit()
+}
+
+func (self ContestLogic) StudentGetOneContest(paginator *Paginator, contestID, userID int64, isGroup int) (*[]models.ContestReturn, int64, error) {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("DisplayContest session.Begin() 发生错误:", err)
+		logging.L.Error(err)
+		return nil, 0, err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("DisplayContest session.Close() 发生错误:", err)
+			logging.L.Error(err)
+		}
+	}()
+
+	account, err := public.SearchAccountByID(userID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if contestID <= 0 {
+		return nil, 0, err
+	}
+
+	if account.Role == e.StudentRole {
+		student, err := public.SearchStudentByID(account.UserID)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		session.Join("LEFT", "contest_type", "contest.contest_type_id = contest_type.id")
+		session.Where("contest.state = 1")
+		session.Where("contest.id = ?", contestID)
+		session.Where("contest.school_id = ?", student.SchoolID)
+		session.Join("LEFT", "contest_level", "contest.contest_level_id = contest_level.contest_level_id")
+	} else if account.Role == e.TeacherRole {
+		teacher, err := public.SearchTeacherByID(account.UserID)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		session.Join("LEFT", "contest_type", "contest.contest_type_id = contest_type.id")
+		session.Where("contest.state = 1")
+		session.Where("contest.school_id = ?", teacher.SchoolID)
+	}
+	//if isGroup > 0 {
+	//	session.Where("contest.is_group = ?", isGroup)
+	//}
+
+	data := &[]models.ContestInfoType{}
+
+	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(data)
+	if err != nil {
+		DPrintf("InsertEnrollInformation 查询竞赛发生错误: ", err)
+		logging.L.Error(err)
+		return nil, 0, err
+	}
+
+	list := make([]models.ContestReturn, len(*data))
+	for i := 0; i < len(*data); i++ {
+		list[i].ID = (*data)[i].ID
+		list[i].State = (*data)[i].State
+		list[i].Contest = (*data)[i].Contest
+		list[i].ContestType = (*data)[i].ContestType.ContestType
+		list[i].CreateTime = (*data)[i].CreateTime.String()
+		list[i].StartTime = (*data)[i].StartTime.String()
+		list[i].Deadline = (*data)[i].Deadline.String()
+		list[i].Describe = (*data)[i].Describe
+		list[i].ContestLevel = (*data)[i].ContestLevel
+		list[i].StartTime = (*data)[i].StartTime.String()
+		list[i].EnrollTime = (*data)[i].EnrollTime.String()
 		// 竞赛可报名条件，审核通过，在报名截至时间之前，且教师未关闭报名
 		if (*data)[i].State == e.Pass && (*data)[i].ContestState == e.EnrollOpen && models.NewOftenTime().Before(&(*data)[i].Deadline) {
 			list[i].ContestState = e.EnrollOpen
@@ -327,7 +425,7 @@ func (self ContestLogic) UpdateContest(id, userID int64, contest, contestType, s
 	return session.Commit()
 }
 
-func (self ContestLogic) UploadContest(userID int64, contest, contestType, startTime, deadline string, describe *string) error {
+func (self ContestLogic) UploadContest(userId int64, form *models.TeacherUploadContestForm) error {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("UploadContest session.Begin() 发生错误:", err)
@@ -342,13 +440,13 @@ func (self ContestLogic) UploadContest(userID int64, contest, contestType, start
 		}
 	}()
 
-	account, err := public.SearchAccountByID(userID)
+	account, err := public.SearchAccountByID(userId)
 	if err != nil {
 		logging.L.Error(err)
 		return err
 	}
 
-	searchContestType, err := public.SearchContestTypeByName(contestType)
+	searchContestType, err := public.SearchContestTypeByName(form.ContestType)
 	if err != nil {
 		logging.L.Error(err)
 		return err
@@ -360,39 +458,107 @@ func (self ContestLogic) UploadContest(userID int64, contest, contestType, start
 		return err
 	}
 
-	exist, err := session.Table("contest").Where("contest = ? and contest_type_id = ?", contest, searchContestType.ContestTypeID).Exist()
-	if exist {
-		logging.L.Error("已有同名竞赛")
-		return errors.New("已有同名竞赛")
-	}
+	contestEntry, err := public.SearchContestEntryByID(form.ContestEntry)
 	if err != nil {
 		logging.L.Error(err)
 		return err
 	}
 
-	newContest := &models.ContestInfo{
-		TeacherID:    account.UserID,
-		Contest:      contest,
-		ContestType:  searchContestType.ContestTypeID,
-		SchoolID:     teacher.SchoolID,
-		CollegeID:    teacher.CollegeID,
-		ContestState: 2,
-		CreateTime:   models.NewOftenTime(),
-		Describe:     *describe,
-		State:        3,
+	contestStartTime, err := time.Parse("2006-01-02 15:04:05", form.StartTime)
+	startTime := time.Now()
+	endTime := time.Now()
+	switch contestEntry.Cycle {
+	case 1:
+		//每年举办一次
+		startTime = time.Date(contestStartTime.Year(), time.January, 1, 0, 0, 0, 0, time.Local)
+		endTime = time.Date(contestStartTime.Year()+1, time.January, 1, 0, 0, 0, 0, time.Local)
+		exist, err := MasterDB.Table("contest").
+			Where("contest_entry_id = ? and contest_type_id = ? and start_time > ? and start_time < ?", form.ContestEntry, searchContestType.ContestTypeID, startTime, endTime).
+			Exist()
+		if err != nil {
+			logging.L.Error(err)
+			return err
+		}
+		if exist {
+			logging.L.Error("已有同名竞赛")
+			return errors.New("已有同名竞赛")
+		}
+	case 2:
+		//每半年举办一次
+		startMouth := models.FormatString2OftenTime(form.StartTime).OftenTimeMonth()
+		num := (startMouth / 7) * 6
+		startTime = time.Date(contestStartTime.Year(), time.January+num, 1, 0, 0, 0, 0, time.Local)
+		if num == 0 {
+			endTime = time.Date(contestStartTime.Year(), time.July, 1, 0, 0, 0, 0, time.Local)
+		} else {
+			endTime = time.Date(contestStartTime.Year()+1, time.January, 1, 0, 0, 0, 0, time.Local)
+		}
+		exist, err := MasterDB.Table("contest").
+			Where("contest_entry_id = ? and contest_type_id = ? and start_time > ? and start_time < ?", form.ContestEntry, searchContestType.ContestTypeID, startTime, endTime).
+			Exist()
+		if err != nil {
+			logging.L.Error(err)
+			return err
+		}
+		if exist {
+			logging.L.Error("已有同名竞赛")
+			return errors.New("已有同名竞赛")
+		}
+	case 3:
+		//每季度举办一次
+		startMouth := models.FormatString2OftenTime(form.StartTime).OftenTimeMonth()
+		num := (startMouth / 4) * 3
+		startTime = time.Date(contestStartTime.Year(), time.January+num, 1, 0, 0, 0, 0, time.Local)
+		if num == 0 {
+			endTime = time.Date(contestStartTime.Year(), 4, 1, 0, 0, 0, 0, time.Local)
+		} else if num == 1 {
+			endTime = time.Date(contestStartTime.Year(), 7, 1, 0, 0, 0, 0, time.Local)
+		} else if num == 2 {
+			endTime = time.Date(contestStartTime.Year(), 10, 1, 0, 0, 0, 0, time.Local)
+		} else if num == 3 {
+			endTime = time.Date(contestStartTime.Year()+1, time.January, 1, 0, 0, 0, 0, time.Local)
+		}
+		exist, err := MasterDB.Table("contest").
+			Where("contest_entry_id = ? and contest_type_id = ? and start_time > ? and start_time < ?", form.ContestEntry, searchContestType.ContestTypeID, startTime, endTime).
+			Exist()
+		if err != nil {
+			logging.L.Error(err)
+			return err
+		}
+		if exist {
+			logging.L.Error("已有同名竞赛")
+			return errors.New("已有同名竞赛")
+		}
 	}
 
-	if startTime != "" {
-		newContest.StartTime = models.FormatString2OftenTime(startTime)
-	}
-	if deadline != "" {
-		newContest.Deadline = models.FormatString2OftenTime(deadline)
+	newContest := &models.ContestInfo{
+		TeacherID:      account.UserID,
+		Contest:        form.Contest,
+		ContestType:    searchContestType.ContestTypeID,
+		SchoolID:       teacher.SchoolID,
+		CollegeID:      teacher.CollegeID,
+		ContestState:   2,
+		CreateTime:     models.NewOftenTime(),
+		Describe:       form.Desc,
+		ContestEntry:   form.ContestEntry,
+		Prize1Count:    form.Prize1,
+		Prize2Count:    form.Prize2,
+		Prize3Count:    form.Prize3,
+		Prize4Count:    form.Prize4,
+		ContestLevelID: form.ContestLevel,
+		StartTime:      models.FormatString2OftenTime(form.StartTime),
+		EnrollTime:     models.FormatString2OftenTime(form.EnrolTime),
+		Deadline:       models.FormatString2OftenTime(form.Deadline),
+		MaxGroupNumber: form.MaxGroupNumber,
+		IsGroup:        form.IsGroup,
+		Ps:             form.Ps,
+		State:          3,
 	}
 	_, err = session.Insert(newContest)
 	if err != nil {
 		fail := session.Rollback()
-		if err != nil {
-			logging.L.Error(err)
+		if fail != nil {
+			logging.L.Error(fail)
 			return fail
 		}
 		logging.L.Error(err)

@@ -8,6 +8,8 @@ import (
 	"server/utils/e"
 	"server/utils/logging"
 	. "server/utils/mydebug"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/unknwon/com"
@@ -16,7 +18,8 @@ import (
 type ContestController struct{}
 
 func (self ContestController) RegisterRoutes(g *gin.RouterGroup) {
-	g.GET("/viewContest", self.ViewContest) // 查看竞赛信息
+	g.GET("/viewContest", self.ViewContest)                   // 查看竞赛信息
+	g.GET("/studentGetOneContest", self.StudentGetOneContest) // 学生获取将要报名竞赛信息
 
 	g.GET("/viewTeacherContest", self.ViewTeacherContest)              // 教师查看自身上传的竞赛信息
 	g.GET("/viewTeacherContestGrade", self.ViewTeacherContestGrade)    // 教师查看自身上传的竞赛信息成绩用
@@ -44,6 +47,9 @@ func (ContestController) ViewContest(c *gin.Context) {
 	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
 	contestType := c.DefaultQuery("type", "")
 	contest := c.DefaultQuery("contest", "")
+	contestLevel := com.StrTo(c.DefaultQuery("contest_level", "0")).MustInt()
+	isGroup := com.StrTo(c.DefaultQuery("is_group", "2")).MustInt()
+	year := com.StrTo(c.DefaultQuery("year", strconv.Itoa(time.Now().Year()))).MustInt()
 
 	if limit < 0 || curPage < 0 {
 		DPrintf("分页器参数错误")
@@ -60,7 +66,54 @@ func (ContestController) ViewContest(c *gin.Context) {
 	paginator := logic.NewPaginator(curPage, limit)
 
 	data := make(map[string]interface{})
-	list, total, err := logic.DefaultContestLogic.DisplayContest(paginator, contest, contestType, userID.(int64))
+	list, total, err := logic.DefaultContestLogic.DisplayContest(paginator, contest, contestType, userID.(int64), contestLevel, isGroup, year)
+	if err != nil {
+		DPrintf(" logic.DefaultEnrollLogic.DisplayContest 错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	paginator.SetTotalPage(total)
+
+	if list != nil {
+		data["list"] = list
+		data["total"] = total
+		data["page_size"] = limit
+		data["page_number"] = curPage
+		data["total_page"] = paginator.GetTotalPage()
+	}
+
+	appG.ResponseSucMsg(data)
+}
+
+func (ContestController) StudentGetOneContest(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
+	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
+	contestID := com.StrTo(c.DefaultQuery("id", "0")).MustInt64()
+	//year := com.StrTo(c.DefaultQuery("year", strconv.Itoa(time.Now().Year()))).MustInt()
+	//contestType := c.DefaultQuery("type", "")
+	//contest := c.DefaultQuery("contest", "")
+	//contestLevel := com.StrTo(c.DefaultQuery("contest_level", "0")).MustInt()
+	isGroup := com.StrTo(c.DefaultQuery("is_group", "2")).MustInt()
+
+	if limit < 0 || curPage < 0 {
+		DPrintf("分页器参数错误")
+		appG.ResponseErr("分页器参数错误")
+		return
+	}
+
+	userID, exist := c.Get("user_id")
+	if !exist {
+		appG.ResponseErr("请登录")
+		return
+	}
+
+	paginator := logic.NewPaginator(curPage, limit)
+
+	data := make(map[string]interface{})
+	list, total, err := logic.DefaultContestLogic.StudentGetOneContest(paginator, contestID, userID.(int64), isGroup)
 	if err != nil {
 		DPrintf(" logic.DefaultEnrollLogic.DisplayContest 错误:", err)
 		appG.ResponseErr(err.Error())
@@ -175,7 +228,7 @@ func (ContestController) ViewTeacherContestGrade(c *gin.Context) {
 // UploadContest
 func (ContestController) UploadContest(c *gin.Context) {
 	appG := app.Gin{C: c}
-	form := &models.ContestForm{}
+	form := &models.TeacherUploadContestForm{}
 
 	userID, exist := c.Get("user_id")
 	if !exist {
@@ -190,7 +243,7 @@ func (ContestController) UploadContest(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultContestLogic.UploadContest(userID.(int64), form.Contest, form.ContestType, form.StartTime, form.Deadline, &form.Describe)
+	err = logic.DefaultContestLogic.UploadContest(userID.(int64), form)
 	if err != nil {
 		fmt.Println("logic.UploadContest error:", err)
 		appG.ResponseErr(err.Error())

@@ -1,16 +1,18 @@
 package models
 
 type EnrollForm struct {
-	ID       int64  `json:"id"`
-	UserName string `json:"username"`
-	Name     string `json:"name"`
-	TeamID   string `json:"team_id"`
-	Contest  string `json:"contest"`
-	//CreateTime string `json:"create_time"`
-	School string `json:"school"`
-	Phone  string `json:"phone"`
-	Email  string `json:"email"`
-	State  int    `json:"state"`
+	ContestID         int64  `json:"contest_id" xorm:"contest_id"`
+	StudentName       string `json:"student_name"`
+	TeamName          string `json:"team_name"`
+	Handle            int64  `json:"handle_team"`
+	CollegeID         int64  `json:"college"`
+	MajorID           int64  `json:"major"`
+	GuidanceTeacher   string `json:"guidance_teacher"`
+	TeacherDepartment string `json:"teacher_department"`
+	TeacherTitle      string `json:"teacher_title"`
+	Phone             string `json:"phone"`
+	Email             string `json:"email"`
+	State             int    `json:"state"`
 }
 
 type EnrollInformationForm struct {
@@ -42,14 +44,15 @@ type EnrollInformation struct {
 }
 
 type NewEnroll struct {
-	StudentID  string    `json:"student_id" xorm:"student_id"`
-	TeamID     string    `json:"team_id" xorm:"team_id"`
-	ContestID  int64     `json:"contest_id" xorm:"contest_id"`
-	CreateTime OftenTime `json:"create_time" xorm:"create_time"`
-	SchoolID   int64     `json:"school_id" xorm:"school_id"`
-	Phone      string    `json:"phone" xorm:"phone"`
-	Email      string    `json:"email" xorm:"email"`
-	State      int       `json:"state" xorm:"state"`
+	StudentID       string    `json:"student_id" xorm:"student_id"`
+	TeamID          int64     `json:"team_id" xorm:"team_id"`
+	ContestID       int64     `json:"contest_id" xorm:"contest_id"`
+	CreateTime      OftenTime `json:"create_time" xorm:"create_time"`
+	SchoolID        int64     `json:"school_id" xorm:"school_id"`
+	Phone           string    `json:"phone" xorm:"phone"`
+	Email           string    `json:"email" xorm:"email"`
+	State           int       `json:"state" xorm:"state"`
+	GuidanceTeacher string    `json:"guidance_teacher" xorm:"guidance_teacher"`
 }
 
 func (NewEnroll) TableName() string {
@@ -210,4 +213,15 @@ type PassGradeID struct {
 
 type PassContestID struct {
 	IDS []int64 `json:"ids"`
+}
+
+type Team struct {
+	TeamID    int64     `json:"team_id" xorm:"team_id pk autoincr" `
+	TeamName  string    `json:"team_name" xorm:"team_name"`
+	ContestID int64     `json:"contest_id" xorm:"contest_id"`
+	Deleted   OftenTime `json:"deleted" xorm:"deleted"`
+}
+
+func (Team) TableName() string {
+	return "team"
 }

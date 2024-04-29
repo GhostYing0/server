@@ -24,6 +24,7 @@ func (self PublicController) RegisterRoutes(g *gin.RouterGroup) {
 	g.GET("/getCollege", self.GetCollege)
 	g.GET("/getSemester", self.GetSemester)
 	g.GET("/getContest", self.GetContest)
+	g.GET("/getContestEntry", self.GetContestEntry)
 }
 
 func (PublicController) GetInfo(c *gin.Context) {
@@ -118,6 +119,20 @@ func (PublicController) GetContestType(c *gin.Context) {
 	appG := app.Gin{C: c}
 
 	data, err := logic.DefaultPublic.GetContestType()
+	if err != nil {
+		DPrintf("登出发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSucMsg(data)
+}
+
+// GetContestEntry
+func (PublicController) GetContestEntry(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	data, err := logic.DefaultPublic.GetContestEntry()
 	if err != nil {
 		DPrintf("登出发生错误:", err)
 		appG.ResponseErr(err.Error())

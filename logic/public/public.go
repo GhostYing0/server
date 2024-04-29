@@ -73,6 +73,16 @@ func (self PublicLogic) GetContestType() (*[]models.ContestType, error) {
 	return list, err
 }
 
+func (self PublicLogic) GetContestEntry() (*[]models.ContestEntry, error) {
+	list := &[]models.ContestEntry{}
+	err := MasterDB.Find(list)
+	if err != nil {
+		logging.L.Error(err)
+		return nil, err
+	}
+	return list, err
+}
+
 func (self PublicLogic) GetSchool() (*[]models.School, error) {
 	list := &[]models.School{}
 	err := MasterDB.Find(list)
@@ -229,6 +239,19 @@ func SearchContestByName(name string) (*models.ContestInfo, error) {
 	return contest, err
 }
 
+func SearchContestByID(id int64) (*models.ContestInfo, error) {
+	contest := &models.ContestInfo{}
+	exist, err := MasterDB.Where("id = ?", id).Get(contest)
+	if err != nil {
+		logging.L.Error(err)
+		return contest, err
+	}
+	if !exist {
+		return contest, errors.New("竞赛不存在")
+	}
+	return contest, err
+}
+
 func SearchContestLevlByName(name string) (*models.ContestLevel, error) {
 	level := &models.ContestLevel{}
 	exist, err := MasterDB.Where("contest_level = ?", name).Get(level)
@@ -307,6 +330,19 @@ func SearchCollegeByID(id int64) (*models.College, error) {
 	return college, err
 }
 
+func SearchMajorByID(id int64) (*models.Major, error) {
+	major := &models.Major{}
+	exist, err := MasterDB.Where("major_id = ?", id).Get(major)
+	if err != nil {
+		logging.L.Error(err)
+		return major, err
+	}
+	if !exist {
+		return major, errors.New("专业不存在")
+	}
+	return major, err
+}
+
 func SearchSemesterByID(id int64) (*models.Semester, error) {
 	semester := &models.Semester{}
 	exist, err := MasterDB.Where("semester_id = ?", id).Get(semester)
@@ -360,6 +396,19 @@ func SearchDepartmentByName(name string) (*models.Department, error) {
 		return department, errors.New("系部不存在")
 	}
 	return department, err
+}
+
+func SearchTeamByNameAndContest(name string, contestID int64) (*models.Team, error) {
+	team := &models.Team{}
+	exist, err := MasterDB.Where("team_name = ? and contest_id = ?", name, contestID).Get(team)
+	if err != nil {
+		logging.L.Error(err)
+		return team, err
+	}
+	if exist {
+		return team, errors.New("队伍已存在")
+	}
+	return team, err
 }
 
 func SearchPrizeByName(name string) (*models.Prize, error) {
@@ -416,4 +465,32 @@ func SearchDepartmentManagerByID(id int64) (*models.DepartmentAccount, error) {
 		return account, errors.New("系部不存在")
 	}
 	return account, err
+}
+
+func SearchContestEntryByName(name string) (*models.ContestEntry, error) {
+	entry := &models.ContestEntry{}
+	exist, err := MasterDB.Where("contest_entry = ?", name).Get(entry)
+	if err != nil {
+		logging.L.Error(err)
+		return entry, err
+	}
+	if !exist {
+		logging.L.Error("竞赛项目不存在")
+		return entry, errors.New("竞赛项目不存在")
+	}
+	return entry, err
+}
+
+func SearchContestEntryByID(id int64) (*models.ContestEntry, error) {
+	entry := &models.ContestEntry{}
+	exist, err := MasterDB.Where("contest_entry_id = ?", id).Get(entry)
+	if err != nil {
+		logging.L.Error(err)
+		return entry, err
+	}
+	if !exist {
+		logging.L.Error("竞赛项目不存在")
+		return entry, errors.New("竞赛项目不存在")
+	}
+	return entry, err
 }

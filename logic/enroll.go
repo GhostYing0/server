@@ -15,7 +15,8 @@ type EnrollLogic struct{}
 
 var DefaultEnrollLogic = EnrollLogic{}
 
-func (self EnrollLogic) InsertEnrollInformation(userID int64, name, teamID, contest string, school string, phone string, email string) error {
+func (self EnrollLogic) InsertEnrollInformation(userID, contestID, handle, collegeID, majorID int64,
+	teamName, guidanceTeacher, teacherTitle, teacherDepartment, phone, email string) error {
 	if phone == "" || email == "" {
 		logging.L.Error("请手机号和邮箱")
 		return errors.New("请手机号和邮箱")
@@ -40,22 +41,11 @@ func (self EnrollLogic) InsertEnrollInformation(userID int64, name, teamID, cont
 		return err
 	}
 
-	searchContest, err := public.SearchContestByName(contest)
-	if err != nil {
-		logging.L.Error(err)
-		return err
-	}
-
-	searchSchool, err := public.SearchSchoolByName(school)
-	if err != nil {
-		logging.L.Error(err)
-		return err
-	}
-
+	EnrollInformation := &models.EnrollInformation{}
 	exist, err := session.
 		Table("enroll_information").
-		Where("contest_id = ? AND student_id = ?", searchContest.ID, account.UserID).
-		Exist()
+		Where("contest_id = ? AND student_id = ?", contestID, account.UserID).
+		Get(EnrollInformation)
 	if err != nil {
 		DPrintf("InsertEnrollInformation 查询重复报名发生错误: ", err)
 		logging.L.Error(err)
@@ -67,10 +57,97 @@ func (self EnrollLogic) InsertEnrollInformation(userID int64, name, teamID, cont
 		return errors.New("请勿重复报名")
 	}
 
+	searchContest, err := public.SearchContestByID(contestID)
+	if err != nil {
+		logging.L.Error()
+		return err
+	}
+	searchStudent, err := public.SearchStudentByID(account.UserID)
+	if err != nil {
+		logging.L.Error()
+		return err
+	}
+	searchSchool, err := public.SearchSchoolByID(searchStudent.SchoolID)
+	if err != nil {
+		logging.L.Error()
+		return err
+	}
+	_, err = public.SearchCollegeByID(collegeID)
+	if err != nil {
+		logging.L.Error()
+		return err
+	}
+	_, err = public.SearchMajorByID(majorID)
+	if err != nil {
+		logging.L.Error()
+		return err
+	}
+	department, err := public.SearchDepartmentByName(teacherDepartment)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+
+	teacherAccount := &models.Teacher{}
+	exist, err = MasterDB.Where("name = ? and department_id = ?", guidanceTeacher, department.DepartmentID).Get(teacherAccount)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+	if !exist {
+		logging.L.Error("教师不存在")
+		return errors.New("教师不存在")
+	}
+
+	teamID := int64(0)
+	if searchContest.IsGroup == 1 {
+		if handle == 2 {
+			//加入队伍
+			searchTeam, err := public.SearchTeamByNameAndContest(teamName, contestID)
+			if err != nil && err.Error() != "队伍已存在" {
+				logging.L.Error(err)
+				return err
+			}
+			//看满没满队
+
+			count, err := MasterDB.
+				Table("enroll_information").
+				Where("contest_id = ? and team_id = ? and (state = ? or state = ?)", contestID, searchTeam.TeamID, Pass, Processing).
+				Count()
+			if int(count) >= searchContest.MaxGroupNumber {
+				logging.L.Error("队伍已满")
+				return errors.New("队伍已满")
+			}
+			teamID = searchTeam.TeamID
+		} else {
+			//创建队伍
+			//看队伍存不存在
+			_, err := public.SearchTeamByNameAndContest(teamName, contestID)
+			if err != nil {
+				logging.L.Error(err)
+				return err
+			}
+
+			newTeam := &models.Team{TeamName: teamName, ContestID: contestID}
+
+			_, err = session.Insert(newTeam)
+			if err != nil {
+				fail := session.Rollback()
+				if fail != nil {
+					logging.L.Error(fail)
+					return err
+				}
+				logging.L.Error(err)
+				return err
+			}
+			teamID = newTeam.TeamID
+		}
+	}
+
 	enroll := &models.NewEnroll{
 		StudentID:  account.UserID,
 		TeamID:     teamID,
-		ContestID:  searchContest.ID,
+		ContestID:  contestID,
 		CreateTime: models.NewOftenTime(),
 		SchoolID:   searchSchool.SchoolID,
 		Phone:      phone,
@@ -465,7 +542,7 @@ func (self EnrollLogic) DepartmentManagerSearchEnroll(paginator *Paginator, cont
 	session.Join("RIGHT", "enroll_information", "student.student_id = enroll_information.student_id")
 	session.Join("LEFT", "contest", "contest.id = enroll_information.contest_id")
 	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
-	session.Select("enroll_information.id as e_id, enroll_information.*, student.*, contest_type.")
+	session.Select("enroll_information.id as e_id, enroll_information.*, student.*, contest_type.type")
 	session.Where("enroll_information.contest_id = ?", contestID)
 	//session.Table("student").Where("student.school_id = ?", account.SchoolID)
 	//session.Join("RIGHT", "enroll_information", "student.student_id = enroll_information.student_id")

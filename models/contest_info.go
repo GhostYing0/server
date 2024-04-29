@@ -10,25 +10,49 @@ type ContestForm struct {
 	State       int    `json:"state"`
 }
 
+type TeacherUploadContestForm struct {
+	Contest        string `json:"contest"`
+	ContestEntry   int64  `json:"contest_entry"`
+	ContestLevel   int64  `json:"contest_level"`
+	ContestType    string `json:"contest_type"`
+	EnrolTime      string `json:"enroll_time"`
+	Deadline       string `json:"deadline"`
+	StartTime      string `json:"start_time"`
+	Prize1         int64  `json:"prize1"`
+	Prize2         int64  `json:"prize2"`
+	Prize3         int64  `json:"prize3"`
+	Prize4         int64  `json:"prize4"`
+	IsGroup        int    `json:"is_group"`
+	MaxGroupNumber int    `json:"max_group_number"`
+	Ps             string `json:"ps"`
+	Desc           string `json:"desc"`
+}
+
 type ContestInfo struct {
-	ID           int64     `json:"id" xorm:"id"`
-	TeacherID    string    `json:"teacher_id" xorm:"teacher_id"`
-	SchoolID     int64     `json:"school_id" xorm:"school_id"`
-	CollegeID    int64     `json:"college_id" xorm:"college_id"`
-	ContestState int       `json:"contest_state" xorm:"contest_state"`
-	Contest      string    `json:"contest" xorm:"contest"`
-	ContestType  int64     `json:"contest_type_id" xorm:"contest_type_id"`
-	CreateTime   OftenTime `json:"create_time" xorm:"create_time"`
-	StartTime    OftenTime `json:"start_time" xorm:"start_time"`
-	Deadline     OftenTime `json:"deadline" xorm:"deadline"`
-	State        int       `json:"state" xorm:"state"`
-	Describe     string    `json:"describe" xorm:"describe"`
-	RejectReason string    `json:"reject_reason" xorm:"reject_reason"`
-	Prize1Count  int64     `json:"prize1_count" xorm:"prize1_count"`
-	Prize2Count  int64     `json:"prize2_count" xorm:"prize2_count"`
-	Prize3Count  int64     `json:"prize3_count" xorm:"prize3_count"`
-	Prize4Count  int64     `json:"prize4_count" xorm:"prize4_count"`
-	Deleted      OftenTime `json:"deleted" xorm:"deleted"`
+	ID             int64     `json:"id" xorm:"id"`
+	TeacherID      string    `json:"teacher_id" xorm:"teacher_id"`
+	SchoolID       int64     `json:"school_id" xorm:"school_id"`
+	CollegeID      int64     `json:"college_id" xorm:"college_id"`
+	ContestState   int       `json:"contest_state" xorm:"contest_state"`
+	Contest        string    `json:"contest" xorm:"contest"`
+	ContestType    int64     `json:"contest_type_id" xorm:"contest_type_id"`
+	CreateTime     OftenTime `json:"create_time" xorm:"create_time"`
+	StartTime      OftenTime `json:"start_time" xorm:"start_time"`
+	Deadline       OftenTime `json:"deadline" xorm:"deadline"`
+	State          int       `json:"state" xorm:"state"`
+	EnrollTime     OftenTime `json:"enroll_time" xorm:"enroll_time"`
+	Describe       string    `json:"describe" xorm:"describe"`
+	ContestLevelID int64     `json:"contest_level_id" xorm:"contest_level_id"`
+	RejectReason   string    `json:"reject_reason" xorm:"reject_reason"`
+	Prize1Count    int64     `json:"prize1_count" xorm:"prize1_count"`
+	Prize2Count    int64     `json:"prize2_count" xorm:"prize2_count"`
+	Prize3Count    int64     `json:"prize3_count" xorm:"prize3_count"`
+	Prize4Count    int64     `json:"prize4_count" xorm:"prize4_count"`
+	IsGroup        int       `json:"is_group" xorm:"is_group"`
+	MaxGroupNumber int       `json:"max_group_number" xorm:"max_group_number"`
+	ContestEntry   int64     `json:"contest_entry_id" xorm:"contest_entry_id"`
+	Ps             string    `json:"ps" xorm:"ps"`
+	Deleted        OftenTime `json:"deleted" xorm:"deleted"`
 }
 
 type ContestInfoType struct {
@@ -53,8 +77,10 @@ type ContestReturn struct {
 	CreateTime   string    `json:"create_time" xorm:"create_time"`
 	StartTime    string    `json:"start_time" xorm:"start_time"`
 	Deadline     string    `json:"deadline" xorm:"deadline"`
+	EnrollTime   string    `json:"enroll_time" xorm:"enroll_time"`
 	State        int       `json:"state" xorm:"state"`
 	Describe     string    `json:"desc" xorm:"describe"`
+	ContestLevel string    `json:"contest_level" xorm:"contest_leve;"`
 	RejectReason string    `json:"reject_reason" xorm:"reject_reason"`
 	Deleted      OftenTime `json:"deleted" xorm:"deleted"`
 }
@@ -209,4 +235,14 @@ func (ContestType) TableName() string {
 type ContestLevel struct {
 	ID           int64  `json:"contest_level_id" xorm:"contest_level_id"`
 	ContestLevel string `json:"contest_level" xorm:"contest_level"`
+}
+
+type ContestEntry struct {
+	ID           int64  `json:"contest_entry_id" xorm:"contest_entry_id"`
+	ContestEntry string `json:"contest_entry" xorm:"contest_entry"`
+	Cycle        int    `json:"cycle" xorm:"cycle"`
+}
+
+func (ContestEntry) TableName() string {
+	return "contest_entry"
 }

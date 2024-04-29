@@ -162,7 +162,8 @@ func (EnrollController) EnrollContest(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultEnrollLogic.InsertEnrollInformation(userID.(int64), form.Name, form.TeamID, form.Contest, form.School, form.Phone, form.Email)
+	err = logic.DefaultEnrollLogic.InsertEnrollInformation(userID.(int64), form.ContestID, form.Handle, form.CollegeID, form.MajorID,
+		form.TeamName, form.GuidanceTeacher, form.TeacherTitle, form.TeacherDepartment, form.Phone, form.Email)
 	if err != nil {
 		DPrintf("EnrollContest logic.DefaultEnrollLogic.InsertEnrollInformation() 发生错误:", err)
 		appG.ResponseErr("报名失败", err.Error())

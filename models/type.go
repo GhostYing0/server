@@ -91,6 +91,21 @@ func (this *OftenTime) Day() int {
 	return t.Day()
 }
 
+func (this OftenTime) OftenTimeYear() int {
+	t := time.Time(this)
+	return t.Year()
+}
+
+func (this OftenTime) OftenTimeMonth() time.Month {
+	t := time.Time(this)
+	return t.Month()
+}
+
+func (this OftenTime) OftenTimeDay() int {
+	t := time.Time(this)
+	return t.Day()
+}
+
 func (this OftenTime) After(target *OftenTime) bool {
 	t := time.Time(this)
 	u := time.Time(*target)

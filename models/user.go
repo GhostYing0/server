@@ -162,6 +162,15 @@ type College struct {
 	College   string `xorm:"college"`
 }
 
+type Major struct {
+	MajorID int64  `xorm:"major_id"`
+	Major   string `xorm:"major"`
+}
+
 func (College) TableName() string {
 	return "college"
+}
+
+func (Major) TableName() string {
+	return "major"
 }
