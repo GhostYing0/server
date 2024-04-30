@@ -39,7 +39,7 @@ type GradeInformation struct {
 	RejectReason    string    `json:"reject_reason" xorm:"reject_reason"`
 	GuidanceTeacher string    `json:"guidance_teacher" xorm:"guidance_teacher"`
 	EnrollID        int64     `json:"enroll_id" xorm:"enroll_id"`
-	RewardTime      OftenTime `json:"reward_time" xorm:"reward_time"`
+	RewardTime      string    `json:"reward_time" xorm:"reward_time"`
 	Deleted         OftenTime `json:"deleted" xorm:"deleted"`
 }
 
@@ -47,8 +47,16 @@ type CurStudentGrade struct {
 	GradeInformation `xorm:"extends"`
 	School           string `xorm:"school"`
 	Name             string `xorm:"name"`
+	TeacherName      string `xorm:"t_name"`
 	Contest          string `xorm:"contest"`
 	ContestType      string `xorm:"type"`
+	ContestLevel     string `xorm:"contest_level"`
+	Department       string `xorm:"department"`
+	Class            string `xorm:"class"`
+	Grade            string `xorm:"prize"`
+	Title            string `xorm:"title"`
+	College          string `xorm:"college"`
+	StudentSchoolID  string `xorm:"student_school_id"`
 }
 
 func (CurStudentGrade) TableName() string {
@@ -69,18 +77,26 @@ func (GradeStudentSchoolContestAccount) TableName() string {
 }
 
 type ReturnGradeInformation struct {
-	ID           int64  `json:"id" xorm:"id"`
-	Username     string `json:"username" xorm:"username"`
-	Name         string `json:"name" xorm:"name" `
-	Contest      string `json:"contest" xorm:"contest"`
-	School       string `json:"school" xorm:"school"`
-	Grade        string `json:"grade" xorm:"grade"`
-	Certificate  string `json:"certificate" xorm:"certificate"`
-	State        int    `json:"state" xorm:"state"`
-	ContestType  string `json:"contest_type" xorm:"contest_type"`
-	PS           string `json:"ps" xorm:"ps"`
-	RejectReason string `json:"reject_reason" xorm:"reject_reason"`
-	CreateTime   string `json:"create_time" xorm:"create_time"`
+	ID              int64  `json:"id" xorm:"id"`
+	Username        string `json:"username" xorm:"username"`
+	Name            string `json:"name" xorm:"name" `
+	Contest         string `json:"contest" xorm:"contest"`
+	School          string `json:"school" xorm:"school"`
+	Grade           string `json:"grade" xorm:"grade"`
+	Certificate     string `json:"certificate" xorm:"certificate"`
+	State           int    `json:"state" xorm:"state"`
+	ContestType     string `json:"contest_type" xorm:"contest_type"`
+	PS              string `json:"ps" xorm:"ps"`
+	RejectReason    string `json:"reject_reason" xorm:"reject_reason"`
+	ContestLevel    string `json:"contest_level"`
+	GuidanceTeacher string `json:"guidance_teacher_name"`
+	Title           string `json:"title"`
+	Department      string `json:"department"`
+	Class           string `json:"student_class"`
+	StudentSchoolID string `json:"student_school_id"`
+	College         string `json:"college"`
+	CreateTime      string `json:"create_time" xorm:"create_time"`
+	RewardTime      string `json:"reward_time" xorm:"reward_time"`
 }
 
 func (GradeInformation) TableName() string {

@@ -9,6 +9,7 @@ import (
 	"server/utils/e"
 	"server/utils/logging"
 	. "server/utils/mydebug"
+	"time"
 
 	"github.com/polaris1119/times"
 )
@@ -219,7 +220,7 @@ func (self GradeLogic) InsertGradeInformation(user_id, enrollID int64, grade int
 		UpdateTime:      models.NewOftenTime().String(),
 		GuidanceTeacher: teacherAccount.TeacherID,
 		EnrollID:        enrollID,
-		RewardTime:      models.FormatString2OftenTime(rewardTime),
+		RewardTime:      models.MysqlFormatString2String(rewardTime),
 		//PS:          ps,
 		State: 3,
 	}
@@ -240,7 +241,7 @@ func (self GradeLogic) InsertGradeInformation(user_id, enrollID int64, grade int
 	return session.Commit()
 }
 
-func (self GradeLogic) Search(paginator *Paginator, grade string, contest string, startTime string, endTime string, state int, user_id int64, role int) (*[]models.ReturnGradeInformation, int64, error) {
+func (self GradeLogic) Search(paginator *Paginator, grade int, contest string, startTime string, endTime string, state int, user_id int64, role int) (*[]models.ReturnGradeInformation, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
 		logging.L.Error("Search 分页器为空")
@@ -282,8 +283,8 @@ func (self GradeLogic) Search(paginator *Paginator, grade string, contest string
 	session.Table("grade").Where("student_id = ?", account.UserID)
 	session.Join("LEFT", "contest", "contest.id = grade.contest_id")
 
-	if len(grade) > 0 {
-		session.Where("grade.grade = ?", grade)
+	if grade > 0 {
+		session.Where("grade.grade_id = ?", grade)
 	}
 	if len(contest) > 0 {
 		searchContest, err := public.SearchContestByName(contest)
@@ -327,7 +328,7 @@ func (self GradeLogic) Search(paginator *Paginator, grade string, contest string
 	return &list, total, session.Rollback()
 }
 
-func (self GradeLogic) TeacherSearch(paginator *Paginator, grade string, contest string, startTime string, endTime string, state int, contestID, user_id int64, role int) (*[]models.ReturnGradeInformation, int64, error) {
+func (self GradeLogic) TeacherSearch(paginator *Paginator, grade string, contest string /* startTime string, endTime string,*/, state int, contestID, user_id int64, role, year int) (*[]models.ReturnGradeInformation, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
 		logging.L.Error("Search 分页器为空")
@@ -366,15 +367,24 @@ func (self GradeLogic) TeacherSearch(paginator *Paginator, grade string, contest
 	//session.Join("LEFT", "grade as g", "g.contest_id = contest.id")
 	//session.Join("RIGHT", "student", "student.student_id = g.student_id")
 
-	session.Table("contest").Where("teacher_id = ?", account.UserID)
+	startTime := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+	endTime := time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+
+	session.Table("contest").Where("contest.teacher_id = ?", account.UserID)
 	session.Join("LEFT", "grade", "grade.contest_id = contest.id")
+	session.Join("LEFT", "prize", "grade.grade_id = prize.prize_id")
 	session.Join("LEFT", "school", "grade.school_id = school.school_id")
 	session.Join("LEFT", "student", "grade.student_id = student.student_id")
+	session.Join("LEFT", "college", "student.college_id = college.college_id")
 	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
-	session.Where("contest.id = ?", contestID)
-
-	if contestID <= 0 {
-		return nil, 0, err
+	session.Join("LEFT", "contest_level", "contest_level.contest_level_id = contest.contest_level_id")
+	session.Join("LEFT", "teacher", "grade.guidance_teacher = teacher.teacher_id")
+	session.Join("LEFT", "department", "department.department_id = teacher.department_id")
+	session.Select("grade.id as id, teacher.name as t_name, grade.*, school.school,contest.*, college.college," +
+		"student.*,contest_type.type, " +
+		"department.department,teacher.title, prize.prize")
+	if contestID > 0 {
+		session.Where("contest.id = ?", contestID)
 	}
 	if len(grade) > 0 {
 		session.Where("grade.grade = ?", grade)
@@ -390,7 +400,7 @@ func (self GradeLogic) TeacherSearch(paginator *Paginator, grade string, contest
 	if len(startTime) > 0 && len(endTime) > 0 {
 		start := times.StrToLocalTime(startTime)
 		end := times.StrToLocalTime(endTime)
-		session.Where("grade.createTime >= ? AND grade.createTime <= ?", start, end)
+		session.Where("grade.create_time >= ? AND grade.create_time <= ?", start, end)
 	}
 	if state > 0 {
 		session.Where("grade.state = ?", state)
@@ -398,8 +408,9 @@ func (self GradeLogic) TeacherSearch(paginator *Paginator, grade string, contest
 
 	data := &[]models.CurStudentGrade{}
 
-	total, err := session.Where("teacher_id = ?", account.UserID).Select("grade.id as id, grade.*, school.*,contest.*,student.*,contest_type.*").Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(data)
+	//total, err := session.Where("teacher_id = ?", account.UserID).Select("grade.id as id, grade.*, school.*,contest.*,student.*,contest_type.*").Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(data)
 	//total, err := session.Limit(paginator.PerPage(), paginator.Offset()).Select("g.id as id, g.*, account.*, student.*, contest.*, contest_type.*").FindAndCount(data)
+	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(data)
 	if err != nil {
 		logging.L.Error(err)
 		DPrintf("Search 查找成绩信息失败:", err)
@@ -411,14 +422,22 @@ func (self GradeLogic) TeacherSearch(paginator *Paginator, grade string, contest
 		list[i].ID = (*data)[i].ID
 		list[i].Contest = (*data)[i].Contest
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].GradeInformation.CreateTime)
+		list[i].RewardTime = models.MysqlFormatString2String((*data)[i].GradeInformation.RewardTime)
 		list[i].Certificate = (*data)[i].Certificate
-		//list[i].Grade = (*data)[i].Grade
+		list[i].Grade = (*data)[i].Grade
 		list[i].School = (*data)[i].School
 		list[i].ContestType = (*data)[i].ContestType
 		list[i].Name = (*data)[i].Name
 		list[i].State = (*data)[i].GradeInformation.State
 		list[i].RejectReason = (*data)[i].GradeInformation.RejectReason
 		list[i].PS = (*data)[i].PS
+		list[i].ContestLevel = (*data)[i].ContestLevel
+		list[i].GuidanceTeacher = (*data)[i].TeacherName
+		list[i].Title = (*data)[i].Title
+		list[i].Department = (*data)[i].Department
+		list[i].Class = (*data)[i].Class
+		list[i].StudentSchoolID = (*data)[i].StudentSchoolID
+		list[i].College = (*data)[i].College
 	}
 
 	return &list, total, session.Rollback()

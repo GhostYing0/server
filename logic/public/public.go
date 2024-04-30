@@ -252,7 +252,7 @@ func SearchContestByID(id int64) (*models.ContestInfo, error) {
 	return contest, err
 }
 
-func SearchContestLevlByName(name string) (*models.ContestLevel, error) {
+func SearchContestLevelByName(name string) (*models.ContestLevel, error) {
 	level := &models.ContestLevel{}
 	exist, err := MasterDB.Where("contest_level = ?", name).Get(level)
 	if err != nil {

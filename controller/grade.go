@@ -8,6 +8,7 @@ import (
 	"server/utils/logging"
 	. "server/utils/mydebug"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/unknwon/com"
@@ -78,7 +79,7 @@ func (self GradeController) DisplayGrade(c *gin.Context) {
 	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
 	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
 
-	grade := c.DefaultQuery("grade", "")
+	grade := com.StrTo(c.DefaultQuery("grade", "")).MustInt()
 	contest := c.DefaultQuery("contest", "")
 	startTime := c.DefaultQuery("startTime", "")
 	endTime := c.DefaultQuery("endTime", "")
@@ -133,9 +134,10 @@ func (self GradeController) TeacherDisplayGrade(c *gin.Context) {
 	contestID := com.StrTo(c.DefaultQuery("id", "0")).MustInt64()
 	grade := c.DefaultQuery("grade", "")
 	contest := c.DefaultQuery("contest", "")
-	startTime := c.DefaultQuery("startTime", "")
-	endTime := c.DefaultQuery("endTime", "")
+	//startTime := c.DefaultQuery("startTime", "")
+	//endTime := c.DefaultQuery("endTime", "")
 	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
+	year := com.StrTo(c.DefaultQuery("year", strconv.Itoa(time.Now().Year()))).MustInt()
 
 	if limit < 1 || curPage < 1 {
 		DPrintf("DisplayEnrollResult 查询表容量和页码应大于0")
@@ -164,7 +166,7 @@ func (self GradeController) TeacherDisplayGrade(c *gin.Context) {
 		return
 	}
 
-	list, total, err := logic.DefaultGradeLogic.TeacherSearch(paginator, grade, contest, startTime, endTime, state, contestID, user_id.(int64), role.(int))
+	list, total, err := logic.DefaultGradeLogic.TeacherSearch(paginator, grade, contest /*startTime, endTime,*/, state, contestID, user_id.(int64), role.(int), year)
 
 	if err != nil {
 		DPrintf("DisplayGrade 发生错误:", err)

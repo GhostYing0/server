@@ -1,13 +1,13 @@
 package controller
 
 import (
-	"fmt"
 	"server/logic"
 	"server/models"
 	"server/utils/app"
 	. "server/utils/e"
 	. "server/utils/mydebug"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/unknwon/com"
@@ -16,9 +16,10 @@ import (
 type EnrollController struct{}
 
 func (self EnrollController) RegisterRoutes(g *gin.RouterGroup) {
-	g.POST("/enrollContest", self.EnrollContest)            // 学生上传报名信息
-	g.GET("/searchEnrollResult", self.DisplayEnrollResult)  // 用户查看报名结果
-	g.GET("/teacherSearchEnroll", self.TeacherSearchEnroll) // 教师查看报名结果
+	g.POST("/enrollContest", self.EnrollContest)                           // 学生上传报名信息
+	g.POST("/studentUpdateEnrollContest", self.studentUpdateEnrollContest) // 学生编辑报名信息
+	g.GET("/searchEnrollResult", self.DisplayEnrollResult)                 // 用户查看报名结果
+	g.GET("/teacherSearchEnroll", self.TeacherSearchEnroll)                // 教师查看报名结果
 	g.GET("/teacherGetOneEnroll", self.TeacherGetOneEnroll)
 
 	g.GET("/departmentManagerSearchEnroll", self.DepartmentManagerSearchEnroll) // 系部管理员查看报名结果
@@ -40,11 +41,12 @@ func (EnrollController) TeacherSearchEnroll(c *gin.Context) {
 	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
 	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
 
+	year := com.StrTo(c.DefaultQuery("year", strconv.Itoa(time.Now().Year()))).MustInt()
 	contestID := com.StrTo(c.DefaultQuery("id", "-1")).MustInt64()
 	contest := c.DefaultQuery("contest", "")
 	contestType := c.DefaultQuery("type", "")
-	startTime := c.DefaultQuery("start_time", "")
-	endTime := c.DefaultQuery("end_time", "")
+	//startTime := c.DefaultQuery("start_time", "")
+	//endTime := c.DefaultQuery("end_time", "")
 	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
 
 	key, exist := appG.C.Get("user_id")
@@ -69,7 +71,7 @@ func (EnrollController) TeacherSearchEnroll(c *gin.Context) {
 
 	paginator := logic.NewPaginator(curPage, limit)
 
-	list, total, err := logic.DefaultEnrollLogic.TeacherSearch(paginator, contestID, userID, contest, startTime, endTime, state, contestType)
+	list, total, err := logic.DefaultEnrollLogic.TeacherSearch(paginator, contestID, userID, contest /*startTime, endTime,*/, state, contestType, year)
 
 	if err != nil {
 		DPrintf("DisplayEnrollResult 发生错误:", err)
@@ -173,6 +175,34 @@ func (EnrollController) EnrollContest(c *gin.Context) {
 	appG.ResponseSuc("报名成功")
 }
 
+func (EnrollController) studentUpdateEnrollContest(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	form := models.EnrollForm{}
+
+	userID, exist := c.Get("user_id")
+	if !exist {
+		appG.ResponseErr("用户不存在")
+		return
+	}
+
+	err := c.ShouldBindJSON(&form)
+	if err != nil {
+		DPrintf("EnrollContest c.ShouldBindJSON() 发生错误:", err)
+		appG.ResponseErr("报名失败", err.Error())
+		return
+	}
+
+	err = logic.DefaultEnrollLogic.UpdateEnrollInformation(userID.(int64), form)
+	if err != nil {
+		DPrintf("EnrollContest logic.DefaultEnrollLogic.InsertEnrollInformation() 发生错误:", err)
+		appG.ResponseErr("报名失败", err.Error())
+		return
+	}
+
+	appG.ResponseSuc("报名成功")
+}
+
 // SearchEnrollResult
 // 查看报名结果
 func (EnrollController) DisplayEnrollResult(c *gin.Context) {
@@ -185,9 +215,10 @@ func (EnrollController) DisplayEnrollResult(c *gin.Context) {
 	startTime := c.DefaultQuery("start_time", "")
 	endTime := c.DefaultQuery("end_time", "")
 	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
-
-	fmt.Println(startTime)
-	fmt.Println(endTime)
+	//year := com.StrTo(c.DefaultQuery("year", strconv.Itoa(time.Now().Year()))).MustInt()
+	isGroup := com.StrTo(c.DefaultQuery("is_group", "0")).MustInt()
+	contestLevel := com.StrTo(c.DefaultQuery("contest_level", "-1")).MustInt64()
+	EnrollID := com.StrTo(c.DefaultQuery("id", "-1")).MustInt64()
 
 	key, exist := appG.C.Get("user_id")
 	if !exist {
@@ -212,7 +243,7 @@ func (EnrollController) DisplayEnrollResult(c *gin.Context) {
 
 	paginator := logic.NewPaginator(curPage, limit)
 
-	list, total, err := logic.DefaultEnrollLogic.Search(paginator, userID, contest, startTime, endTime, state)
+	list, total, err := logic.DefaultEnrollLogic.Search(paginator, userID, EnrollID, contestLevel, contest, startTime, endTime, state, isGroup)
 
 	if err != nil {
 		DPrintf("DisplayEnrollResult 发生错误:", err)

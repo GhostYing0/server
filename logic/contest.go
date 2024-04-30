@@ -194,7 +194,7 @@ func (self ContestLogic) StudentGetOneContest(paginator *Paginator, contestID, u
 	return &list, total, session.Commit()
 }
 
-func (self ContestLogic) ViewTeacherContest(paginator *Paginator, userID int64, contest, contestType string, state int) (*[]models.ContestReturn, int64, error) {
+func (self ContestLogic) ViewTeacherContest(paginator *Paginator, userID int64, contest, contestType string, state, year, isGroup int) (*[]models.ContestReturn, int64, error) {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("DisplayContest session.Begin() 发生错误:", err)
@@ -215,8 +215,14 @@ func (self ContestLogic) ViewTeacherContest(paginator *Paginator, userID int64, 
 		return nil, 0, err
 	}
 
+	startTime := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+	endTime := time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+
+	session.Table("contest")
 	session.Join("LEFT", "contest_type", "contest.contest_type_id = contest_type.id")
 	session.Where("contest.teacher_id = ?", account.UserID)
+	session.Where("contest.start_time > ? and contest.start_time < ?", startTime, endTime)
+	session.Where("contest.is_group = ?", isGroup)
 
 	if state != -1 {
 		session.Where("contest.state = ?", state)
@@ -264,7 +270,7 @@ func (self ContestLogic) ViewTeacherContest(paginator *Paginator, userID int64, 
 	return &list, total, session.Commit()
 }
 
-func (self ContestLogic) ViewTeacherContestGrade(paginator *Paginator, userID int64, contest, contestLevel string, state int) (*[]models.TeacherUploadGradeContestReturn, int64, error) {
+func (self ContestLogic) ViewTeacherContestGrade(paginator *Paginator, userID int64, contest, contestType string, state, isGroup, contestLevel, year int) (*[]models.TeacherUploadGradeContestReturn, int64, error) {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("DisplayContest session.Begin() 发生错误:", err)
@@ -285,21 +291,31 @@ func (self ContestLogic) ViewTeacherContestGrade(paginator *Paginator, userID in
 		return nil, 0, err
 	}
 
+	startTime := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+	endTime := time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+
 	session.Join("LEFT", "contest_type", "contest.contest_type_id = contest_type.id")
 	session.Join("LEFT", "contest_level", "contest.contest_level_id = contest_level.contest_level_id")
 	session.Where("contest.teacher_id = ?", account.UserID)
 	session.Where("contest.state = ?", e.Pass)
+	session.Where("contest.start_time > ? and contest.start_time < ?", startTime, endTime)
+	session.Where("contest.is_group = ?", isGroup)
 
 	if contest != "" {
 		session.Where("contest = ?", contest)
 	}
-	if contestLevel != "" {
-		searchContestLevel, err := public.SearchContestLevlByName(contestLevel)
+	if contestType != "" {
+		searchContestType, err := public.SearchContestTypeByName(contestType)
 		if err != nil {
-
+			logging.L.Error()
+			return nil, 0, err
 		} else {
-			session.Where("contest.contest_level_id = ?", searchContestLevel.ID)
+			session.Where("contest.contest_type_id = ?", searchContestType.ContestTypeID)
 		}
+	}
+
+	if contestLevel > 0 {
+		session.Where("contest.contest_level_id = ?", contestLevel)
 	}
 
 	data := &[]models.ContestInfoType{}
@@ -327,6 +343,7 @@ func (self ContestLogic) ViewTeacherContestGrade(paginator *Paginator, userID in
 		list[i].Prize2Count = (*data)[i].Prize2Count
 		list[i].Prize3Count = (*data)[i].Prize3Count
 		list[i].Prize4Count = (*data)[i].Prize4Count
+		list[i].RewardCount, _ = session.Table("grade").Where("state = ? and contest_id = ?", e.Pass, list[i].ID).Count()
 		list[i].EnrollCount, _ = session.Table("enroll_information").Where("state = ? and contest_id = ?", e.Pass, list[i].ID).Count()
 		// 竞赛可报名条件，审核通过，在报名截至时间之前，且教师未关闭报名
 		if (*data)[i].State == e.Pass && (*data)[i].ContestState == e.EnrollOpen && models.NewOftenTime().Before(&(*data)[i].Deadline) {
@@ -567,7 +584,7 @@ func (self ContestLogic) UploadContest(userId int64, form *models.TeacherUploadC
 	return session.Commit()
 }
 
-func (self ContestLogic) GetContestForTeacher(userID int64) (*[]models.ContestAndType, error) {
+func (self ContestLogic) GetContestForTeacher(userID int64, year int) (*[]models.ContestAndType, error) {
 	contest := &[]models.ContestAndType{}
 
 	teacher, err := public.SearchAccountByID(userID)
@@ -581,10 +598,14 @@ func (self ContestLogic) GetContestForTeacher(userID int64) (*[]models.ContestAn
 		return nil, errors.New("无权限")
 	}
 
+	startTime := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+	endTime := time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+
 	_, err = MasterDB.
 		Table("contest").
 		Join("LEFT", "contest_type", "contest.contest_type_id = contest_type.id").
-		Where("contest.teacher_id = ?", teacher.UserID).
+		Where("contest.teacher_id = ? and contest.start_time > ? and contest.start_time < ?", teacher.UserID, startTime, endTime).
+		Where("contest.state = ?", e.Pass).
 		FindAndCount(contest)
 	if err != nil {
 		return nil, err
@@ -760,6 +781,89 @@ func (self ContestLogic) DepartmentManagerGetContest(paginator *Paginator, conte
 		list[i].PassCount, _ = session.Table("enroll_information").Where("state = ? and contest_id = ?", e.Pass, (*data)[i].Contest.ID).Count()
 		list[i].RejectedCount, _ = session.Table("enroll_information").Where("state = ? and contest_id = ?", e.Reject, (*data)[i].Contest.ID).Count()
 		list[i].ProcessingCount, _ = session.Table("enroll_information").Where("state = ? and contest_id = ?", e.Processing, (*data)[i].Contest.ID).Count()
+	}
+
+	return &list, total, session.Commit()
+}
+
+func (self ContestLogic) ViewTeacherContestEnroll(paginator *Paginator, contest, contestType string, contestLevel int, userID int64, year, isGroup int) (*[]models.TeacherContestEnrollReturn, int64, error) {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("CmsContestLogic Display session.Begin() 发生错误:", err)
+		return nil, 0, err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("CmsContestLogic Display session.Close() 发生错误:", err)
+		}
+	}()
+
+	account, err := public.SearchAccountByID(userID)
+	if err != nil {
+		logging.L.Error()
+		return nil, 0, err
+	}
+
+	startTime := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+	endTime := time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+
+	session.Table("teacher").Where("teacher.teacher_id = ?", account.UserID)
+	session.Join("LEFT", "contest", "contest.teacher_id = teacher.teacher_id")
+	session.Where("contest.is_group = ?", isGroup)
+	session.Where("contest.start_time > ? and contest.start_time < ?", startTime, endTime)
+	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
+	session.Join("LEFT", "contest_level", "contest_level.contest_level_id = contest.contest_level_id")
+	session.Where("contest.state = ?", e.Pass)
+
+	if err != nil {
+		logging.L.Error(err)
+	}
+	searchContest := &models.ContestInfo{}
+	searchContestType := &models.ContestType{}
+	if contest != "" {
+		searchContest, err = public.SearchContestByName(contest)
+		if err != nil {
+			logging.L.Error(err)
+		}
+		session.Where("contest.id = ?", searchContest.ID)
+	}
+	if contestType != "" {
+		searchContestType, err = public.SearchContestTypeByName(contest)
+		if err != nil {
+			logging.L.Error(err)
+		}
+		session.Where("contest.contest_type_id = ?", searchContestType.ContestTypeID)
+	}
+	if contestLevel != -1 {
+		session.Where("contest.contest_level_id = ?", contestLevel)
+	}
+
+	data := &[]models.ContestContestTypeTeacher{}
+
+	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(data)
+	if err != nil {
+		logging.L.Error(err)
+		return nil, 0, err
+	}
+
+	session.Join("LEFT", "enroll_information", "contest.id = enroll_information.contest_id")
+
+	list := make([]models.TeacherContestEnrollReturn, len(*data))
+	for i := 0; i < len(list); i++ {
+		list[i].Username = (*data)[i].Username
+		list[i].Name = (*data)[i].Name
+		list[i].School = (*data)[i].School
+		list[i].College = (*data)[i].College
+		list[i].ID = (*data)[i].Contest.ID
+		list[i].State = (*data)[i].Contest.State
+		list[i].Contest = (*data)[i].Contest.Contest
+		list[i].ContestType = (*data)[i].Contest.ContestType
+		list[i].ContestLevel = (*data)[i].Contest.ContestLevel
+		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].Contest.CreateTime)
+		list[i].StartTime = models.MysqlFormatString2String((*data)[i].Contest.StartTime)
+		list[i].Deadline = models.MysqlFormatString2String((*data)[i].Contest.Deadline)
+		list[i].EnrollCount, _ = session.Table("enroll_information").Where("state = ? and contest_id = ?", e.Pass, (*data)[i].Contest.ID).Count()
 	}
 
 	return &list, total, session.Commit()
