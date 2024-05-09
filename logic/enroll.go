@@ -9,15 +9,14 @@ import (
 	. "server/utils/e"
 	"server/utils/logging"
 	. "server/utils/mydebug"
-	"time"
 )
 
 type EnrollLogic struct{}
 
 var DefaultEnrollLogic = EnrollLogic{}
 
-func (self EnrollLogic) InsertEnrollInformation(userID, contestID, handle, collegeID, majorID int64,
-	teamName, guidanceTeacher, teacherTitle, teacherDepartment, phone, email string) error {
+func (self EnrollLogic) InsertEnrollInformation(userID, contestID, handle int64,
+	teamName, guidanceTeacher, teacherTitle, teacherDepartment, phone, email, college, major string) error {
 	if phone == "" || email == "" {
 		logging.L.Error("请手机号和邮箱")
 		return errors.New("请手机号和邮箱")
@@ -73,12 +72,12 @@ func (self EnrollLogic) InsertEnrollInformation(userID, contestID, handle, colle
 		logging.L.Error()
 		return err
 	}
-	_, err = public.SearchCollegeByID(collegeID)
+	_, err = public.SearchCollegeByName(college)
 	if err != nil {
 		logging.L.Error()
 		return err
 	}
-	_, err = public.SearchMajorByID(majorID)
+	_, err = public.SearchMajorByName(major)
 	if err != nil {
 		logging.L.Error()
 		return err
@@ -209,7 +208,7 @@ func (self EnrollLogic) Search(paginator *Paginator, userID, EnrollID, contestLe
 	session.Join("LEFT", "contest_entry", "contest_entry.contest_entry_id = contest.contest_entry_id")
 	session.Join("LEFT", "college", "college.college_id = student.college_id")
 	session.Join("LEFT", "team", "team.team_id = enroll_information.team_id")
-	session.Select("enroll_information.*, contest.contest, contest.is_group, contest_level.contest_level, contest_type.type," +
+	session.Select("enroll_information.*, contest.contest, contest.is_group, contest_level.contest_level, contest_type.type, contest.start_time," +
 		"major.major, teacher.name as t_name, teacher.title, department.department t_department, student.*, contest_entry.contest_entry," +
 		"college.college, team.team_name")
 	if contestLevel > 0 {
@@ -220,7 +219,7 @@ func (self EnrollLogic) Search(paginator *Paginator, userID, EnrollID, contestLe
 		session.Where("account.id = ?", userID)
 	}
 	if len(contest) > 0 {
-		session.Where("contest.contest = ?", contest)
+		session.Where("contest.contest like ?", "%"+contest+"%")
 	}
 	if len(startTime) > 0 && len(endTime) > 0 {
 		session.Where("enroll_information.create_time >= ? AND enroll_information.create_time <= ?", startTime, endTime)
@@ -373,7 +372,7 @@ func (self EnrollLogic) TeacherGetOneEnroll(paginator *Paginator, enrollID, user
 	session.Join("RIGHT", "enroll_information", "contest.id = enroll_information.contest_id")
 	session.Join("LEFT", "student", "student.student_id = enroll_information.student_id")
 	session.Join("LEFT", "contest_level", "contest_level.contest_level_id = contest.contest_level_id")
-	session.Join("LEFT", "major", "major.major_id = student.major")
+	session.Join("LEFT", "major", "major.major_id = student.major_id")
 	session.Where("contest.school_id = ?", teacher.SchoolID)
 	session.Where("enroll_information.id = ?", enrollID)
 	session.Select("account.user_id, enroll_information.*, contest.contest, contest_type.type, student.*, contest_level.contest_level, school.school, college.college, semester.semester, major.major")
@@ -429,7 +428,7 @@ func (self EnrollLogic) TeacherGetOneEnroll(paginator *Paginator, enrollID, user
 	return &list, total, session.Rollback()
 }
 
-func (self EnrollLogic) TeacherSearch(paginator *Paginator, contestID, userID int64, contest string /* startTime, endTime string*/, state int, contestType string, year int) (*[]models.EnrollInformationReturn, int64, error) {
+func (self EnrollLogic) TeacherSearch(paginator *Paginator, contestID, userID int64, contest, class, major, name string /* startTime, endTime string*/, state int, contestType string, year int) (*[]models.EnrollInformationReturn, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
 		logging.L.Error("Search 分页器为空")
@@ -466,8 +465,8 @@ func (self EnrollLogic) TeacherSearch(paginator *Paginator, contestID, userID in
 		return nil, 0, err
 	}
 
-	startTime := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
-	endTime := time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+	//startTime := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+	//endTime := time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
 
 	session.Table("account").Where("user_id = ?", account.UserID)
 	session.Join("LEFT", "contest", "contest.teacher_id = account.user_id")
@@ -475,21 +474,32 @@ func (self EnrollLogic) TeacherSearch(paginator *Paginator, contestID, userID in
 	session.Join("RIGHT", "enroll_information", "contest.id = enroll_information.contest_id")
 	session.Where("contest.id = ?", contestID)
 	session.Where("contest.school_id = ? and enroll_information.state = ?", teacher.SchoolID, Pass)
-	session.Select("account.user_id, enroll_information.*, contest.contest, contest_type.type, student.*, school.school, college.college, semester.semester")
+	session.Join("LEFT", "student", "student.student_id = enroll_information.student_id")
+	session.Join("LEFT", "major", "student.major_id = major.major_id")
+	session.Join("LEFT", "school", "student.school_id = school.school_id")
+	session.Select("account.user_id, enroll_information.*, contest.contest, contest_type.type, student.*," +
+		"major.*, school.school, college.college, semester.semester")
 
 	if len(contest) > 0 {
-		session.Where("contest.contest = ?", contest)
+		session.Where("contest.contest like ?", "%"+contest+"%")
 	}
-	if len(startTime) > 0 && len(endTime) > 0 {
-		session.Where("enroll_information.create_time >= ? AND enroll_information.create_time <= ?", startTime, endTime)
-	}
+	//if len(startTime) > 0 && len(endTime) > 0 {
+	//	session.Where("enroll_information.create_time >= ? AND enroll_information.create_time <= ?", startTime, endTime)
+	//}
 	if contestType != "" {
 		session.Where("contest_type.type = ?", contestType)
 	}
-	session.Join("LEFT", "student", "student.student_id = enroll_information.student_id")
-	session.Join("LEFT", "school", "student.school_id = school.school_id")
+	if name != "" {
+		session.Where("student.name like ?", "%"+name+"%")
+	}
 	session.Join("LEFT", "college", "student.college_id = college.college_id")
 	session.Join("LEFT", "semester", "student.semester_id = semester.semester_id")
+	if major != "" {
+		session.Where("major.major like ?", "%"+major+"%")
+	}
+	if class != "" {
+		session.Where("student.class like ?", "%"+class+"%")
+	}
 
 	data := &[]models.EnrollContestStudent{}
 
@@ -517,9 +527,11 @@ func (self EnrollLogic) TeacherSearch(paginator *Paginator, contestID, userID in
 		list[i].Class = (*data)[i].Class
 		list[i].TeamID = (*data)[i].TeamID
 		list[i].Contest = (*data)[i].Contest
+		list[i].StudentSchoolID = (*data)[i].StudentSchoolID
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].EnrollInformation.CreateTime)
 		list[i].Phone = (*data)[i].Phone
 		list[i].Email = (*data)[i].Email
+		list[i].Major = (*data)[i].Major
 		list[i].RejectReason = (*data)[i].EnrollInformation.RejectReason
 		list[i].State = (*data)[i].EnrollInformation.State
 		startTime := models.FormatString2OftenTime(models.MysqlFormatString2String((*data)[i].StartTime))
@@ -534,7 +546,7 @@ func (self EnrollLogic) TeacherSearch(paginator *Paginator, contestID, userID in
 	return &list, total, session.Rollback()
 }
 
-func (self EnrollLogic) DepartmentManagerSearchEnroll(paginator *Paginator, contestID, userID int64, contest string, startTime string, endTime string, state int, contestType string) (*[]models.EnrollInformationReturn, int64, error) {
+func (self EnrollLogic) DepartmentManagerSearchEnroll(paginator *Paginator, contestID, userID int64, contest string, startTime string, endTime string, state int, contestType, name, major, class, studentSchoolID string) (*[]models.EnrollInformationReturn, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
 		logging.L.Error("Search 分页器为空")
@@ -565,24 +577,36 @@ func (self EnrollLogic) DepartmentManagerSearchEnroll(paginator *Paginator, cont
 		return nil, 0, errors.New("权限错误")
 	}
 
-	//sql := `SELECT enroll_information.id as e_id, ` +
-	//	`student.name, student.student_id, student.school_id, contest.contest, contest_type.type FROM student ` +
-	//	`RIGHT JOIN enroll_information ON student.student_id = enroll_information.student_id ` +
-	//	`LEFT JOIN contest ON contest.id = enroll_information.contest_id ` +
-	//	`LEFT JOIN contest_type ON contest_type.id = contest.contest_type_id `
 	session.Table("student").Where("student.school_id = ?", account.SchoolID)
 	session.Join("RIGHT", "enroll_information", "student.student_id = enroll_information.student_id")
 	session.Join("LEFT", "contest", "contest.id = enroll_information.contest_id")
 	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
-	session.Select("enroll_information.id as e_id, enroll_information.*, student.*, contest_type.type")
+	session.Join("LEFT", "major", "major.major_id = student.major_id")
+	session.Join("LEFT", "college", "college.college_id = student.college_id")
+	session.Join("LEFT", "contest_level", "contest.contest_level_id = contest_level.contest_level_id")
+	session.Join("LEFT", "teacher", "teacher.teacher_id = enroll_information.guidance_teacher")
+	session.Join("LEFT", "department", "teacher.department_id = department.department_id")
+	session.Join("LEFT", "team", "team.team_id = enroll_information.team_id")
+	session.Select("enroll_information.id as e_id, enroll_information.*," +
+		"student.*, contest_type.type, major.major, contest.*," +
+		"contest_level.contest_level, college.college," +
+		"teacher.name as teacher_name, teacher.title, department.department, team.team_name")
 	session.Where("enroll_information.contest_id = ?", contestID)
-	//session.Table("student").Where("student.school_id = ?", account.SchoolID)
-	//session.Join("RIGHT", "enroll_information", "student.student_id = enroll_information.student_id")
-	//session.Join("LEFT", "contest", "contest.id = enroll_information.contest_id")
-	//session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
-	//session.Where("enroll_information.contest_id = ?", contestID)
+
 	if contestID <= 0 {
 		return nil, 0, err
+	}
+	if len(name) > 0 {
+		session.Where("student.name like ?", "%"+name+"%")
+	}
+	if len(class) > 0 {
+		session.Where("student.class like ?", "%"+class+"%")
+	}
+	if len(major) > 0 {
+		session.Where("major.major like ?", "%"+major+"%")
+	}
+	if len(studentSchoolID) > 0 {
+		session.Where("student.student_school_id = ?", studentSchoolID)
 	}
 	if len(contest) > 0 {
 		session.Where("contest.contest = ?", contest)
@@ -618,7 +642,14 @@ func (self EnrollLogic) DepartmentManagerSearchEnroll(paginator *Paginator, cont
 		list[i].ID = (*data)[i].ID
 		list[i].Username = (*data)[i].Username
 		list[i].Name = (*data)[i].Name
+		list[i].ContestLevel = (*data)[i].ContestLevel
+		list[i].TeacherName = (*data)[i].Teacher
+		list[i].Major = (*data)[i].Major
+		list[i].Team = (*data)[i].Team
+		list[i].Department = (*data)[i].Department
+		list[i].Title = (*data)[i].Title
 		list[i].ContestType = (*data)[i].ContestType
+		list[i].StudentSchoolID = (*data)[i].StudentSchoolID
 		list[i].School = (*data)[i].School
 		list[i].College = (*data)[i].College
 		list[i].Semester = (*data)[i].Semester
@@ -630,6 +661,7 @@ func (self EnrollLogic) DepartmentManagerSearchEnroll(paginator *Paginator, cont
 		list[i].Email = (*data)[i].Email
 		list[i].RejectReason = (*data)[i].RejectReason
 		list[i].State = (*data)[i].State
+		list[i].IsGroup = (*data)[i].IsGroup
 		startTime := models.FormatString2OftenTime(models.MysqlFormatString2String((*data)[i].StartTime))
 		//list[i].StartTime = startTime.String()
 		if models.NewOftenTime().After(&startTime) && list[i].State == Pass {
@@ -744,6 +776,7 @@ func (self EnrollLogic) UpdateEnrollInformation(userID int64, form models.Enroll
 		Phone:           form.Phone,
 		Email:           form.Email,
 		GuidanceTeacher: searchTeacher.TeacherID,
+		State:           Processing,
 	}
 	_, err = session.Where("id = ?", form.ID).Update(newEnroll)
 	if err != nil {

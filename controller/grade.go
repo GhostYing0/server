@@ -21,16 +21,18 @@ func (self GradeController) RegisterRoutes(g *gin.RouterGroup) {
 	g.GET("/searchGrade", self.DisplayGrade) // 查看成绩
 
 	g.GET("/teacherSearchGrade", self.TeacherDisplayGrade) // 教师查看自身竞赛成绩
+	g.GET("/getUserGrade", self.GetUserGrade)              // 教师获取一个自身竞赛成绩
+	g.POST("/updateStudentGrade", self.UpdateStudentGrade) // 教师更新竞赛成绩
 	//g.POST("/processPassGrade", self.ProcessPassGrade)       // 教师审核成绩通过
 	//g.POST("/processRejectGrade", self.ProcessRejectGrade)   // 教师审核成绩驳回
 	//g.POST("/processRecoverGrade", self.ProcessRecoverGrade) // 教师审核成绩恢复
+	g.POST("/revokeGrade", self.RevokeGrade) // 教师撤回成绩
 
 	g.GET("/departmentManagerSearchGrade", self.DepartmentManagerSearchGrade) // 系部管理查看自身竞赛成绩
 	g.POST("/processPassGrade", self.ProcessPassGrade)                        // 系部管理员审核成绩通过
 	g.POST("/processRejectGrade", self.ProcessRejectGrade)                    // 系部管理员审核成绩驳回
 	g.POST("/processRecoverGrade", self.ProcessRecoverGrade)                  // 系部管理员审核成绩恢复
 
-	g.POST("/revokeGrade", self.RevokeGrade)
 	g.POST("/studentUpdateGrade", self.StudentUpdateGrade)
 }
 
@@ -79,11 +81,13 @@ func (self GradeController) DisplayGrade(c *gin.Context) {
 	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
 	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
 
-	grade := com.StrTo(c.DefaultQuery("grade", "")).MustInt()
+	grade := com.StrTo(c.DefaultQuery("grade", "0")).MustInt()
 	contest := c.DefaultQuery("contest", "")
 	startTime := c.DefaultQuery("startTime", "")
 	endTime := c.DefaultQuery("endTime", "")
 	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
+	contestLevel := com.StrTo(c.DefaultQuery("contest_level", "-1")).MustInt()
+	isGroup := com.StrTo(c.DefaultQuery("is_group", "-1")).MustInt()
 
 	if limit < 1 || curPage < 1 {
 		DPrintf("DisplayEnrollResult 查询表容量和页码应大于0")
@@ -106,7 +110,7 @@ func (self GradeController) DisplayGrade(c *gin.Context) {
 		return
 	}
 
-	list, total, err := logic.DefaultGradeLogic.Search(paginator, grade, contest, startTime, endTime, state, user_id.(int64), role.(int))
+	list, total, err := logic.DefaultGradeLogic.Search(paginator, grade, contest, startTime, endTime, state, user_id.(int64), role.(int), contestLevel, isGroup)
 
 	if err != nil {
 		DPrintf("DisplayGrade 发生错误:", err)
@@ -132,6 +136,69 @@ func (self GradeController) TeacherDisplayGrade(c *gin.Context) {
 	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
 
 	contestID := com.StrTo(c.DefaultQuery("id", "0")).MustInt64()
+	grade := c.DefaultQuery("grade", "")
+	contest := c.DefaultQuery("contest", "")
+	//startTime := c.DefaultQuery("startTime", "")
+	//endTime := c.DefaultQuery("endTime", "")
+	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
+	year := com.StrTo(c.DefaultQuery("year", strconv.Itoa(time.Now().Year()))).MustInt()
+	class := c.DefaultQuery("student_class", "")
+	major := c.DefaultQuery("major", "")
+	name := c.DefaultQuery("name", "")
+
+	if limit < 1 || curPage < 1 {
+		DPrintf("DisplayEnrollResult 查询表容量和页码应大于0")
+		appG.ResponseErr("查询表容量和页码应大于0")
+		return
+	}
+
+	data := make(map[string]interface{})
+
+	paginator := logic.NewPaginator(curPage, limit)
+
+	user_id, exist := c.Get("user_id")
+	if !exist {
+		appG.ResponseErr("user_id不存在")
+		return
+	}
+	role, exist := c.Get("role")
+	if !exist {
+		appG.ResponseErr("role不存在")
+		return
+	}
+
+	if role != TeacherRole {
+		appG.ResponseErr("无权限")
+		logging.L.Error("无权限")
+		return
+	}
+
+	list, total, err := logic.DefaultGradeLogic.TeacherSearch(paginator, grade, contest, class, major, name /*startTime, endTime,*/, state, contestID, user_id.(int64), role.(int), year)
+
+	if err != nil {
+		DPrintf("DisplayGrade 发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	paginator.SetTotalPage(total)
+
+	data["list"] = list
+	data["pageNumber"] = curPage
+	data["perSize"] = limit
+	data["total"] = total
+	data["totalPage"] = paginator.GetTotalPage()
+
+	appG.ResponseSucMsg(data, "查询成功")
+}
+
+func (self GradeController) GetUserGrade(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
+	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
+
+	gradeID := com.StrTo(c.DefaultQuery("id", "0")).MustInt64()
 	grade := c.DefaultQuery("grade", "")
 	contest := c.DefaultQuery("contest", "")
 	//startTime := c.DefaultQuery("startTime", "")
@@ -166,7 +233,7 @@ func (self GradeController) TeacherDisplayGrade(c *gin.Context) {
 		return
 	}
 
-	list, total, err := logic.DefaultGradeLogic.TeacherSearch(paginator, grade, contest /*startTime, endTime,*/, state, contestID, user_id.(int64), role.(int), year)
+	list, total, err := logic.DefaultGradeLogic.GetUserGrade(paginator, grade, contest /*startTime, endTime,*/, state, gradeID, user_id.(int64), role.(int), year)
 
 	if err != nil {
 		DPrintf("DisplayGrade 发生错误:", err)
@@ -183,6 +250,27 @@ func (self GradeController) TeacherDisplayGrade(c *gin.Context) {
 	data["totalPage"] = paginator.GetTotalPage()
 
 	appG.ResponseSucMsg(data, "查询成功")
+}
+
+func (self GradeController) UpdateStudentGrade(c *gin.Context) {
+	appG := app.Gin{C: c}
+	form := models.UpdateGradeForm{}
+
+	err := c.ShouldBindJSON(&form)
+	if err != nil {
+		DPrintf("UpdateGradeInformation c.ShouldBindJSON 发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultGradeLogic.UpdateStudentGrade(&form)
+	if err != nil {
+		DPrintf("UpdateGradeInformation 发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSuc("操作成功")
 }
 
 // ProcessPassGrade
@@ -362,12 +450,15 @@ func (self GradeController) DepartmentManagerSearchGrade(c *gin.Context) {
 	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
 	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
 
-	grade := c.DefaultQuery("grade", "")
+	grade := com.StrTo(c.DefaultQuery("prize", "-1")).MustInt()
 	contest := c.DefaultQuery("contest", "")
 	startTime := c.DefaultQuery("startTime", "")
 	endTime := c.DefaultQuery("endTime", "")
 	contestID := com.StrTo(c.DefaultQuery("id", "0")).MustInt64()
 	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
+	name := c.DefaultQuery("name", "")
+	major := c.DefaultQuery("major", "")
+	class := c.DefaultQuery("student_class", "")
 
 	if limit < 1 || curPage < 1 {
 		DPrintf("DisplayEnrollResult 查询表容量和页码应大于0")
@@ -396,7 +487,7 @@ func (self GradeController) DepartmentManagerSearchGrade(c *gin.Context) {
 		return
 	}
 
-	list, total, err := logic.DefaultGradeLogic.DepartmentManagerSearchGrade(paginator, grade, contest, startTime, endTime, state, contestID, user_id.(int64), role.(int))
+	list, total, err := logic.DefaultGradeLogic.DepartmentManagerSearchGrade(paginator, grade, contest, startTime, endTime, state, contestID, user_id.(int64), role.(int), name, major, class)
 
 	if err != nil {
 		DPrintf("DisplayGrade 发生错误:", err)

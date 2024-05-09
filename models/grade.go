@@ -13,6 +13,15 @@ type GradeForm struct {
 	State        int    `json:"state" xorm:"state"`
 }
 
+type UpdateGradeForm struct {
+	ID              int64  `json:"id"`
+	Prize           int    `json:"prize_id"`
+	Department      string `json:"department"`
+	TeacherTitle    string `json:"title"`
+	GuidanceTeacher string `json:"guidance_teacher"`
+	Certificate     string `json:"certificate"`
+}
+
 type UploadGradeForm struct {
 	EnrollID          int64  `json:"enroll_id"`
 	Grade             int    `json:"prize"`
@@ -51,10 +60,13 @@ type CurStudentGrade struct {
 	Contest          string `xorm:"contest"`
 	ContestType      string `xorm:"type"`
 	ContestLevel     string `xorm:"contest_level"`
+	Prize            int64  `json:"prize_id" xorm:"prize_id"`
 	Department       string `xorm:"department"`
 	Class            string `xorm:"class"`
 	Grade            string `xorm:"prize"`
 	Title            string `xorm:"title"`
+	Major            string `xorm:"major"`
+	ContestEntry     string `xorm:"contest_entry"`
 	College          string `xorm:"college"`
 	StudentSchoolID  string `xorm:"student_school_id"`
 }
@@ -83,10 +95,13 @@ type ReturnGradeInformation struct {
 	Contest         string `json:"contest" xorm:"contest"`
 	School          string `json:"school" xorm:"school"`
 	Grade           string `json:"grade" xorm:"grade"`
+	Prize           int64  `json:"prize_id" xorm:"prize_id"`
 	Certificate     string `json:"certificate" xorm:"certificate"`
 	State           int    `json:"state" xorm:"state"`
-	ContestType     string `json:"contest_type" xorm:"contest_type"`
+	ContestType     string `json:"contest_type" xorm:"type"`
 	PS              string `json:"ps" xorm:"ps"`
+	Major           string `json:"major"`
+	ContestEntry    string `json:"contest_entry"`
 	RejectReason    string `json:"reject_reason" xorm:"reject_reason"`
 	ContestLevel    string `json:"contest_level"`
 	GuidanceTeacher string `json:"guidance_teacher_name"`

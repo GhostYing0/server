@@ -31,8 +31,9 @@ func (self ContestController) RegisterRoutes(g *gin.RouterGroup) {
 	g.DELETE("/deleteContest", self.DeleteContest)                    //教师删除竞赛信息(暂时没用)
 	g.POST("/cancelContest", self.CancelContest)                      //教师撤回竞赛
 
-	g.GET("getDepartmentContest", self.GetDepartmentContest)           // 系部管理员获取同校同院系竞赛报名
-	g.GET("getDepartmentContestGrade", self.GetDepartmentContestGrade) // 系部管理员获取同校同院系竞赛成绩
+	g.GET("/getContestDetail", self.GetContestDetail)                   //系部管理员获取竞赛详情用于审核
+	g.GET("/getDepartmentContest", self.GetDepartmentContest)           // 系部管理员获取同校同院系竞赛报名
+	g.GET("/getDepartmentContestGrade", self.GetDepartmentContestGrade) // 系部管理员获取同校同院系竞赛成绩
 	g.GET("/onlyGetDepartmentContest", self.OnlyGetDepartmentContest)
 	g.POST("/processPassContest", self.ProcessPassContest)       // 系部管理员审核竞赛通过
 	g.POST("/processRejectContest", self.ProcessRejectContest)   // 系部管理员审核竞赛驳回
@@ -51,6 +52,7 @@ func (ContestController) ViewContest(c *gin.Context) {
 	contestLevel := com.StrTo(c.DefaultQuery("contest_level", "0")).MustInt()
 	isGroup := com.StrTo(c.DefaultQuery("is_group", "2")).MustInt()
 	year := com.StrTo(c.DefaultQuery("year", strconv.Itoa(time.Now().Year()))).MustInt()
+	contestID := com.StrTo(c.DefaultQuery("id", "0")).MustInt64()
 
 	if limit < 0 || curPage < 0 {
 		DPrintf("分页器参数错误")
@@ -64,10 +66,16 @@ func (ContestController) ViewContest(c *gin.Context) {
 		return
 	}
 
+	role, exist := c.Get("role")
+	if !exist {
+		appG.ResponseErr("请登录")
+		return
+	}
+
 	paginator := logic.NewPaginator(curPage, limit)
 
 	data := make(map[string]interface{})
-	list, total, err := logic.DefaultContestLogic.DisplayContest(paginator, contest, contestType, userID.(int64), contestLevel, isGroup, year)
+	list, total, err := logic.DefaultContestLogic.DisplayContest(paginator, contest, contestType, contestID, userID.(int64), contestLevel, isGroup, year, role.(int))
 	if err != nil {
 		DPrintf(" logic.DefaultEnrollLogic.DisplayContest 错误:", err)
 		appG.ResponseErr(err.Error())
@@ -143,9 +151,11 @@ func (ContestController) ViewTeacherContest(c *gin.Context) {
 	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
 	contestType := c.DefaultQuery("type", "")
 	contest := c.DefaultQuery("contest", "")
-	state := com.StrTo(c.DefaultQuery("", "-1")).MustInt()
+	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
 	year := com.StrTo(c.DefaultQuery("year", strconv.Itoa(time.Now().Year()))).MustInt()
-	isGroup := com.StrTo(c.DefaultQuery("is_group", "2")).MustInt()
+	isGroup := com.StrTo(c.DefaultQuery("is_group", "0")).MustInt()
+	contestID := com.StrTo(c.DefaultQuery("id", "0")).MustInt64()
+	contestLevel := com.StrTo(c.DefaultQuery("contest_level_id", "0")).MustInt64()
 
 	userID, exist := c.Get("user_id")
 	if !exist {
@@ -163,7 +173,7 @@ func (ContestController) ViewTeacherContest(c *gin.Context) {
 	paginator := logic.NewPaginator(curPage, limit)
 
 	data := make(map[string]interface{})
-	list, total, err := logic.DefaultContestLogic.ViewTeacherContest(paginator, userID.(int64), contest, contestType, state, year, isGroup)
+	list, total, err := logic.DefaultContestLogic.ViewTeacherContest(paginator, contestID, contestLevel, userID.(int64), contest, contestType, state, year, isGroup)
 	if err != nil {
 		DPrintf(" logic.DefaultEnrollLogic.DisplayContest 错误:", err)
 		appG.ResponseErr(err.Error())
@@ -276,7 +286,7 @@ func (ContestController) UpdateContest(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultContestLogic.UpdateContest(form.ID, userID.(int64), form.Contest, form.ContestType, form.StartTime, form.Deadline, form.ContestState, form.State)
+	err = logic.DefaultContestLogic.UpdateContest(userID.(int64), form)
 	if err != nil {
 		fmt.Println("logic.UpdateContestInfo error:", err)
 		appG.ResponseErr(err.Error())
@@ -412,11 +422,13 @@ func (ContestController) GetDepartmentContest(c *gin.Context) {
 	contest := c.DefaultQuery("contest", "")
 	contestType := c.DefaultQuery("type", "")
 	contestLevel := com.StrTo(c.DefaultQuery("contest_level", "-1")).MustInt()
+	year := com.StrTo(c.DefaultQuery("year", strconv.Itoa(time.Now().Year()))).MustInt()
+	isGroup := com.StrTo(c.DefaultQuery("is_group", "0")).MustInt()
 
 	paginator := logic.NewPaginator(curPage, limit)
 
 	data := make(map[string]interface{})
-	list, total, err := logic.DefaultContestLogic.DepartmentManagerGetContest(paginator, contest, contestType, contestLevel, userID.(int64))
+	list, total, err := logic.DefaultContestLogic.DepartmentManagerGetContest(paginator, contest, contestType, contestLevel, userID.(int64), isGroup, year)
 	if err != nil {
 		appG.ResponseErr(err.Error())
 		return
@@ -430,6 +442,55 @@ func (ContestController) GetDepartmentContest(c *gin.Context) {
 		data["page_size"] = limit
 		data["page_number"] = curPage
 		data["total_page"] = paginator.GetTotalPage()
+	}
+
+	appG.ResponseSucMsg(data, ret)
+}
+
+func (ContestController) GetContestDetail(c *gin.Context) {
+	appG := app.Gin{C: c}
+	var err error
+	var ret string
+
+	userID, exist := c.Get("user_id")
+	if !exist {
+		appG.ResponseErr("用户不存在")
+		return
+	}
+
+	role, exist := c.Get("role")
+	if !exist {
+		appG.ResponseErr("权限错误")
+		return
+	}
+
+	if role != e.DepartmentRole {
+		appG.ResponseErr("无权限")
+		return
+	}
+
+	//limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
+	//curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
+	//contest := c.DefaultQuery("contest", "")
+	//contestType := c.DefaultQuery("type", "")
+	//contestLevel := com.StrTo(c.DefaultQuery("contest_level", "-1")).MustInt()
+	//year := com.StrTo(c.DefaultQuery("year", strconv.Itoa(time.Now().Year()))).MustInt()
+	//isGroup := com.StrTo(c.DefaultQuery("is_group", "0")).MustInt()
+
+	ID := com.StrTo(c.DefaultQuery("id", "0")).MustInt64()
+
+	//paginator := logic.NewPaginator(curPage, limit)
+
+	data := make(map[string]interface{})
+	list, total, err := logic.DefaultContestLogic.GetContestDetail(userID.(int64), ID)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	if list != nil {
+		data["data"] = list
+		data["total"] = total
 	}
 
 	appG.ResponseSucMsg(data, ret)
@@ -651,11 +712,13 @@ func (ContestController) GetDepartmentContestGrade(c *gin.Context) {
 	contest := c.DefaultQuery("contest", "")
 	contestType := c.DefaultQuery("type", "")
 	contestLevel := com.StrTo(c.DefaultQuery("contest_level", "-1")).MustInt()
+	isGroup := com.StrTo(c.DefaultQuery("is_group", "0")).MustInt()
+	year := com.StrTo(c.DefaultQuery("year", strconv.Itoa(time.Now().Year()))).MustInt()
 
 	paginator := logic.NewPaginator(curPage, limit)
 
 	data := make(map[string]interface{})
-	list, total, err := logic.DefaultContestLogic.DepartmentManagerGetContestGrade(paginator, contest, contestType, contestLevel, userID.(int64))
+	list, total, err := logic.DefaultContestLogic.DepartmentManagerGetContestGrade(paginator, contest, contestType, contestLevel, userID.(int64), isGroup, year)
 	if err != nil {
 		appG.ResponseErr(err.Error())
 		return

@@ -48,6 +48,9 @@ func (EnrollController) TeacherSearchEnroll(c *gin.Context) {
 	//startTime := c.DefaultQuery("start_time", "")
 	//endTime := c.DefaultQuery("end_time", "")
 	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
+	class := c.DefaultQuery("student_class", "")
+	major := c.DefaultQuery("major", "")
+	name := c.DefaultQuery("name", "")
 
 	key, exist := appG.C.Get("user_id")
 	if !exist {
@@ -71,7 +74,7 @@ func (EnrollController) TeacherSearchEnroll(c *gin.Context) {
 
 	paginator := logic.NewPaginator(curPage, limit)
 
-	list, total, err := logic.DefaultEnrollLogic.TeacherSearch(paginator, contestID, userID, contest /*startTime, endTime,*/, state, contestType, year)
+	list, total, err := logic.DefaultEnrollLogic.TeacherSearch(paginator, contestID, userID, contest, class, major, name /*startTime, endTime,*/, state, contestType, year)
 
 	if err != nil {
 		DPrintf("DisplayEnrollResult 发生错误:", err)
@@ -164,8 +167,8 @@ func (EnrollController) EnrollContest(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultEnrollLogic.InsertEnrollInformation(userID.(int64), form.ContestID, form.Handle, form.CollegeID, form.MajorID,
-		form.TeamName, form.GuidanceTeacher, form.TeacherTitle, form.TeacherDepartment, form.Phone, form.Email)
+	err = logic.DefaultEnrollLogic.InsertEnrollInformation(userID.(int64), form.ContestID, form.Handle,
+		form.TeamName, form.GuidanceTeacher, form.TeacherTitle, form.TeacherDepartment, form.Phone, form.Email, form.College, form.Major)
 	if err != nil {
 		DPrintf("EnrollContest logic.DefaultEnrollLogic.InsertEnrollInformation() 发生错误:", err)
 		appG.ResponseErr("报名失败", err.Error())
@@ -412,6 +415,10 @@ func (EnrollController) DepartmentManagerSearchEnroll(c *gin.Context) {
 	startTime := c.DefaultQuery("start_time", "")
 	endTime := c.DefaultQuery("end_time", "")
 	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
+	name := c.DefaultQuery("name", "")
+	major := c.DefaultQuery("major", "")
+	class := c.DefaultQuery("student_class", "")
+	studentSchoolID := c.DefaultQuery("student_school_id", "")
 
 	key, exist := appG.C.Get("user_id")
 	if !exist {
@@ -435,7 +442,7 @@ func (EnrollController) DepartmentManagerSearchEnroll(c *gin.Context) {
 
 	paginator := logic.NewPaginator(curPage, limit)
 
-	list, total, err := logic.DefaultEnrollLogic.DepartmentManagerSearchEnroll(paginator, contestID, userID, contest, startTime, endTime, state, contestType)
+	list, total, err := logic.DefaultEnrollLogic.DepartmentManagerSearchEnroll(paginator, contestID, userID, contest, startTime, endTime, state, contestType, name, major, class, studentSchoolID)
 
 	if err != nil {
 		DPrintf("DisplayEnrollResult 发生错误:", err)

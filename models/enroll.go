@@ -6,9 +6,9 @@ type EnrollForm struct {
 	StudentName       string `json:"student_name" xorm:""`
 	TeamName          string `json:"team_name" xorm:""`
 	Handle            int64  `json:"handle_team" xorm:""`
-	CollegeID         int64  `json:"college" xorm:""`
+	College           string `json:"college" xorm:""`
 	Teacher           string `json:"teacher_name"`
-	MajorID           int64  `json:"major" xorm:""`
+	Major             string `json:"major" xorm:""`
 	GuidanceTeacher   string `json:"guidance_teacher" xorm:""`
 	Class             string `json:"student_class" xorm:""`
 	TeacherDepartment string `json:"teacher_department" xorm:"`
@@ -115,11 +115,16 @@ type TeacherUploadGetEnroll struct {
 }
 
 type EnrollContestStudent_e_id struct {
-	ID        int64  `json:"id" xorm:"e_id"`
-	StudentID string `json:"student_id" xorm:"student_id"`
-	TeamID    int64  `json:"team_id" xorm:"team_id"`
-	//ContestID    string    `json:"contest_id" xorm:"contest_id"`
-	ContestID int64 `json:"contest_id" xorm:"contest_id"`
+	ID           int64  `json:"id" xorm:"e_id"`
+	StudentID    string `json:"student_id" xorm:"student_id"`
+	TeamID       int64  `json:"team_id" xorm:"team_id"`
+	Team         string `json:"team" xorm:"team_name"`
+	ContestID    int64  `json:"contest_id" xorm:"contest_id"`
+	Teacher      string `json:"teacher_name" xorm:"teacher_name"`
+	Title        string `json:"title"`
+	Department   string `json:"department"`
+	ContestLevel string `json:"contest_level"`
+	IsGroup      int    `json:"is_group" xorm:"is_group"`
 
 	SchoolID int64  `json:"school_id" xorm:"school_id"`
 	Phone    string `json:"phone" xorm:"phone"`
@@ -137,6 +142,7 @@ type EnrollContestStudent_e_id struct {
 	State        int       `json:"state" xorm:"state"`
 	Describe     string    `json:"desc" xorm:"describe"`
 	Deleted      OftenTime `json:"deleted" xorm:"deleted"`
+	Major        string    `json:"major"`
 	Student      `xorm:"extends"`
 	School       string `xorm:"school"`
 	College      string `xorm:"college"`

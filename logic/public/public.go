@@ -343,6 +343,19 @@ func SearchMajorByID(id int64) (*models.Major, error) {
 	return major, err
 }
 
+func SearchMajorByName(name string) (*models.Major, error) {
+	major := &models.Major{}
+	exist, err := MasterDB.Where("major = ?", name).Get(major)
+	if err != nil {
+		logging.L.Error(err)
+		return major, err
+	}
+	if !exist {
+		return major, errors.New("专业不存在")
+	}
+	return major, err
+}
+
 func SearchSemesterByID(id int64) (*models.Semester, error) {
 	semester := &models.Semester{}
 	exist, err := MasterDB.Where("semester_id = ?", id).Get(semester)
