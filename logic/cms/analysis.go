@@ -273,6 +273,46 @@ func (CmsAnalysisLogic) StudentRewardRate(contest string) (*models.RewardRate, e
 		return nil, err
 	}
 
+	//特等奖
+	Prize1, err := MasterDB.
+		Table("grade").
+		Where("contest_id = ? and state = ? and grade_id = ?", contestSearch.ID, Pass, 1).
+		Count()
+	if err != nil {
+		logging.L.Error(err)
+		return nil, err
+	}
+
+	//一等奖
+	Prize2, err := MasterDB.
+		Table("grade").
+		Where("contest_id = ? and state = ? and grade_id = ?", contestSearch.ID, Pass, 2).
+		Count()
+	if err != nil {
+		logging.L.Error(err)
+		return nil, err
+	}
+
+	//二等奖
+	Prize3, err := MasterDB.
+		Table("grade").
+		Where("contest_id = ? and state = ? and grade_id = ?", contestSearch.ID, Pass, 3).
+		Count()
+	if err != nil {
+		logging.L.Error(err)
+		return nil, err
+	}
+
+	//三等奖
+	Prize4, err := MasterDB.
+		Table("grade").
+		Where("contest_id = ? and state = ? and grade_id = ?", contestSearch.ID, Pass, 4).
+		Count()
+	if err != nil {
+		logging.L.Error(err)
+		return nil, err
+	}
+
 	fmt.Println(rewardCount)
 
 	enrollCount, err := MasterDB.
@@ -287,6 +327,10 @@ func (CmsAnalysisLogic) StudentRewardRate(contest string) (*models.RewardRate, e
 	data := models.RewardRate{
 		RewardCount: rewardCount,
 		EnrollCount: enrollCount,
+		Prize1:      Prize1,
+		Prize2:      Prize2,
+		Prize3:      Prize3,
+		Prize4:      Prize4,
 	}
 
 	data.Rate, _ = strconv.ParseFloat(fmt.Sprintf("%.2f", float64(rewardCount)/float64(enrollCount)), 64)

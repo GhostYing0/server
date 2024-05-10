@@ -7,9 +7,12 @@ import (
 	"server/middleware/jwt"
 	"server/utils/app"
 	. "server/utils/mydebug"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/unknwon/com"
 )
 
 type PublicController struct{}
@@ -188,7 +191,9 @@ func (PublicController) GetSemester(c *gin.Context) {
 func (PublicController) GetContest(c *gin.Context) {
 	appG := app.Gin{C: c}
 
-	data, err := logic.DefaultPublic.GetContest()
+	year := com.StrTo(c.DefaultQuery("year", strconv.Itoa(time.Now().Year()))).MustInt()
+
+	data, err := logic.DefaultPublic.GetContest(year)
 	if err != nil {
 		DPrintf("登出发生错误:", err)
 		appG.ResponseErr(err.Error())

@@ -65,6 +65,7 @@ func (self PublicLogic) Logout(token string) error {
 
 func (self PublicLogic) GetContestType() (*[]models.ContestType, error) {
 	list := &[]models.ContestType{}
+
 	err := MasterDB.Find(list)
 	if err != nil {
 		logging.L.Error(err)
@@ -382,13 +383,16 @@ func SearchContestTypeByName(name string) (*models.ContestType, error) {
 	return contestType, err
 }
 
-func (self PublicLogic) GetContest() (*[]models.ContestAndType, error) {
+func (self PublicLogic) GetContest(year int) (*[]models.ContestAndType, error) {
 	contest := &[]models.ContestAndType{}
+
+	startTime := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+	endTime := time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
 
 	_, err := MasterDB.
 		Table("contest").
 		Join("LEFT", "contest_type", "contest.contest_type_id = contest_type.id").
-		Where("contest.state = ?", Pass).
+		Where("contest.state = ? and contest.start_time > ? and contest.start_time < ?", Pass, startTime, endTime).
 		FindAndCount(contest)
 	if err != nil {
 		return nil, err

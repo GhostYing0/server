@@ -9,4 +9,5 @@ func RegisterRoutes(g *gin.RouterGroup) {
 	new(EnrollController).RegisterRoutes(g)
 	new(GradeController).RegisterRoutes(g)
 	new(ContestController).RegisterRoutes(g)
+	new(AnalysisController).RegisterRoutes(g)
 }

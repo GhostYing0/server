@@ -39,6 +39,10 @@ type RewardRate struct {
 	Rate        float64 `json:"rate"`
 	RewardCount int64   `json:"reward_count"`
 	EnrollCount int64   `json:"enroll_count"`
+	Prize1      int64   `json:"prize1"`
+	Prize2      int64   `json:"prize2"`
+	Prize3      int64   `json:"prize3"`
+	Prize4      int64   `json:"prize4"`
 }
 
 type MysqlSelectEnrollYearAndContestType struct {

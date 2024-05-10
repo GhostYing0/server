@@ -1,8 +1,7 @@
-package cms
+package controller
 
 import (
 	"errors"
-	"github.com/unknwon/com"
 	. "server/database"
 	_ "server/database"
 	logic "server/logic/cms"
@@ -10,6 +9,8 @@ import (
 	"server/utils/logging"
 	"strconv"
 	"time"
+
+	"github.com/unknwon/com"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,9 +28,9 @@ func (self AnalysisController) RegisterRoutes(g *gin.RouterGroup) {
 }
 
 func CheckManager(id int64) error {
-	exist, err := MasterDB.Table("cms_account").Where("id = ?", id).Exist()
+	exist, err := MasterDB.Table("department_account").Where("id = ?", id).Exist()
 	if !exist {
-		return errors.New("管理员不存在")
+		return errors.New("系部管理员不存在")
 	}
 	return err
 }
