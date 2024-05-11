@@ -145,6 +145,7 @@ func (self GradeController) TeacherDisplayGrade(c *gin.Context) {
 	class := c.DefaultQuery("student_class", "")
 	major := c.DefaultQuery("major", "")
 	name := c.DefaultQuery("name", "")
+	teamName := c.DefaultQuery("team_name", "")
 
 	if limit < 1 || curPage < 1 {
 		DPrintf("DisplayEnrollResult 查询表容量和页码应大于0")
@@ -173,7 +174,7 @@ func (self GradeController) TeacherDisplayGrade(c *gin.Context) {
 		return
 	}
 
-	list, total, err := logic.DefaultGradeLogic.TeacherSearch(paginator, grade, contest, class, major, name /*startTime, endTime,*/, state, contestID, user_id.(int64), role.(int), year)
+	list, total, err := logic.DefaultGradeLogic.TeacherSearch(paginator, grade, contest, class, major, name, teamName /*startTime, endTime,*/, state, contestID, user_id.(int64), role.(int), year)
 
 	if err != nil {
 		DPrintf("DisplayGrade 发生错误:", err)

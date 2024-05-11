@@ -51,6 +51,7 @@ func (EnrollController) TeacherSearchEnroll(c *gin.Context) {
 	class := c.DefaultQuery("student_class", "")
 	major := c.DefaultQuery("major", "")
 	name := c.DefaultQuery("name", "")
+	teamName := c.DefaultQuery("team_name", "")
 
 	key, exist := appG.C.Get("user_id")
 	if !exist {
@@ -74,7 +75,7 @@ func (EnrollController) TeacherSearchEnroll(c *gin.Context) {
 
 	paginator := logic.NewPaginator(curPage, limit)
 
-	list, total, err := logic.DefaultEnrollLogic.TeacherSearch(paginator, contestID, userID, contest, class, major, name /*startTime, endTime,*/, state, contestType, year)
+	list, total, err := logic.DefaultEnrollLogic.TeacherSearch(paginator, contestID, userID, contest, class, major, name, teamName /*startTime, endTime,*/, state, contestType, year)
 
 	if err != nil {
 		DPrintf("DisplayEnrollResult 发生错误:", err)

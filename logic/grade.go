@@ -274,7 +274,7 @@ func (self GradeLogic) InsertGradeInformation(user_id, enrollID int64, grade int
 		UpdateTime:      models.NewOftenTime().String(),
 		GuidanceTeacher: teacherAccount.TeacherID,
 		EnrollID:        enrollID,
-		RewardTime:      models.MysqlFormatString2String(rewardTime),
+		RewardTime:      rewardTime,
 		//PS:          ps,
 		State: 3,
 	}
@@ -382,7 +382,7 @@ func (self GradeLogic) Search(paginator *Paginator, grade int, contest string, s
 	return &list, total, session.Rollback()
 }
 
-func (self GradeLogic) TeacherSearch(paginator *Paginator, grade, contest, class, major, name string /* startTime string, endTime string,*/, state int, contestID, user_id int64, role, year int) (*[]models.ReturnGradeInformation, int64, error) {
+func (self GradeLogic) TeacherSearch(paginator *Paginator, grade, contest, class, major, name, teamName string /* startTime string, endTime string,*/, state int, contestID, user_id int64, role, year int) (*[]models.ReturnGradeInformation, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
 		logging.L.Error("Search 分页器为空")
@@ -435,8 +435,10 @@ func (self GradeLogic) TeacherSearch(paginator *Paginator, grade, contest, class
 	session.Join("LEFT", "teacher", "grade.guidance_teacher = teacher.teacher_id")
 	session.Join("LEFT", "department", "department.department_id = teacher.department_id")
 	session.Join("LEFT", "major", "student.major_id = major.major_id")
+	session.Join("LEFT", "enroll_information", "grade.enroll_id = enroll_information.id")
+	session.Join("LEFT", "team", "enroll_information.team_id = team.team_id")
 	session.Select("grade.id as id, teacher.name as t_name, grade.*, school.school,contest.*, college.college," +
-		"student.*,contest_type.type, " +
+		"student.*,contest_type.type, team.team_name, " +
 		"department.department,teacher.title, prize.prize, major.major")
 	if contestID > 0 {
 		session.Where("contest.id = ?", contestID)
@@ -460,6 +462,9 @@ func (self GradeLogic) TeacherSearch(paginator *Paginator, grade, contest, class
 	}
 	if major != "" {
 		session.Where("major.major like ?", "%"+major+"%")
+	}
+	if teamName != "" {
+		session.Where("team.team_name like ?", "%"+teamName+"%")
 	}
 	//if len(startTime) > 0 && len(endTime) > 0 {
 	//	start := times.StrToLocalTime(startTime)
@@ -490,6 +495,7 @@ func (self GradeLogic) TeacherSearch(paginator *Paginator, grade, contest, class
 		list[i].Certificate = (*data)[i].Certificate
 		list[i].Grade = (*data)[i].Grade
 		list[i].School = (*data)[i].School
+		list[i].Team = (*data)[i].Team
 		list[i].ContestType = (*data)[i].ContestType
 		list[i].Name = (*data)[i].Name
 		list[i].State = (*data)[i].GradeInformation.State
@@ -831,6 +837,15 @@ func (self GradeLogic) DepartmentManagerSearchGrade(paginator *Paginator, grade 
 	}
 	if state > 0 {
 		session.Where("grade.state = ?", state)
+	}
+	if major != "" {
+		session.Where("major.major like ?", "%"+major+"%")
+	}
+	if name != "" {
+		session.Where("student.name like ?", "%"+name+"%")
+	}
+	if class != "" {
+		session.Where("student.class like ?", "%"+class+"%")
 	}
 
 	data := &[]models.CurStudentGrade{}

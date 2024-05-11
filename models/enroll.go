@@ -203,6 +203,7 @@ type TeacherGetOneEnrollInformationReturn struct {
 	Username        string `json:"username" xorm:"username"`
 	StudentID       string `json:"student_id" xorm:"student_id"`
 	TeamID          int64  `json:"team_id" xorm:"team_id"`
+	ContestID       int64  `json:"contest_id"`
 	ContestType     string `json:"contest_type" xorm:"contest_type"`
 	CreateTime      string `json:"create_time" xorm:"create_time"`
 	ContestLevel    string `json:"contest_level" xorm:"contest_level"`

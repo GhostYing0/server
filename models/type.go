@@ -1,6 +1,7 @@
 package models
 
 import (
+	"server/utils/logging"
 	"server/utils/mydebug"
 	"time"
 )
@@ -56,7 +57,8 @@ func (this *OftenTime) UnmarshalJSON(data []byte) (err error) {
 func MysqlFormatString2String(str string) string {
 	parsedTimeMysql, err := time.Parse(time.RFC3339, str)
 	if err != nil {
-		mydebug.DPrintf("解析时间出错")
+		//mydebug.DPrintf("解析时间出错")
+		logging.L.Error(err)
 		return ""
 	}
 	stringTime := parsedTimeMysql.String()
@@ -64,7 +66,8 @@ func MysqlFormatString2String(str string) string {
 	loc, err := time.LoadLocation("Asia/Shanghai")
 	parsedTime, err := time.ParseInLocation("2006-01-02 15:04:05 MST", stringTime[:len(stringTime)-6], loc)
 	if err != nil {
-		mydebug.DPrintf("解析时间出错")
+		//mydebug.DPrintf("解析时间出错")
+		logging.L.Error(err)
 		return ""
 	}
 	formattedTime := parsedTime.Format("2006-01-02 15:04:05")

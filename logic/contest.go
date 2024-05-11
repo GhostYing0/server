@@ -785,7 +785,7 @@ func (self ContestLogic) CancelContest(id, userID int64) error {
 	return session.Commit()
 }
 
-func (self ContestLogic) DepartmentManagerGetContest(paginator *Paginator, contest, contestType string, contestLevel int, userID int64, isGroup, year int) (*[]models.DepartmentContestEnrollReturn, int64, error) {
+func (self ContestLogic) DepartmentManagerGetContest(paginator *Paginator, contest, contestType string, contestLevel int, userID int64, isGroup, year, state int) (*[]models.DepartmentContestEnrollReturn, int64, error) {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("CmsContestLogic Display session.Begin() 发生错误:", err)
@@ -811,7 +811,6 @@ func (self ContestLogic) DepartmentManagerGetContest(paginator *Paginator, conte
 	session.Join("LEFT", "contest", "contest.teacher_id = teacher.teacher_id")
 	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
 	session.Join("LEFT", "contest_level", "contest_level.contest_level_id = contest.contest_level_id")
-	session.Where("contest.state = ?", e.Pass)
 	session.Where("contest.start_time > ? and contest.start_time < ?", startTime, endTime)
 
 	if isGroup > 0 {
@@ -834,6 +833,9 @@ func (self ContestLogic) DepartmentManagerGetContest(paginator *Paginator, conte
 	if contestLevel != -1 {
 		session.Where("contest.contest_level_id = ?", contestLevel)
 	}
+	if state > 0 {
+		session.Where("contest.state = ?", state)
+	}
 
 	data := &[]models.ContestContestTypeTeacher{}
 
@@ -853,6 +855,7 @@ func (self ContestLogic) DepartmentManagerGetContest(paginator *Paginator, conte
 		list[i].College = (*data)[i].College
 		list[i].ID = (*data)[i].Contest.ID
 		list[i].State = (*data)[i].Contest.State
+		list[i].RejectReason = (*data)[i].Contest.RejectReason
 		list[i].Contest = (*data)[i].Contest.Contest
 		list[i].ContestType = (*data)[i].Contest.ContestType
 		list[i].ContestLevel = (*data)[i].Contest.ContestLevel
@@ -1115,9 +1118,9 @@ func (self ContestLogic) DepartmentManagerGetContestGrade(paginator *Paginator, 
 		list[i].Prize2Count = (*data)[i].Prize2Count
 		list[i].Prize3Count = (*data)[i].Prize3Count
 		list[i].Prize4Count = (*data)[i].Prize4Count
-		list[i].RewardCount, _ = session.Table("grade").Where("state = ? and contest_id = ?", e.Pass, (*data)[i].Contest.ID).Count()
-		list[i].RejectedCount, _ = session.Table("grade").Where("state = ? and contest_id = ?", e.Reject, (*data)[i].Contest.ID).Count()
-		list[i].ProcessingCount, _ = session.Table("grade").Where("state = ? and contest_id = ?", e.Processing, (*data)[i].Contest.ID).Count()
+		list[i].RewardCount, _ = MasterDB.Table("grade").Where("state = ? and contest_id = ?", e.Pass, (*data)[i].Contest.ID).Count()
+		list[i].RejectedCount, _ = MasterDB.Table("grade").Where("state = ? and contest_id = ?", e.Reject, (*data)[i].Contest.ID).Count()
+		list[i].ProcessingCount, _ = MasterDB.Table("grade").Where("state = ? and contest_id = ?", e.Processing, (*data)[i].Contest.ID).Count()
 	}
 
 	return &list, total, session.Commit()

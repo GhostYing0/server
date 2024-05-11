@@ -54,6 +54,7 @@ type GradeInformation struct {
 
 type CurStudentGrade struct {
 	GradeInformation `xorm:"extends"`
+	Team             string `xorm:"team_name"`
 	School           string `xorm:"school"`
 	Name             string `xorm:"name"`
 	TeacherName      string `xorm:"t_name"`
@@ -101,6 +102,7 @@ type ReturnGradeInformation struct {
 	ContestType     string `json:"contest_type" xorm:"type"`
 	PS              string `json:"ps" xorm:"ps"`
 	Major           string `json:"major"`
+	Team            string `json:"team_name"`
 	ContestEntry    string `json:"contest_entry"`
 	RejectReason    string `json:"reject_reason" xorm:"reject_reason"`
 	ContestLevel    string `json:"contest_level"`

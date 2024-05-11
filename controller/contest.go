@@ -424,11 +424,12 @@ func (ContestController) GetDepartmentContest(c *gin.Context) {
 	contestLevel := com.StrTo(c.DefaultQuery("contest_level", "-1")).MustInt()
 	year := com.StrTo(c.DefaultQuery("year", strconv.Itoa(time.Now().Year()))).MustInt()
 	isGroup := com.StrTo(c.DefaultQuery("is_group", "0")).MustInt()
+	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
 
 	paginator := logic.NewPaginator(curPage, limit)
 
 	data := make(map[string]interface{})
-	list, total, err := logic.DefaultContestLogic.DepartmentManagerGetContest(paginator, contest, contestType, contestLevel, userID.(int64), isGroup, year)
+	list, total, err := logic.DefaultContestLogic.DepartmentManagerGetContest(paginator, contest, contestType, contestLevel, userID.(int64), isGroup, year, state)
 	if err != nil {
 		appG.ResponseErr(err.Error())
 		return

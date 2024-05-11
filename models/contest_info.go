@@ -134,6 +134,7 @@ type DepartmentContestEnrollReturn struct {
 	CreateTime      string    `json:"create_time" xorm:"create_time"`
 	StartTime       string    `json:"start_time" xorm:"start_time"`
 	EnrollTime      string    `json:"enroll_time"`
+	RejectReason    string    `json:"reject_reason"`
 	Deadline        string    `json:"deadline" xorm:"deadline"`
 	State           int       `json:"state" xorm:"state"`
 	PassCount       int64     `json:"pass_count"`
