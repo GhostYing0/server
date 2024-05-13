@@ -15,13 +15,14 @@ type AccountController struct{}
 // 就是分为普通用户和管理员
 // RegisterRoutes
 func (self AccountController) RegisterRoutes(g *gin.RouterGroup) {
-	g.POST("/login", self.Login)                            // 普通用户登录
-	g.POST("/department_login", self.DepartmentLogin)       // 系部管理员登录
-	g.POST("/register", self.Register)                      // 普通用户注册
-	g.POST("/department_register", self.DepartmentRegister) // 系部管理员注册
-	g.POST("/update_passwd", self.UpdatePasswd)             // 普通用户修改密码
-	g.GET("/profileStudent", self.ProfileStudent)           //学生获取个人信息
-	g.GET("/profileTeacher", self.ProfileTeacher)           //教师获取个人信息
+	g.POST("/login", self.Login)                                      // 普通用户登录
+	g.POST("/department_login", self.DepartmentLogin)                 // 系部管理员登录
+	g.POST("/register", self.Register)                                // 普通用户注册
+	g.POST("/department_register", self.DepartmentRegister)           // 系部管理员注册
+	g.POST("/update_passwd", self.UpdatePasswd)                       // 普通用户修改密码
+	g.GET("/profileStudent", self.ProfileStudent)                     //学生获取个人信息
+	g.GET("/profileTeacher", self.ProfileTeacher)                     //教师获取个人信息
+	g.GET("/profileDepartmentManager", self.ProfileDepartmentManager) //系部管理人员获取个人信息
 	g.POST("/updateProfile", self.UpdateProfile)
 	g.POST("/updateTeacherProfile", self.UpdateTeacherProfile)
 	g.POST("/updateAvatar", self.UpdateAvatar)
@@ -139,6 +140,24 @@ func (AccountController) ProfileTeacher(c *gin.Context) {
 	}
 
 	data, err := logic.DefaultUserAccount.GetProfileTeacher(userID.(int64))
+	if err != nil {
+		app.ResponseErr(err.Error())
+		return
+	}
+	app.ResponseSucMsg(data)
+}
+
+func (AccountController) ProfileDepartmentManager(c *gin.Context) {
+	app := app.Gin{C: c}
+
+	userID, exist := c.Get("user_id")
+	if !exist {
+		app.ResponseErr("用户查找错误")
+		logging.L.Error("用户查找错误")
+		return
+	}
+
+	data, err := logic.DefaultUserAccount.GetProfileDepartmentManager(userID.(int64))
 	if err != nil {
 		app.ResponseErr(err.Error())
 		return

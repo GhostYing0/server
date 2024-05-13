@@ -36,10 +36,10 @@ func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, s
 	session.Join("LEFT", "account", "account.user_id = student.student_id")
 	session.Join("LEFT", "school", "school.school_id = student.school_id")
 	if name != "" {
-		session.Where("student.name = ?", name)
+		session.Where("student.name like ?", "%"+name+"%")
 	}
 	if contest != "" {
-		session.Where("contest.contest = ?", contest)
+		session.Where("contest.contest like ?", "%"+contest+"%")
 	}
 	if startTime != "" && endTime != "" {
 		session.Where("enroll_information.create_time > ? and enroll_information.create_time < ?", startTime, endTime)
@@ -215,7 +215,7 @@ func (self CmsEnrollLogic) Update(id int64, username string, name string, contes
 		return errors.New("报名信息不存在")
 	}
 
-	exist, err := session.Table("enroll_information").Where("student_id = ? && contest_id = ?", student.StudentID, contestInfo.ID).Exist()
+	exist, err := session.Table("enroll_information").Where("student_id = ? && contest_id = ? && id != ?", student.StudentID, contestInfo.ID, id).Exist()
 	if exist {
 		logging.L.Error("已有相同报名信息")
 		return errors.New("已有相同报名信息")

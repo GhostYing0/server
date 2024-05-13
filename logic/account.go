@@ -119,15 +119,15 @@ func (self UserAccountLogic) Register(username string, password string, confirmP
 		return errors.New("用户已存在")
 	}
 
-	searchSchoolResult := &models.School{}
-	has, err = session.Where("school = ?", school).Get(searchSchoolResult)
-	if err != nil {
-		DPrintf("Register 查询学校发生错误:", err)
-		return err
-	}
-	if !has {
-		return errors.New("学校不存在")
-	}
+	//searchSchoolResult := &models.School{}
+	//has, err = session.Where("school = ?", school).Get(searchSchoolResult)
+	//if err != nil {
+	//	DPrintf("Register 查询学校发生错误:", err)
+	//	return err
+	//}
+	//if !has {
+	//	return errors.New("学校不存在")
+	//}
 
 	searchCollegeResult := &models.College{}
 	has, err = session.Where("college = ?", college).Get(searchCollegeResult)
@@ -173,11 +173,11 @@ func (self UserAccountLogic) Register(username string, password string, confirmP
 		}
 
 		student := models.Student{
-			StudentID:  newAccount.UserID,
-			Name:       name,
-			Gender:     gender,
-			Class:      class,
-			SchoolID:   searchSchoolResult.SchoolID,
+			StudentID: newAccount.UserID,
+			Name:      name,
+			Gender:    gender,
+			Class:     class,
+			//SchoolID:   searchSchoolResult.SchoolID,
 			CollegeID:  searchCollegeResult.CollegeID,
 			SemesterID: searchSemesterResult.SemesterID,
 		}
@@ -198,7 +198,7 @@ func (self UserAccountLogic) Register(username string, password string, confirmP
 			TeacherID: newAccount.UserID,
 			Name:      name,
 			Gender:    gender,
-			SchoolID:  searchSchoolResult.SchoolID,
+			//SchoolID:  searchSchoolResult.SchoolID,
 			CollegeID: searchCollegeResult.CollegeID,
 		}
 		_, err = session.Insert(teacher)
@@ -378,6 +378,48 @@ func (self UserAccountLogic) GetProfileTeacher(userID int64) (*models.TeacherRet
 		Avatar:  data.Avatar,
 	}
 	return teacherReturn, err
+}
+
+func (self UserAccountLogic) GetProfileDepartmentManager(userID int64) (*models.DepartmentAccountReturn, error) {
+	session := MasterDB.NewSession()
+	if err := session.Begin(); err != nil {
+		DPrintf("Register session.Begin() 发生错误:", err)
+		logging.L.Error(err)
+		return nil, err
+	}
+	defer func() {
+		err := session.Close()
+		if err != nil {
+			DPrintf("Register session.Close() 发生错误:", err)
+			logging.L.Error(err)
+		}
+	}()
+
+	data := &models.DepartmentManagerInfo{}
+
+	session.Join("LEFT", "department", "department.department_id = department_account.department_id")
+	session.Join("LEFT", "school", "department_account.school_id = school.school_id")
+	session.Join("LEFT", "college", "department_account.college_id = college.college_id")
+
+	exist, err := session.Where("department_account.id = ? and department_account.role = ?", userID, DepartmentRole).Get(data)
+	if err != nil {
+		logging.L.Error(err)
+		return nil, err
+	}
+	if !exist {
+		logging.L.Error("用户不存在")
+		return nil, errors.New("用户不存在")
+	}
+
+	departmentAccountReturn := &models.DepartmentAccountReturn{
+		Name:       data.Name,
+		School:     data.School,
+		College:    data.College,
+		Phone:      data.Phone,
+		Email:      data.Email,
+		Department: data.Department,
+	}
+	return departmentAccountReturn, err
 }
 
 func (self UserAccountLogic) UpdateProfile(userID int64, role int, phone, email string) error {

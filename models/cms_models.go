@@ -143,6 +143,30 @@ type DepartmentAccount struct {
 	Deleted       OftenTime `json:"deleted" xorm:"deleted"`
 }
 
+type DepartmentManagerInfo struct {
+	DepartmentAccount `xorm:"extends"`
+	School            string `json:"school" xorm:"school"`
+	Department        string `json:"department" xorm:"department"`
+	College           string `json:"college" xorm:"college"`
+}
+
+type DepartmentAccountReturn struct {
+	ID            int64     `json:"id" xorm:"id"`
+	Username      string    `json:"username" xorm:"username"`
+	Password      string    `json:"password" xorm:"password"`
+	Role          int       `json:"role" xorm:"role"`
+	Name          string    `json:"name" xorm:"name"`
+	School        string    `json:"school" xorm:"school"`
+	College       string    `json:"college" xorm:"college"`
+	Department    string    `json:"department" xorm:"department"`
+	Phone         string    `json:"phone" xorm:"phone"`
+	Email         string    `json:"email" xorm:"email"`
+	CreateTime    OftenTime `json:"create_time" xorm:"create_time"`
+	UpdateTime    OftenTime `json:"update_time" xorm:"update_time"`
+	LastLoginTime OftenTime `json:"last_login_time" xorm:"last_login_time"`
+	Deleted       OftenTime `json:"deleted" xorm:"deleted"`
+}
+
 func (Department) TableName() string {
 	return "department"
 }

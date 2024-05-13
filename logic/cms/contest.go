@@ -15,7 +15,7 @@ type CmsContestLogic struct{}
 
 var DefaultCmsContest = CmsContestLogic{}
 
-func (self CmsContestLogic) Display(paginator *Paginator, contest, contestType string, state int) (*[]models.ContestReturn, int64, error) {
+func (self CmsContestLogic) Display(paginator *Paginator, contest, contestType string, state, contestLevel int) (*[]models.ContestReturn, int64, error) {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("CmsContestLogic Display session.Begin() 发生错误:", err)
@@ -34,16 +34,19 @@ func (self CmsContestLogic) Display(paginator *Paginator, contest, contestType s
 	session.Join("LEFT", "school", "teacher.school_id = school.school_id")
 	session.Join("LEFT", "college", "teacher.college_id = college.college_id")
 
-	searchContest, err := public.SearchContestByName(contest)
+	searchContestType, err := public.SearchContestTypeByName(contestType)
 	if err != nil {
 		logging.L.Error(err)
 	}
 
 	if contest != "" {
-		session.Where("contest.id = ?", searchContest.ID)
+		session.Where("contest.contest like ?", "%"+contest+"%")
+	}
+	if contestLevel > 0 {
+		session.Where("contest.contest_level_id = ?", contestLevel)
 	}
 	if contestType != "" {
-		session.Where("contest.contest_type_id = ?", searchContest.ID)
+		session.Where("contest.contest_type_id = ?", searchContestType.ContestTypeID)
 	}
 	if state != -1 {
 		session.Where("contest.state = ?", state)
