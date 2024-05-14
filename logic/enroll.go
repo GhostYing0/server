@@ -172,7 +172,7 @@ func (self EnrollLogic) InsertEnrollInformation(userID, contestID, handle int64,
 	return session.Commit()
 }
 
-func (self EnrollLogic) Search(paginator *Paginator, userID, EnrollID, contestLevel int64, contest string, startTime string, endTime string, state, isGroup int) (*[]models.EnrollInformationReturn, int64, error) {
+func (self EnrollLogic) Search(paginator *Paginator, userID, EnrollID, contestLevel int64, contest string, startTime string, endTime string, state, isGroup, role int) (*[]models.EnrollInformationReturn, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
 		logging.L.Error("Search 分页器为空")
@@ -217,9 +217,12 @@ func (self EnrollLogic) Search(paginator *Paginator, userID, EnrollID, contestLe
 	if contestLevel > 0 {
 		session.Where("contest.contest_level_id = ?", contestLevel)
 	}
-	session.Join("LEFT", "account", "account.user_id = enroll_information.student_id")
-	if userID > 0 {
-		session.Where("account.id = ?", userID)
+
+	if role == StudentRole {
+		session.Join("LEFT", "account", "account.user_id = enroll_information.student_id")
+		if userID > 0 {
+			session.Where("account.id = ?", userID)
+		}
 	}
 	if len(contest) > 0 {
 		session.Where("contest.contest like ?", "%"+contest+"%")

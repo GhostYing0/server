@@ -2,8 +2,6 @@ package cms
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/unknwon/com"
 	. "server/logic"
 	logic "server/logic/cms"
 	"server/models"
@@ -11,6 +9,9 @@ import (
 	. "server/utils/e"
 	. "server/utils/mydebug"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"github.com/unknwon/com"
 )
 
 type ContestController struct{}
@@ -40,11 +41,12 @@ func (ContestController) GetContest(c *gin.Context) {
 	contest := c.DefaultQuery("contest", "")
 	contestType := c.DefaultQuery("contest_type", "")
 	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
+	contestLevel := com.StrTo(c.DefaultQuery("state", "0")).MustInt()
 
 	paginator := NewPaginator(curPage, limit)
 
 	data := make(map[string]interface{})
-	list, total, err := logic.DefaultCmsContest.Display(paginator, contest, contestType, state)
+	list, total, err := logic.DefaultCmsContest.Display(paginator, contest, contestType, state, contestLevel)
 	if err != nil {
 		appG.ResponseErr(err.Error())
 		return

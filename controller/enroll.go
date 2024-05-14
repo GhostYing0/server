@@ -236,6 +236,12 @@ func (EnrollController) DisplayEnrollResult(c *gin.Context) {
 		appG.ResponseErr("userID类型错误")
 		return
 	}
+	role, ok := appG.C.Get("role")
+	if !ok {
+		DPrintf("DisplayEnrollResult userID类型错误")
+		appG.ResponseErr("userID类型错误")
+		return
+	}
 
 	if limit < 1 || curPage < 1 {
 		DPrintf("DisplayEnrollResult 查询表容量和页码应大于0")
@@ -247,7 +253,7 @@ func (EnrollController) DisplayEnrollResult(c *gin.Context) {
 
 	paginator := logic.NewPaginator(curPage, limit)
 
-	list, total, err := logic.DefaultEnrollLogic.Search(paginator, userID, EnrollID, contestLevel, contest, startTime, endTime, state, isGroup)
+	list, total, err := logic.DefaultEnrollLogic.Search(paginator, userID, EnrollID, contestLevel, contest, startTime, endTime, state, isGroup, role.(int))
 
 	if err != nil {
 		DPrintf("DisplayEnrollResult 发生错误:", err)
