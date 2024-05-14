@@ -151,7 +151,7 @@ func (self UserAccountLogic) Register(username string, password string, confirmP
 
 	_, err = session.Insert(newAccount)
 	if err != nil {
-		DPrintf("Login 添加新用户失败:", err)
+		DPrintf("添加新用户失败:", err)
 		fail := session.Rollback()
 		if fail != nil {
 			DPrintf("回滚失败")

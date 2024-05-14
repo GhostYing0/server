@@ -62,6 +62,9 @@ func (self EnrollLogic) InsertEnrollInformation(userID, contestID, handle int64,
 		logging.L.Error()
 		return err
 	}
+	if searchContest.State != Pass || searchContest.ContestState != EnrollOpen {
+		return errors.New("竞赛不可报名")
+	}
 	searchStudent, err := public.SearchStudentByID(account.UserID)
 	if err != nil {
 		logging.L.Error()
