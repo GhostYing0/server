@@ -16,7 +16,7 @@ type CmsEnrollLogic struct{}
 
 var DefaultEnrollContest = CmsEnrollLogic{}
 
-func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, startTime, endTime, school string, state int) (*[]models.EnrollInformationReturn, int64, error) {
+func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, startTime, endTime, school, major string, state int) (*[]models.EnrollInformationReturn, int64, error) {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("DisplayContest session.Begin() 发生错误:", err)
@@ -35,6 +35,7 @@ func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, s
 	session.Join("LEFT", "contest", "contest.id = enroll_information.contest_id")
 	session.Join("LEFT", "account", "account.user_id = student.student_id")
 	session.Join("LEFT", "school", "school.school_id = student.school_id")
+	session.Join("LEFT", "major", "student.major_id = major.major_id")
 	if name != "" {
 		session.Where("student.name like ?", "%"+name+"%")
 	}
@@ -46,6 +47,9 @@ func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, s
 	}
 	if state != -1 {
 		session.Where("enroll_information.state = ?", state)
+	}
+	if major != "" {
+		session.Where("major.major like ?", "%"+major+"%")
 	}
 	if school != "" {
 		searchSchool, err := public.SearchSchoolByName(school)
@@ -83,6 +87,9 @@ func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, s
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].EnrollInformation.CreateTime)
 		list[i].School = (*data)[i].School
 		list[i].Phone = (*data)[i].Phone
+		list[i].Major = (*data)[i].Major
+		list[i].Class = (*data)[i].Class
+		list[i].StudentSchoolID = (*data)[i].StudentSchoolID
 		list[i].Email = (*data)[i].Email
 		list[i].State = (*data)[i].EnrollInformation.State
 		list[i].RejectReason = (*data)[i].EnrollInformation.RejectReason

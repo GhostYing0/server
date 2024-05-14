@@ -40,6 +40,7 @@ func (RegistrationController) GetEnrollInformation(c *gin.Context) {
 	startTime := c.DefaultQuery("start_time", "")
 	endTime := c.DefaultQuery("end_time", "")
 	school := c.DefaultQuery("school", "")
+	major := c.DefaultQuery("major", "")
 	//phone := c.DefaultQuery("phone", "")
 	//email := c.DefaultQuery("email", "")
 	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
@@ -47,7 +48,7 @@ func (RegistrationController) GetEnrollInformation(c *gin.Context) {
 	paginator := NewPaginator(curPage, limit)
 
 	data := make(map[string]interface{})
-	list, total, err := logic.DefaultEnrollContest.Display(paginator, name, contest, startTime, endTime, school, state)
+	list, total, err := logic.DefaultEnrollContest.Display(paginator, name, contest, startTime, endTime, school, major, state)
 	if err != nil {
 		DPrintf("logic.DefaultRegistrationContest.Display 发生错误:", err)
 		appG.ResponseErr(err.Error())
