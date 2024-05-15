@@ -253,7 +253,7 @@ func (self GradeLogic) InsertGradeInformation(user_id, enrollID int64, grade int
 		return err
 	}
 
-	exist, err = session.Table("grade").Where("enroll_id = ?", enrollID).Exist()
+	exist, err = session.Table("grade").Where("enroll_id = ? and deleted is null", enrollID).Exist()
 	if exist {
 		logging.L.Error("已上传成绩，不能重复上传")
 		return errors.New("已上传成绩，不能重复上传")

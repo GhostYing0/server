@@ -70,10 +70,11 @@ func (g *Gin) ResponseSucMsg(data interface{}, msgs ...string) {
 }
 
 func (g *Gin) ResponseErr(msgs ...string) {
-	msgRet := "服务器发生错误"
+	//msgRet := "服务器发生错误"
+	msgRet := ""
 	data := make(map[string]interface{})
 	for _, msg := range msgs {
-		msgRet += " " + msg
+		msgRet += msg + " "
 	}
 
 	g.C.JSON(http.StatusOK, Response{
@@ -85,10 +86,11 @@ func (g *Gin) ResponseErr(msgs ...string) {
 }
 
 func (g *Gin) Response(code int, msgs ...string) {
-	msgRet := "服务器发生错误"
+	//msgRet := "服务器发生错误"
+	msgRet := ""
 	data := make(map[string]interface{})
 	for _, msg := range msgs {
-		msgRet += " " + msg
+		msgRet += msg + " "
 	}
 
 	g.C.JSON(http.StatusOK, Response{

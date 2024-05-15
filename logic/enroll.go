@@ -475,18 +475,39 @@ func (self EnrollLogic) TeacherSearch(paginator *Paginator, contestID, userID in
 	//startTime := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
 	//endTime := time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
 
-	session.Table("account").Where("user_id = ?", account.UserID)
-	session.Join("LEFT", "contest", "contest.teacher_id = account.user_id")
+	//session.Table("account").Where("user_id = ?", account.UserID)
+	//session.Join("LEFT", "contest", "contest.teacher_id = account.user_id")
+	//session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
+	//session.Join("RIGHT", "enroll_information", "contest.id = enroll_information.contest_id")
+	//session.Where("contest.id = ?", contestID)
+	//session.Where("contest.school_id = ? and enroll_information.state = ?", teacher.SchoolID, Pass)
+	//session.Join("LEFT", "student", "student.student_id = enroll_information.student_id")
+	//session.Join("LEFT", "major", "student.major_id = major.major_id")
+	//session.Join("LEFT", "school", "student.school_id = school.school_id")
+	//session.Join("LEFT", "teacher", "teacher.teacher_id = enroll_information.guidance_teacher")
+	//session.Join("LEFT", "department", "teacher.department_id = department.department_id")
+	//session.Join("LEFT", "team", "enroll_information.team_id = team.team_id")
+	//session.Select("account.user_id, enroll_information.*, contest.contest, contest_type.type, student.*," +
+	//	"major.*, school.school, college.college, semester.semester, team.team_name, major.major," +
+	//	"teacher.name as t_name, teacher.title, department.department as t_department")
+
+	session.Table("teacher").Where("teacher.teacher_id = ?", teacher.TeacherID)
+	session.Join("LEFT", "contest", "contest.teacher_id = teacher.teacher_id")
 	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
+	session.Join("LEFT", "contest_level", "contest_level.contest_level_id = contest.contest_level_id")
 	session.Join("RIGHT", "enroll_information", "contest.id = enroll_information.contest_id")
 	session.Where("contest.id = ?", contestID)
-	session.Where("contest.school_id = ? and enroll_information.state = ?", teacher.SchoolID, Pass)
+	session.Where("enroll_information.state = ?", Pass)
+	session.Select("contest.contest, contest_type.type contest_level.contest_level, enroll_information.*")
 	session.Join("LEFT", "student", "student.student_id = enroll_information.student_id")
 	session.Join("LEFT", "major", "student.major_id = major.major_id")
-	session.Join("LEFT", "school", "student.school_id = school.school_id")
+	session.Join("LEFT", "college", "college.college_id = student.college_id")
+	session.Join("LEFT", "teacher as guidance", "guidance.teacher_id = enroll_information.guidance_teacher")
+	session.Join("LEFT", "department", "teacher.department_id = department.department_id")
+	session.Join("LEFT", "semester", "student.semester_id = semester.semester_id")
 	session.Join("LEFT", "team", "enroll_information.team_id = team.team_id")
-	session.Select("account.user_id, enroll_information.*, contest.contest, contest_type.type, student.*," +
-		"major.*, school.school, college.college, semester.semester, team.team_name")
+	session.Select("contest.contest, contest_type.type, contest_level.contest_level, enroll_information.*," +
+		"major.major, student.*, department.department as t_department, guidance.name as t_name, guidance.title, college.college")
 
 	if len(contest) > 0 {
 		session.Where("contest.contest like ?", "%"+contest+"%")
@@ -500,8 +521,6 @@ func (self EnrollLogic) TeacherSearch(paginator *Paginator, contestID, userID in
 	if name != "" {
 		session.Where("student.name like ?", "%"+name+"%")
 	}
-	session.Join("LEFT", "college", "student.college_id = college.college_id")
-	session.Join("LEFT", "semester", "student.semester_id = semester.semester_id")
 	if major != "" {
 		session.Where("major.major like ?", "%"+major+"%")
 	}
@@ -544,6 +563,9 @@ func (self EnrollLogic) TeacherSearch(paginator *Paginator, contestID, userID in
 		list[i].Email = (*data)[i].Email
 		list[i].Major = (*data)[i].Major
 		list[i].Team = (*data)[i].Team
+		list[i].Title = (*data)[i].Title
+		list[i].TeacherName = (*data)[i].TeacherName
+		list[i].Department = (*data)[i].Department
 		list[i].RejectReason = (*data)[i].EnrollInformation.RejectReason
 		list[i].State = (*data)[i].EnrollInformation.State
 		startTime := models.FormatString2OftenTime(models.MysqlFormatString2String((*data)[i].StartTime))
