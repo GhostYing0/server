@@ -189,6 +189,11 @@ func (EnrollController) studentUpdateEnrollContest(c *gin.Context) {
 		appG.ResponseErr("用户不存在")
 		return
 	}
+	role, exist := c.Get("role")
+	if !exist {
+		appG.ResponseErr("无权限")
+		return
+	}
 
 	err := c.ShouldBindJSON(&form)
 	if err != nil {
@@ -197,7 +202,7 @@ func (EnrollController) studentUpdateEnrollContest(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultEnrollLogic.UpdateEnrollInformation(userID.(int64), form)
+	err = logic.DefaultEnrollLogic.UpdateEnrollInformation(userID.(int64), form, role.(int))
 	if err != nil {
 		DPrintf("EnrollContest logic.DefaultEnrollLogic.InsertEnrollInformation() 发生错误:", err)
 		appG.ResponseErr("报名失败", err.Error())

@@ -10,13 +10,14 @@ import (
 	"server/utils/e"
 	"server/utils/logging"
 	. "server/utils/mydebug"
+	"time"
 )
 
 type CmsEnrollLogic struct{}
 
 var DefaultEnrollContest = CmsEnrollLogic{}
 
-func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, startTime, endTime, school, major string, state int) (*[]models.EnrollInformationReturn, int64, error) {
+func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, startTime, endTime, school, major string, state, year int) (*[]models.EnrollInformationReturn, int64, error) {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("DisplayContest session.Begin() 发生错误:", err)
@@ -31,11 +32,15 @@ func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, s
 		}
 	}()
 
+	startYear := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+	endYear := time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+
 	session.Join("LEFT", "student", "student.student_id = enroll_information.student_id")
 	session.Join("LEFT", "contest", "contest.id = enroll_information.contest_id")
 	session.Join("LEFT", "account", "account.user_id = student.student_id")
 	session.Join("LEFT", "school", "school.school_id = student.school_id")
 	session.Join("LEFT", "major", "student.major_id = major.major_id")
+	session.Where("enroll_information.create_time > ? and enroll_information.create_time < ?", startYear, endYear)
 	if name != "" {
 		session.Where("student.name like ?", "%"+name+"%")
 	}

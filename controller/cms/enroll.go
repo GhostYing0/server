@@ -9,6 +9,7 @@ import (
 	"server/utils/app"
 	. "server/utils/mydebug"
 	"strconv"
+	"time"
 )
 
 type RegistrationController struct{}
@@ -44,11 +45,12 @@ func (RegistrationController) GetEnrollInformation(c *gin.Context) {
 	//phone := c.DefaultQuery("phone", "")
 	//email := c.DefaultQuery("email", "")
 	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
+	year := com.StrTo(c.DefaultQuery("year", strconv.Itoa(time.Now().Year()))).MustInt()
 
 	paginator := NewPaginator(curPage, limit)
 
 	data := make(map[string]interface{})
-	list, total, err := logic.DefaultEnrollContest.Display(paginator, name, contest, startTime, endTime, school, major, state)
+	list, total, err := logic.DefaultEnrollContest.Display(paginator, name, contest, startTime, endTime, school, major, state, year)
 	if err != nil {
 		DPrintf("logic.DefaultRegistrationContest.Display 发生错误:", err)
 		appG.ResponseErr(err.Error())

@@ -164,6 +164,13 @@ func (ContestController) ViewTeacherContest(c *gin.Context) {
 		return
 	}
 
+	role, exist := c.Get("role")
+	if !exist {
+		appG.ResponseErr("分页器参数错误")
+		logging.L.Error("用户不存在")
+		return
+	}
+
 	if limit < 0 || curPage < 0 {
 		DPrintf("分页器参数错误")
 		appG.ResponseErr("分页器参数错误")
@@ -173,7 +180,7 @@ func (ContestController) ViewTeacherContest(c *gin.Context) {
 	paginator := logic.NewPaginator(curPage, limit)
 
 	data := make(map[string]interface{})
-	list, total, err := logic.DefaultContestLogic.ViewTeacherContest(paginator, contestID, contestLevel, userID.(int64), contest, contestType, state, year, isGroup)
+	list, total, err := logic.DefaultContestLogic.ViewTeacherContest(paginator, contestID, contestLevel, userID.(int64), contest, contestType, state, year, isGroup, role.(int))
 	if err != nil {
 		DPrintf(" logic.DefaultEnrollLogic.DisplayContest 错误:", err)
 		appG.ResponseErr(err.Error())
@@ -278,6 +285,11 @@ func (ContestController) UpdateContest(c *gin.Context) {
 		appG.ResponseErr("用户不存在")
 		return
 	}
+	role, exist := c.Get("role")
+	if !exist {
+		appG.ResponseErr("用户不存在")
+		return
+	}
 
 	err := c.ShouldBindJSON(form)
 	if err != nil {
@@ -286,7 +298,7 @@ func (ContestController) UpdateContest(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultContestLogic.UpdateContest(userID.(int64), form)
+	err = logic.DefaultContestLogic.UpdateContest(userID.(int64), form, role.(int))
 	if err != nil {
 		fmt.Println("logic.UpdateContestInfo error:", err)
 		appG.ResponseErr(err.Error())
@@ -465,7 +477,7 @@ func (ContestController) GetContestDetail(c *gin.Context) {
 		return
 	}
 
-	if role != e.DepartmentRole {
+	if role != e.DepartmentRole && role != e.CmsManagerRole {
 		appG.ResponseErr("无权限")
 		return
 	}
@@ -483,7 +495,7 @@ func (ContestController) GetContestDetail(c *gin.Context) {
 	//paginator := logic.NewPaginator(curPage, limit)
 
 	data := make(map[string]interface{})
-	list, total, err := logic.DefaultContestLogic.GetContestDetail(userID.(int64), ID)
+	list, total, err := logic.DefaultContestLogic.GetContestDetail(userID.(int64), ID, role.(int))
 	if err != nil {
 		appG.ResponseErr(err.Error())
 		return

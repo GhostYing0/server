@@ -9,6 +9,7 @@ import (
 	. "server/utils/e"
 	. "server/utils/mydebug"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/unknwon/com"
@@ -39,14 +40,19 @@ func (ContestController) GetContest(c *gin.Context) {
 	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
 	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
 	contest := c.DefaultQuery("contest", "")
-	contestType := c.DefaultQuery("contest_type", "")
+	contestType := c.DefaultQuery("type", "")
 	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
-	contestLevel := com.StrTo(c.DefaultQuery("state", "0")).MustInt()
+	startTime := c.DefaultQuery("start_time", "")
+	endTime := c.DefaultQuery("end_time", "")
+	contestLevel := com.StrTo(c.DefaultQuery("contest_level", "0")).MustInt()
+	year := com.StrTo(c.DefaultQuery("year", strconv.Itoa(time.Now().Year()))).MustInt()
+	contestEntry := c.DefaultQuery("contest_entry", "")
+	isGroup := com.StrTo(c.DefaultQuery("is_group", "2")).MustInt()
 
 	paginator := NewPaginator(curPage, limit)
 
 	data := make(map[string]interface{})
-	list, total, err := logic.DefaultCmsContest.Display(paginator, contest, contestType, state, contestLevel)
+	list, total, err := logic.DefaultCmsContest.Display(paginator, contest, contestType, startTime, endTime, contestEntry, state, contestLevel, year, isGroup)
 	if err != nil {
 		appG.ResponseErr(err.Error())
 		return

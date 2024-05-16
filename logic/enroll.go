@@ -748,7 +748,7 @@ func (self EnrollLogic) PassEnroll(ids *[]int64, state int) (int64, error) {
 	return count, session.Commit()
 }
 
-func (self EnrollLogic) UpdateEnrollInformation(userID int64, form models.EnrollForm) error {
+func (self EnrollLogic) UpdateEnrollInformation(userID int64, form models.EnrollForm, role int) error {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("InsertEnrollInformation session.Begin() 发生错误:", err)
@@ -761,10 +761,16 @@ func (self EnrollLogic) UpdateEnrollInformation(userID int64, form models.Enroll
 		}
 	}()
 
-	_, err := public.SearchAccountByID(userID)
-	if err != nil {
-		logging.L.Error(err)
-		return err
+	if role == StudentRole {
+		_, err := public.SearchAccountByID(userID)
+		if err != nil {
+			logging.L.Error(err)
+			return err
+		}
+	} else if role == CmsManagerRole {
+
+	} else {
+		return errors.New("无权限")
 	}
 
 	enroll := models.EnrollInformation{}

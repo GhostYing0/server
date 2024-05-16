@@ -9,13 +9,14 @@ import (
 	"server/models"
 	"server/utils/logging"
 	. "server/utils/mydebug"
+	"time"
 )
 
 type CmsContestLogic struct{}
 
 var DefaultCmsContest = CmsContestLogic{}
 
-func (self CmsContestLogic) Display(paginator *Paginator, contest, contestType string, state, contestLevel int) (*[]models.ContestReturn, int64, error) {
+func (self CmsContestLogic) Display(paginator *Paginator, contest, contestType, startTime, endTime, contestEntry string, state, contestLevel, year, isGroup int) (*[]models.ContestReturn, int64, error) {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("CmsContestLogic Display session.Begin() 发生错误:", err)
@@ -28,11 +29,18 @@ func (self CmsContestLogic) Display(paginator *Paginator, contest, contestType s
 		}
 	}()
 
+	startYear := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+	endYear := time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+
 	session.Join("LEFT", "teacher", "contest.teacher_id = teacher.teacher_id")
+	session.Where("contest.create_time > ? and contest.create_time < ?", startYear, endYear)
 	session.Join("LEFT", "account", "account.user_id = teacher.teacher_id")
 	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
+	session.Join("LEFT", "contest_level", "contest.contest_level_id = contest_level.contest_level_id")
 	session.Join("LEFT", "school", "teacher.school_id = school.school_id")
 	session.Join("LEFT", "college", "teacher.college_id = college.college_id")
+	session.Join("LEFT", "department", "teacher.department_id = department.department_id")
+	session.Join("LEFT", "contest_entry", "contest.contest_entry_id = contest_entry.contest_entry_id")
 
 	searchContestType, err := public.SearchContestTypeByName(contestType)
 	if err != nil {
@@ -45,11 +53,20 @@ func (self CmsContestLogic) Display(paginator *Paginator, contest, contestType s
 	if contestLevel > 0 {
 		session.Where("contest.contest_level_id = ?", contestLevel)
 	}
+	if contestEntry != "" {
+		session.Where("contest_entry.contest_entry like ?", "%"+contestEntry+"%")
+	}
+	if startTime != "" && endTime != "" {
+		session.Where("contest.create_time > ? and contest.create_time < ?", startTime, endTime)
+	}
 	if contestType != "" {
 		session.Where("contest.contest_type_id = ?", searchContestType.ContestTypeID)
 	}
 	if state != -1 {
 		session.Where("contest.state = ?", state)
+	}
+	if isGroup > 0 {
+		session.Where("contest.is_group = ?", isGroup)
 	}
 
 	data := &[]models.ContestContestTypeTeacher{}
@@ -71,7 +88,9 @@ func (self CmsContestLogic) Display(paginator *Paginator, contest, contestType s
 		list[i].Contest = (*data)[i].Contest.Contest
 		list[i].ContestType = (*data)[i].Contest.ContestType
 		list[i].Describe = (*data)[i].Describe
-		list[i].RejectReason = (*data)[i].RejectReason
+		list[i].ContestLevel = (*data)[i].ContestLevel
+		list[i].ContestEntry = (*data)[i].ContestEntry
+		list[i].Department = (*data)[i].Department
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].Contest.CreateTime)
 		list[i].StartTime = models.MysqlFormatString2String((*data)[i].Contest.StartTime)
 		list[i].Deadline = models.MysqlFormatString2String((*data)[i].Contest.Deadline)

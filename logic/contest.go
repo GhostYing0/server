@@ -125,7 +125,7 @@ func (self ContestLogic) DisplayContest(paginator *Paginator, contest, contestTy
 	return &list, total, session.Commit()
 }
 
-func (self ContestLogic) GetContestDetail(userID, contestID int64) (*[]models.ContestDetail, int64, error) {
+func (self ContestLogic) GetContestDetail(userID, contestID int64, role int) (*[]models.ContestDetail, int64, error) {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("CmsContestLogic Display session.Begin() 发生错误:", err)
@@ -138,13 +138,19 @@ func (self ContestLogic) GetContestDetail(userID, contestID int64) (*[]models.Co
 		}
 	}()
 
-	departmentAccount, err := public.SearchDepartmentManagerByID(userID)
-	if err != nil {
-		logging.L.Error()
-		return nil, 0, err
+	if role == e.DepartmentRole {
+		departmentAccount, err := public.SearchDepartmentManagerByID(userID)
+		if err != nil {
+			logging.L.Error()
+			return nil, 0, err
+		}
+		session.Table("teacher").Where("teacher.school_id = ? and teacher.college_id = ? and teacher.department_id = ?", departmentAccount.SchoolID, departmentAccount.CollegeID, departmentAccount.DepartmentID)
+	} else if role == e.CmsManagerRole {
+		session.Table("teacher")
+	} else {
+		return nil, 0, errors.New("无权限")
 	}
 
-	session.Table("teacher").Where("teacher.school_id = ? and teacher.college_id = ? and teacher.department_id = ?", departmentAccount.SchoolID, departmentAccount.CollegeID, departmentAccount.DepartmentID)
 	session.Join("LEFT", "contest", "contest.teacher_id = teacher.teacher_id")
 	session.Where("contest.id = ?", contestID)
 	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
@@ -252,7 +258,7 @@ func (self ContestLogic) StudentGetOneContest(paginator *Paginator, contestID, u
 	return &list, total, session.Commit()
 }
 
-func (self ContestLogic) ViewTeacherContest(paginator *Paginator, contestID, contestLevel, userID int64, contest, contestType string, state, year, isGroup int) (*[]models.ContestReturn, int64, error) {
+func (self ContestLogic) ViewTeacherContest(paginator *Paginator, contestID, contestLevel, userID int64, contest, contestType string, state, year, isGroup, role int) (*[]models.ContestReturn, int64, error) {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("DisplayContest session.Begin() 发生错误:", err)
@@ -267,20 +273,36 @@ func (self ContestLogic) ViewTeacherContest(paginator *Paginator, contestID, con
 		}
 	}()
 
-	account, err := public.SearchAccountByID(userID)
-	if err != nil {
-		logging.L.Error(err)
-		return nil, 0, err
-	}
-
 	startTime := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
 	endTime := time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
 
 	session.Table("contest")
 	session.Join("LEFT", "contest_type", "contest.contest_type_id = contest_type.id")
 	session.Join("LEFT", "contest_level", "contest.contest_level_id = contest_level.contest_level_id")
-	session.Where("contest.teacher_id = ?", account.UserID)
-	session.Where("contest.start_time > ? and contest.start_time < ?", startTime, endTime)
+	session.Join("LEFT", "contest_entry", "contest.contest_entry_id = contest_entry.contest_entry_id")
+	session.Join("LEFT", "teacher", "contest.teacher_id = teacher.teacher_id")
+	session.Join("LEFT", "department", "teacher.department_id = department.department_id")
+
+	if contestID > 0 {
+		session.Where("contest.id = ?", contestID)
+	}
+
+	if role == e.TeacherRole {
+		account, err := public.SearchAccountByID(userID)
+		if err != nil {
+			logging.L.Error(err)
+			return nil, 0, err
+		}
+		session.Where("contest.teacher_id = ?", account.UserID)
+	} else if role == e.CmsManagerRole {
+
+	} else {
+		return nil, 0, errors.New("无权限")
+	}
+
+	if contestID <= 0 {
+		session.Where("contest.start_time > ? and contest.start_time < ?", startTime, endTime)
+	}
 	if isGroup > 0 {
 		session.Where("contest.is_group = ?", isGroup)
 	}
@@ -301,9 +323,6 @@ func (self ContestLogic) ViewTeacherContest(paginator *Paginator, contestID, con
 		} else {
 			session.Where("contest.contest_type_id = ?", searchContestType.ContestTypeID)
 		}
-	}
-	if contestID > 0 {
-		session.Where("contest.id = ?", contestID)
 	}
 
 	data := &[]models.ContestInfoType{}
@@ -334,8 +353,12 @@ func (self ContestLogic) ViewTeacherContest(paginator *Paginator, contestID, con
 		list[i].IsGroup = (*data)[i].IsGroup
 		list[i].ContestLevel = (*data)[i].ContestLevel
 		list[i].ContestEntry = (*data)[i].ContestEntry
+		list[i].ContestEntryID = (*data)[i].ContestEntryID
 		list[i].MaxGroupNumber = (*data)[i].MaxGroupNumber
 		list[i].EnrollTime = (*data)[i].EnrollTime.String()
+		list[i].Name = (*data)[i].Teacher
+		list[i].Title = (*data)[i].Title
+		list[i].Department = (*data)[i].Department
 		// 竞赛可报名条件，审核通过，在报名截至时间之前，且教师未关闭报名
 		if (*data)[i].State == e.Pass && (*data)[i].ContestState == e.EnrollOpen && models.NewOftenTime().Before(&(*data)[i].Deadline) {
 			list[i].ContestState = e.EnrollOpen
@@ -435,7 +458,7 @@ func (self ContestLogic) ViewTeacherContestGrade(paginator *Paginator, userID in
 	return &list, total, session.Commit()
 }
 
-func (self ContestLogic) UpdateContest(userID int64, form *models.UpdateContestForm) error {
+func (self ContestLogic) UpdateContest(userID int64, form *models.UpdateContestForm, role int) error {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("ProcessEnroll session.Begin() 发生错误:", err)
@@ -450,21 +473,36 @@ func (self ContestLogic) UpdateContest(userID int64, form *models.UpdateContestF
 		}
 	}()
 
-	account, err := public.SearchAccountByID(userID)
-	if err != nil {
-		logging.L.Error(err)
-		return err
-	}
+	if role == e.TeacherRole {
+		account, err := public.SearchAccountByID(userID)
+		if err != nil {
+			logging.L.Error(err)
+			return err
+		}
 
-	session.Table("contest")
-	exist, err := session.Where("teacher_id = ? and id = ?", account.UserID, form.ID).Exist()
-	if err != nil {
-		logging.L.Error(err)
-		return err
-	}
-	if !exist {
-		logging.L.Error("竞赛不存在")
-		return errors.New("竞赛不存在")
+		session.Table("contest")
+		exist, err := session.Where("teacher_id = ? and id = ?", account.UserID, form.ID).Exist()
+		if err != nil {
+			logging.L.Error(err)
+			return err
+		}
+		if !exist {
+			logging.L.Error("竞赛不存在")
+			return errors.New("竞赛不存在")
+		}
+	} else if role == e.CmsManagerRole {
+		session.Table("contest")
+		exist, err := session.Where("id = ?", form.ID).Exist()
+		if err != nil {
+			logging.L.Error(err)
+			return err
+		}
+		if !exist {
+			logging.L.Error("竞赛不存在")
+			return errors.New("竞赛不存在")
+		}
+	} else {
+		return errors.New("无权限")
 	}
 
 	searchContestType, err := public.SearchContestTypeByName(form.ContestType)
@@ -473,7 +511,7 @@ func (self ContestLogic) UpdateContest(userID int64, form *models.UpdateContestF
 		return err
 	}
 
-	exist, err = session.Table("contest").Where("id != ? and contest = ? and contest_type_id = ? and contest_entry_id = ?", form.ID, form.Contest, searchContestType.ContestTypeID, form.ContestEntry).Exist()
+	exist, err := session.Table("contest").Where("id != ? and contest = ? and contest_type_id = ? and contest_entry_id = ?", form.ID, form.Contest, searchContestType.ContestTypeID, form.ContestEntry).Exist()
 	if exist {
 		logging.L.Error("已有同名竞赛")
 		return errors.New("已有同名竞赛")
@@ -487,7 +525,7 @@ func (self ContestLogic) UpdateContest(userID int64, form *models.UpdateContestF
 		Contest:        form.Contest,
 		ContestType:    searchContestType.ContestTypeID,
 		ContestState:   form.ContestState,
-		ContestEntry:   form.ContestEntry,
+		ContestEntryID: form.ContestEntryID,
 		IsGroup:        form.IsGroup,
 		MaxGroupNumber: form.MaxGroupNumber,
 		ContestLevelID: form.ContestLevelID,
@@ -636,7 +674,7 @@ func (self ContestLogic) UploadContest(userId int64, form *models.TeacherUploadC
 		ContestState:   2,
 		CreateTime:     models.NewOftenTime(),
 		Describe:       form.Desc,
-		ContestEntry:   form.ContestEntry,
+		ContestEntryID: form.ContestEntry,
 		Prize1Count:    form.Prize1,
 		Prize2Count:    form.Prize2,
 		Prize3Count:    form.Prize3,

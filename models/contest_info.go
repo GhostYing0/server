@@ -50,9 +50,10 @@ type ContestInfo struct {
 	Prize4Count    int64     `json:"prize4_count" xorm:"prize4_count"`
 	IsGroup        int       `json:"is_group" xorm:"is_group"`
 	MaxGroupNumber int       `json:"max_group_number" xorm:"max_group_number"`
-	ContestEntry   int64     `json:"contest_entry_id" xorm:"contest_entry_id"`
-	Ps             string    `json:"ps" xorm:"ps"`
-	Deleted        OftenTime `json:"deleted" xorm:"deleted"`
+	ContestEntryID int64     `json:"contest_entry_id" xorm:"contest_entry_id"`
+	//ContestEntry   string    `json:"contest_entry" xorm:"contest_entry"`
+	Ps      string    `json:"ps" xorm:"ps"`
+	Deleted OftenTime `json:"deleted" xorm:"deleted"`
 }
 
 type ContestInfoType struct {
@@ -60,6 +61,10 @@ type ContestInfoType struct {
 	ContestType    `xorm:"extends"`
 	ContestLevel   string `xorm:"contest_level"`
 	ContestLevelID int64  `xorm:"contest_level_id"`
+	Teacher        string `json:"teacher" xorm:"name"`
+	Title          string `json:"title" xorm:"title"`
+	Department     string `json:"department" xorm:"department"`
+	ContestEntry   string `json:"contest_entry"`
 }
 
 func (ContestInfoType) TableName() string {
@@ -81,6 +86,7 @@ type ContestReturn struct {
 	EnrollTime     string    `json:"enroll_time" xorm:"enroll_time"`
 	State          int       `json:"state" xorm:"state"`
 	Describe       string    `json:"desc" xorm:"describe"`
+	Department     string    `json:"department"`
 	ContestLevel   string    `json:"contest_level" xorm:"contest_leve;"`
 	RejectReason   string    `json:"reject_reason" xorm:"reject_reason"`
 	Prize1Count    int64     `json:"prize1" xorm:"prize1_count"`
@@ -89,8 +95,10 @@ type ContestReturn struct {
 	Prize4Count    int64     `json:"prize4" xorm:"prize4_count"`
 	IsGroup        int       `json:"is_group" xorm:"is_group"`
 	ContestLevelID int64     `json:"contest_level_id"`
-	ContestEntry   int64     `json:"contest_entry"`
+	ContestEntry   string    `json:"contest_entry"`
+	ContestEntryID int64     `json:"contest_entry_id"`
 	MaxGroupNumber int       `json:"max_group_number" xorm:"max_group_number"`
+	Title          string    `json:"title"`
 	Deleted        OftenTime `json:"deleted" xorm:"deleted"`
 }
 
@@ -219,7 +227,8 @@ type Contest struct {
 	Contest        string    `json:"contest" xorm:"contest"`
 	ContestState   int       `json:"contest_state" xorm:"contest_state"`
 	ContestType    string    `json:"type" xorm:"type"`
-	ContestEntry   int64     `json:"contest_entry" xorm:"contest_entry_id"`
+	ContestEntryID int64     `json:"contest_entry_id" xorm:"contest_entry_id"`
+	ContestEntry   string    `json:"contest_entry" xorm:"contest_entry"`
 	CreateTime     string    `json:"create_time" xorm:"create_time"`
 	StartTime      string    `json:"start_time" xorm:"start_time"`
 	EnrollTime     string    `json:"enroll_time" xorm:"enroll_time"`
@@ -245,10 +254,11 @@ type ProcessContest struct {
 }
 
 type ContestContestTypeTeacher struct {
-	Contest `xorm:"extends"`
-	Name    string `xorm:"name"`
-	School  string `xorm:"school"`
-	College string `xorm:"college"`
+	Contest    `xorm:"extends"`
+	Name       string `xorm:"name"`
+	School     string `xorm:"school"`
+	College    string `xorm:"college"`
+	Department string `xorm:"department"`
 }
 
 type ContestContestTypeTeacherGrade struct {
