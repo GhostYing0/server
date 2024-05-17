@@ -19,7 +19,7 @@ type CmsStudentLogic struct{}
 
 var DefaultCmsStudent = CmsStudentLogic{}
 
-func (self CmsStudentLogic) DisplayStudent(paginator *Paginator, username, gender, school, semester, college, class, name string) (*[]models.StudentReturn, int64, error) {
+func (self CmsStudentLogic) DisplayStudent(paginator *Paginator, username, gender, school, semester, college, class, name, major, studentSchoolID string) (*[]models.StudentReturn, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
 		logging.L.Error("Search 分页器为空")
@@ -40,12 +40,15 @@ func (self CmsStudentLogic) DisplayStudent(paginator *Paginator, username, gende
 	}()
 
 	//查询学生
-	session.Table("account").Where("role = ?", 1)
+	session.Table("account").Where("role = ?", e.StudentRole)
 
 	if username != "" {
-		session.Table("account").Where("username = ?", username)
+		session.Table("account").Where("username like ?", "%"+username+"%")
 	}
 	session.Join("LEFT", "student", "account.user_id = student.student_id")
+	session.Join("LEFT", "college", "college.college_id = student.college_id")
+	session.Join("LEFT", "major", "student.major_id = major.major_id")
+	session.Join("LEFT", "semester", "student.semester_id = semester.semester_id")
 	if gender != "" {
 		session.Where("student.gender = ?", gender)
 	}
@@ -58,26 +61,22 @@ func (self CmsStudentLogic) DisplayStudent(paginator *Paginator, username, gende
 		}
 	}
 	if semester != "" {
-		searchSemester, err := public.SearchSemesterByName(semester)
-		if err != nil {
-			logging.L.Error(err)
-		} else {
-			session.Where("student.semester_id = ?", searchSemester.SemesterID)
-		}
+		session.Where("semester.semester like ?", "%"+semester+"%")
 	}
 	if college != "" {
-		searchCollege, err := public.SearchCollegeByName(college)
-		if err != nil {
-			logging.L.Error(err)
-		} else {
-			session.Where("student.college_id = ?", searchCollege.CollegeID)
-		}
+		session.Where("college.college like ?", "%"+college+"%")
 	}
 	if name != "" {
-		session.Where("student.name = ?", name)
+		session.Where("student.name like ?", "%"+name+"%")
 	}
 	if class != "" {
-		session.Where("student.class = ?", class)
+		session.Where("student.class like ?", "%"+class+"%")
+	}
+	if major != "" {
+		session.Where("major.major like ?", "%"+major+"%")
+	}
+	if studentSchoolID != "" {
+		session.Where("student.student_school_id like ?", "%"+studentSchoolID+"%")
 	}
 
 	data := &[]models.AccountStudent{}
@@ -103,6 +102,10 @@ func (self CmsStudentLogic) DisplayStudent(paginator *Paginator, username, gende
 		list[i].Name = (*data)[i].Name
 		list[i].Gender = (*data)[i].Gender
 		list[i].Class = (*data)[i].Class
+		list[i].Major = (*data)[i].Major
+		list[i].StudentSchoolID = (*data)[i].StudentSchoolID
+		list[i].College = (*data)[i].College
+		list[i].Semester = (*data)[i].Semester
 		list[i].Avatar = (*data)[i].Avatar
 
 		searchSchool := &models.School{}
@@ -131,7 +134,7 @@ func (self CmsStudentLogic) DisplayStudent(paginator *Paginator, username, gende
 	return &list, total, session.Rollback()
 }
 
-func (self CmsStudentLogic) AddStudent(username, password, name, gender, school, college, class, semester, avatar string) error {
+func (self CmsStudentLogic) AddStudent(username, password, name, gender, school, college, class, semester, avatar, major, studentSchoolID string) error {
 	if len(username) == 0 || len(password) == 0 {
 		logging.L.Error("账号和密码不能为空")
 		return nil
@@ -156,17 +159,22 @@ func (self CmsStudentLogic) AddStudent(username, password, name, gender, school,
 		return errors.New("用户已存在")
 	}
 
-	searchSchool, err := public.SearchSchoolByName(school)
-	if err != nil {
-		logging.L.Error(err)
-		return err
-	}
+	//searchSchool, err := public.SearchSchoolByName(school)
+	//if err != nil {
+	//	logging.L.Error(err)
+	//	return err
+	//}
 	searchSemester, err := public.SearchSemesterByName(semester)
 	if err != nil {
 		logging.L.Error(err)
 		return err
 	}
 	searchCollege, err := public.SearchCollegeByName(college)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+	searchMajor, err := public.SearchMajorByName(major)
 	if err != nil {
 		logging.L.Error(err)
 		return err
@@ -181,14 +189,16 @@ func (self CmsStudentLogic) AddStudent(username, password, name, gender, school,
 	}
 
 	student := &models.Student{
-		StudentID:  studentID,
-		Name:       name,
-		Gender:     gender,
-		SchoolID:   searchSchool.SchoolID,
-		SemesterID: searchSemester.SemesterID,
-		CollegeID:  searchCollege.CollegeID,
-		Class:      class,
-		Avatar:     avatar,
+		StudentID: studentID,
+		Name:      name,
+		Gender:    gender,
+		//SchoolID:        searchSchool.SchoolID,
+		SemesterID:      searchSemester.SemesterID,
+		CollegeID:       searchCollege.CollegeID,
+		Class:           class,
+		Avatar:          avatar,
+		Major:           searchMajor.MajorID,
+		StudentSchoolID: studentSchoolID,
 	}
 
 	_, err = session.Insert(account)
@@ -218,7 +228,7 @@ func (self CmsStudentLogic) AddStudent(username, password, name, gender, school,
 	return session.Commit()
 }
 
-func (self CmsStudentLogic) UpdateStudent(id int64, username, password, name, gender, school, college, class, semester, avatar string) error {
+func (self CmsStudentLogic) UpdateStudent(id int64, username, password, name, gender, school, college, class, semester, avatar, major, studentSchoolID string) error {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("cmsUser UpdateUser session.Begin() 发生错误:", err)
@@ -245,7 +255,7 @@ func (self CmsStudentLogic) UpdateStudent(id int64, username, password, name, ge
 		return err
 	}
 
-	exist, err = session.Table("account").Where("username = ? and role = ?", username, e.StudentRole).Exist()
+	exist, err = session.Table("account").Where("username = ? and role = ? and id != ?", username, e.StudentRole, id).Exist()
 	if exist {
 		logging.L.Error("已有同名用户")
 		return errors.New("已有同名用户")
@@ -255,17 +265,22 @@ func (self CmsStudentLogic) UpdateStudent(id int64, username, password, name, ge
 		return err
 	}
 
-	searchSchool, err := public.SearchSchoolByName(school)
-	if err != nil {
-		logging.L.Error(err)
-		return err
-	}
+	//searchSchool, err := public.SearchSchoolByName(school)
+	//if err != nil {
+	//	logging.L.Error(err)
+	//	return err
+	//}
 	searchSemester, err := public.SearchSemesterByName(semester)
 	if err != nil {
 		logging.L.Error(err)
 		return err
 	}
 	searchCollege, err := public.SearchCollegeByName(college)
+	if err != nil {
+		logging.L.Error(err)
+		return err
+	}
+	searchMajor, err := public.SearchMajorByName(major)
 	if err != nil {
 		logging.L.Error(err)
 		return err
@@ -290,13 +305,15 @@ func (self CmsStudentLogic) UpdateStudent(id int64, username, password, name, ge
 
 	_, err = session.Where("student_id = ?", searchAccount.UserID).
 		Update(&models.Student{
-			Name:       name,
-			Gender:     gender,
-			SchoolID:   searchSchool.SchoolID,
-			CollegeID:  searchCollege.CollegeID,
-			Class:      class,
-			SemesterID: searchSemester.SemesterID,
-			Avatar:     avatar,
+			Name:   name,
+			Gender: gender,
+			//SchoolID:        searchSchool.SchoolID,
+			CollegeID:       searchCollege.CollegeID,
+			Class:           class,
+			SemesterID:      searchSemester.SemesterID,
+			Avatar:          avatar,
+			Major:           searchMajor.MajorID,
+			StudentSchoolID: studentSchoolID,
 		})
 	if err != nil {
 		fail := session.Rollback()

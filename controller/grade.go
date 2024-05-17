@@ -88,6 +88,7 @@ func (self GradeController) DisplayGrade(c *gin.Context) {
 	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
 	contestLevel := com.StrTo(c.DefaultQuery("contest_level", "-1")).MustInt()
 	isGroup := com.StrTo(c.DefaultQuery("is_group", "-1")).MustInt()
+	id := com.StrTo(c.DefaultQuery("id", "0")).MustInt64()
 
 	if limit < 1 || curPage < 1 {
 		DPrintf("DisplayEnrollResult 查询表容量和页码应大于0")
@@ -110,7 +111,7 @@ func (self GradeController) DisplayGrade(c *gin.Context) {
 		return
 	}
 
-	list, total, err := logic.DefaultGradeLogic.Search(paginator, grade, contest, startTime, endTime, state, user_id.(int64), role.(int), contestLevel, isGroup)
+	list, total, err := logic.DefaultGradeLogic.Search(paginator, grade, contest, startTime, endTime, state, user_id.(int64), role.(int), contestLevel, isGroup, id)
 
 	if err != nil {
 		DPrintf("DisplayGrade 发生错误:", err)
@@ -228,7 +229,7 @@ func (self GradeController) GetUserGrade(c *gin.Context) {
 		return
 	}
 
-	if role != TeacherRole {
+	if role != TeacherRole && role != CmsManagerRole {
 		appG.ResponseErr("无权限")
 		logging.L.Error("无权限")
 		return

@@ -121,6 +121,24 @@ type DepartmentRegisterForm struct {
 	Email           string `json:"email" xorm:"email"`
 }
 
+type DepartmentForm struct {
+	ID              int64  `json:"id" xorm:"id"`
+	Username        string `json:"username" xorm:"username"`
+	Password        string `json:"password" xorm:"password"`
+	ConfirmPassword string `json:"confirm_password"`
+	Role            int    `json:"role" xorm:"role"`
+	Name            string `json:"name" xorm:"name"`
+	School          string `json:"school" xorm:"school"`
+	College         string `json:"college" xorm:"college"`
+	Department      string `json:"department" xorm:"department"`
+	Phone           string `json:"phone" xorm:"phone"`
+	Email           string `json:"email" xorm:"email"`
+}
+
+func (DepartmentForm) TableName() string {
+	return "department_account"
+}
+
 type Department struct {
 	DepartmentID int64  `json:"department_id" xorm:"department_id"`
 	Department   string `json:"department" xorm:"department"`

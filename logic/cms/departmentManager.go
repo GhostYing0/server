@@ -11,15 +11,13 @@ import (
 	"server/utils/logging"
 	. "server/utils/mydebug"
 	"server/utils/util"
-	"server/utils/uuid"
-	"time"
 )
 
-type CmsTeacherLogic struct{}
+type CmsDepartmentManagerLogic struct{}
 
-var DefaultCmsTeacher = CmsTeacherLogic{}
+var DefaultCmsDepartmentManager = CmsDepartmentManagerLogic{}
 
-func (self CmsTeacherLogic) DisplayTeacher(paginator *Paginator, username, gender, school, college, name, department, title string) (*[]models.TeacherReturn, int64, error) {
+func (self CmsDepartmentManagerLogic) DisplayDepartmentManager(paginator *Paginator, username, college, name, department string) (*[]models.DepartmentAccountReturn, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
 		logging.L.Error("Search 分页器为空")
@@ -39,40 +37,24 @@ func (self CmsTeacherLogic) DisplayTeacher(paginator *Paginator, username, gende
 		}
 	}()
 
-	//查询教师
-	session.Table("account").Where("role = ?", e.TeacherRole)
-
 	if username != "" {
-		session.Table("account").Where("username like ?", "%"+username+"%")
+		session.Where("department_account.username like ?", "%"+username+"%")
 	}
-	session.Join("LEFT", "teacher", "account.user_id = teacher.teacher_id")
-	session.Join("LEFT", "department", "department.department_id = teacher.department_id")
-	session.Join("LEFT", "college", "college.college_id = teacher.college_id")
-	if gender != "" {
-		session.Where("teacher.gender = ?", gender)
-	}
-	if school != "" {
-		searchSchool, err := public.SearchSchoolByName(school)
-		if err != nil {
-			logging.L.Error(err)
-		} else {
-			session.Where("teacher.school_id = ?", searchSchool.SchoolID)
-		}
-	}
+	session.Join("LEFT", "department", "department.department_id = department_account.department_id")
+	session.Join("LEFT", "college", "college.college_id = department_account.college_id")
+
 	if college != "" {
 		session.Where("college.college like ?", "%"+college+"%")
 	}
-	if title != "" {
-		session.Where("teacher.title like ?", "%"+title+"%")
-	}
+
 	if department != "" {
 		session.Where("department.department like ?", "%"+department+"%")
 	}
 	if name != "" {
-		session.Where("teacher.name like ?", "%"+name+"%")
+		session.Where("department_account.name like ?", "%"+name+"%")
 	}
 
-	data := &[]models.AccountTeacher{}
+	data := &[]models.DepartmentManagerInfo{}
 
 	total, err := session.
 		//Join("LEFT", "teacher", "account.user_id = teacher.teacher_id").
@@ -84,25 +66,22 @@ func (self CmsTeacherLogic) DisplayTeacher(paginator *Paginator, username, gende
 		return nil, 0, err
 	}
 
-	list := make([]models.TeacherReturn, total)
+	list := make([]models.DepartmentAccountReturn, total)
 
 	for i := 0; i < len(*data); i++ {
 		list[i].ID = (*data)[i].ID
 		list[i].Username = (*data)[i].Username
 		list[i].Password = (*data)[i].Password
 		list[i].Role = (*data)[i].Role
-		list[i].TeacherID = (*data)[i].TeacherID
 		list[i].Name = (*data)[i].Name
-		list[i].Title = (*data)[i].Title
 		list[i].Department = (*data)[i].Department
-		list[i].Gender = (*data)[i].Gender
 		list[i].College = (*data)[i].College
 	}
 
 	return &list, total, session.Rollback()
 }
 
-func (self CmsTeacherLogic) AddTeacher(username, password, name, gender, school, college, avatar, department, title string) error {
+func (self CmsDepartmentManagerLogic) AddDepartmentManager(username, password, name, college, department string) error {
 	if len(username) == 0 || len(password) == 0 {
 		logging.L.Error("账号和密码不能为空")
 		return errors.New("账号和密码不能为空")
@@ -121,7 +100,7 @@ func (self CmsTeacherLogic) AddTeacher(username, password, name, gender, school,
 		}
 	}()
 
-	exist, err := session.Table("account").Where("username = ? and role = 2", username).Exist()
+	exist, err := session.Table("department_account").Where("username = ? and role = ?", username, e.DepartmentRole).Exist()
 	if exist {
 		logging.L.Error("用户已存在")
 		return errors.New("用户已存在")
@@ -143,23 +122,15 @@ func (self CmsTeacherLogic) AddTeacher(username, password, name, gender, school,
 		return err
 	}
 
-	TeacherID := uuid.CreateUUIDByNameSpace(username, password, name, gender, "", college, school, "", 1, time.Now()).String()
-	account := &models.Account{
-		Username: username,
-		Password: util.EncodeMD5(password),
-		Role:     2,
-		UserID:   TeacherID,
-	}
-
-	teacher := &models.Teacher{
-		TeacherID:    TeacherID,
+	account := &models.DepartmentAccount{
+		Username:     username,
+		Password:     util.EncodeMD5(password),
+		Role:         e.DepartmentRole,
 		Name:         name,
-		Gender:       gender,
+		CollegeID:    searchCollege.CollegeID,
 		DepartmentID: searchDepartment.DepartmentID,
-		//SchoolID:  searchSchool.SchoolID,
-		CollegeID: searchCollege.CollegeID,
-		Title:     title,
-		Avatar:    avatar,
+		CreateTime:   models.NewOftenTime(),
+		UpdateTime:   models.NewOftenTime(),
 	}
 
 	_, err = session.Insert(account)
@@ -174,22 +145,10 @@ func (self CmsTeacherLogic) AddTeacher(username, password, name, gender, school,
 		return err
 	}
 
-	_, err = session.Insert(teacher)
-	if err != nil {
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			logging.L.Error(err)
-			return fail
-		}
-		logging.L.Error(err)
-		return err
-	}
-
 	return session.Commit()
 }
 
-func (self CmsTeacherLogic) UpdateTeacher(id int64, username, password, name, gender, school, college, avatar, department, title string) error {
+func (self CmsDepartmentManagerLogic) UpdateDepartmentManager(id int64, username, password, name, college, department string) error {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("cmsUser UpdateUser session.Begin() 发生错误:", err)
@@ -204,8 +163,8 @@ func (self CmsTeacherLogic) UpdateTeacher(id int64, username, password, name, ge
 		}
 	}()
 
-	searchAccount := &models.Account{}
-	exist, err := session.Table("account").Where("id = ?", id).Get(searchAccount)
+	searchAccount := &models.DepartmentAccount{}
+	exist, err := session.Table("department_account").Where("id = ?", id).Get(searchAccount)
 	if !exist {
 		logging.L.Error("用户不存在")
 		return errors.New("用户不存在")
@@ -216,7 +175,7 @@ func (self CmsTeacherLogic) UpdateTeacher(id int64, username, password, name, ge
 		return err
 	}
 
-	exist, err = session.Table("account").Where("username = ? and role = ? and id != ?", username, e.TeacherRole, id).Exist()
+	exist, err = session.Table("department_account").Where("username = ? and role = ? and id != ?", username, e.DepartmentRole, id).Exist()
 	if exist {
 		logging.L.Error("已有同名用户")
 		return errors.New("已有同名用户")
@@ -243,31 +202,12 @@ func (self CmsTeacherLogic) UpdateTeacher(id int64, username, password, name, ge
 	}
 
 	_, err = session.Where("id = ?", id).
-		Update(&models.Account{
-			Username: username,
-			Password: util.EncodeMD5(password),
-		})
-	if err != nil {
-		fail := session.Rollback()
-		if fail != nil {
-			DPrintf("回滚失败")
-			logging.L.Error(fail)
-			return fail
-		}
-		logging.L.Error(err)
-		DPrintf("UpdateUser Update 更新用户失败:", err)
-		return err
-	}
-
-	_, err = session.Where("teacher_id = ?", searchAccount.UserID).
-		Update(&models.Teacher{
-			Name:   name,
-			Gender: gender,
-			//SchoolID:  searchSchool.SchoolID,
-			DepartmentID: searchDepartment.DepartmentID,
-			Title:        title,
+		Update(&models.DepartmentAccount{
+			Username:     username,
+			Password:     util.EncodeMD5(password),
+			Name:         name,
 			CollegeID:    searchCollege.CollegeID,
-			Avatar:       avatar,
+			DepartmentID: searchDepartment.DepartmentID,
 		})
 	if err != nil {
 		fail := session.Rollback()
@@ -284,7 +224,7 @@ func (self CmsTeacherLogic) UpdateTeacher(id int64, username, password, name, ge
 	return session.Commit()
 }
 
-func (self CmsTeacherLogic) DeleteTeacher(ids *[]int64) (int64, error) {
+func (self CmsDepartmentManagerLogic) DeleteDepartmentManager(ids *[]int64) (int64, error) {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("cmsUser DeleteUser session.Begin() 发生错误:", err)
@@ -302,7 +242,7 @@ func (self CmsTeacherLogic) DeleteTeacher(ids *[]int64) (int64, error) {
 	var count int64
 
 	for _, id := range *ids {
-		account := &models.Account{}
+		account := &models.DepartmentAccount{}
 		if id < 1 {
 			fmt.Println("非法id")
 			continue
@@ -314,7 +254,7 @@ func (self CmsTeacherLogic) DeleteTeacher(ids *[]int64) (int64, error) {
 			return 0, err
 		}
 
-		_, err = session.Delete(account)
+		affected, err := session.Delete(account)
 		if err != nil {
 			fail := session.Rollback()
 			if fail != nil {
@@ -326,19 +266,6 @@ func (self CmsTeacherLogic) DeleteTeacher(ids *[]int64) (int64, error) {
 			return 0, err
 		}
 
-		teacher := &models.Teacher{TeacherID: account.UserID}
-
-		affected, err := session.Delete(teacher)
-		if err != nil {
-			fail := session.Rollback()
-			if fail != nil {
-				DPrintf("回滚失败")
-				logging.L.Error(fail)
-				return 0, fail
-			}
-			logging.L.Error(err)
-			return 0, err
-		}
 		if affected > 0 {
 			count += affected
 		}
@@ -347,10 +274,10 @@ func (self CmsTeacherLogic) DeleteTeacher(ids *[]int64) (int64, error) {
 	return count, session.Commit()
 }
 
-func (self CmsTeacherLogic) GetTeacherCount() (int64, error) {
+func (self CmsDepartmentManagerLogic) GetDepartmentManagerCount() (int64, error) {
 	session := MasterDB.NewSession()
 
-	count, err := session.Table("teacher").Count()
+	count, err := session.Table("department_account").Count()
 	if err != nil {
 		DPrintf("GetUserCount Count 发生错误:", err)
 		logging.L.Error(err)

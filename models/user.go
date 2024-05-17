@@ -23,8 +23,11 @@ type User struct {
 }
 
 type AccountStudent struct {
-	Account `xorm:"extends"`
-	Student `xorm:"extends"`
+	Account  `xorm:"extends"`
+	Student  `xorm:"extends"`
+	Major    string `json:"major"`
+	College  string `json:"college"`
+	Semester string `json:"semester"`
 }
 
 func (*AccountStudent) TableName() string {
@@ -36,8 +39,10 @@ func (*AccountTeacher) TableName() string {
 }
 
 type AccountTeacher struct {
-	Account `xorm:"extends"`
-	Teacher `xorm:"extends"`
+	Account    `xorm:"extends"`
+	Teacher    `xorm:"extends"`
+	Department string `json:"department"`
+	College    string `json:"college"`
 }
 
 type UpdateUserInfo OldUser
@@ -66,33 +71,37 @@ type Student struct {
 }
 
 type StudentForm struct {
-	ID       int64  `json:"id" xorm:"id"`
-	Username string `json:"username" xorm:"username"`
-	Password string `json:"password" xorm:"password"`
-	Name     string `json:"name" xorm:"name"`
-	Gender   string `json:"gender" xorm:"gender"`
-	School   string `json:"school" xorm:"school"`
-	Semester string `json:"semester" xorm:"semester"`
-	College  string `json:"college"" xorm:"college"`
-	Class    string `json:"class" xorm:"class"`
-	Avatar   string `json:"avatar" xorm:"avatar"`
+	ID              int64  `json:"id" xorm:"id"`
+	Username        string `json:"username" xorm:"username"`
+	Password        string `json:"password" xorm:"password"`
+	Name            string `json:"name" xorm:"name"`
+	Gender          string `json:"gender" xorm:"gender"`
+	School          string `json:"school" xorm:"school"`
+	Semester        string `json:"semester" xorm:"semester"`
+	College         string `json:"college" xorm:"college"`
+	Class           string `json:"class" xorm:"class"`
+	Major           string `json:"major" xorm:"major"`
+	StudentSchoolID string `json:"student_school_id" xorm:"student_school_id"`
+	Avatar          string `json:"avatar" xorm:"avatar"`
 }
 
 type StudentReturn struct {
-	ID        int64  `json:"id" xorm:"id"`
-	Username  string `json:"username" xorm:"username"`
-	Password  string `json:"password" xorm:"password"`
-	Role      int    `json:"role" xorm:"role"`
-	StudentID string `json:"student_id" xorm:"student_id"`
-	Name      string `json:"name" xorm:"name"`
-	Gender    string `json:"gender" xorm:"gender"`
-	School    string `json:"school" xorm:"school"`
-	Semester  string `json:"semester" xorm:"semester"`
-	College   string `json:"college" xorm:"college"`
-	Class     string `json:"student_class" xorm:"class"`
-	Phone     string `json:"phone" xorm:"phone"`
-	Email     string `json:"email" xorm:"email"`
-	Avatar    string `json:"avatar" xorm:"avatar"`
+	ID              int64  `json:"id" xorm:"id"`
+	Username        string `json:"username" xorm:"username"`
+	Password        string `json:"password" xorm:"password"`
+	Role            int    `json:"role" xorm:"role"`
+	StudentID       string `json:"student_id" xorm:"student_id"`
+	Name            string `json:"name" xorm:"name"`
+	Gender          string `json:"gender" xorm:"gender"`
+	School          string `json:"school" xorm:"school"`
+	Semester        string `json:"semester" xorm:"semester"`
+	College         string `json:"college" xorm:"college"`
+	Class           string `json:"class" xorm:"class"`
+	Phone           string `json:"phone" xorm:"phone"`
+	Email           string `json:"email" xorm:"email"`
+	Major           string `json:"major"`
+	StudentSchoolID string `json:"student_school_id"`
+	Avatar          string `json:"avatar" xorm:"avatar"`
 }
 
 func (Student) TableName() string {
@@ -112,29 +121,33 @@ type Teacher struct {
 }
 
 type TeacherForm struct {
-	ID       int64  `json:"id" xorm:"id"`
-	Username string `json:"username" xorm:"username"`
-	Password string `json:"password" xorm:"password"`
-	Name     string `json:"name" xorm:"name"`
-	Gender   string `json:"gender" xorm:"gender"`
-	School   string `json:"school" xorm:"school"`
-	College  string `json:"college" xorm:"college"`
-	Avatar   string `json:"avatar" xorm:"avatar"`
+	ID         int64  `json:"id" xorm:"id"`
+	Username   string `json:"username" xorm:"username"`
+	Password   string `json:"password" xorm:"password"`
+	Name       string `json:"name" xorm:"name"`
+	Gender     string `json:"gender" xorm:"gender"`
+	School     string `json:"school" xorm:"school"`
+	College    string `json:"college" xorm:"college"`
+	Department string `json:"department" xorm:"department"`
+	Title      string `json:"title" xorm:"title"`
+	Avatar     string `json:"avatar" xorm:"avatar"`
 }
 
 type TeacherReturn struct {
-	ID        int64  `json:"id" xorm:"id"`
-	Username  string `json:"username" xorm:"username"`
-	Password  string `json:"password" xorm:"password"`
-	Role      int    `json:"role" xorm:"role"`
-	TeacherID string `json:"teacher_id" xorm:"teacher_id"`
-	Name      string `json:"name" xorm:"name"`
-	Gender    string `json:"gender" xorm:"gender"`
-	School    string `json:"school" xorm:"school"`
-	College   string `json:"college" xorm:"college"`
-	Phone     string `json:"phone" xorm:"phone"`
-	Email     string `json:"email" xorm:"email"`
-	Avatar    string `json:"avatar" xorm:"avatar"`
+	ID         int64  `json:"id" xorm:"id"`
+	Username   string `json:"username" xorm:"username"`
+	Password   string `json:"password" xorm:"password"`
+	Role       int    `json:"role" xorm:"role"`
+	TeacherID  string `json:"teacher_id" xorm:"teacher_id"`
+	Name       string `json:"name" xorm:"name"`
+	Gender     string `json:"gender" xorm:"gender"`
+	School     string `json:"school" xorm:"school"`
+	College    string `json:"college" xorm:"college"`
+	Phone      string `json:"phone" xorm:"phone"`
+	Email      string `json:"email" xorm:"email"`
+	Avatar     string `json:"avatar" xorm:"avatar"`
+	Department string `json:"department"`
+	Title      string `json:"title"`
 }
 
 func (Teacher) TableName() string {

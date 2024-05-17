@@ -39,7 +39,7 @@ func (self CmsManagerLogic) DisplayManager(paginator *Paginator, username string
 	session.Table("cms_account")
 
 	if username != "" {
-		session.Table("cms_account").Where("username = ?", username)
+		session.Table("cms_account").Where("username like ?", "%"+username+"%")
 	}
 
 	data := &[]models.Manager{}

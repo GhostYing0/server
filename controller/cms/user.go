@@ -27,6 +27,12 @@ func (self UserController) RegisterRoutes(g *gin.RouterGroup) {
 	g.DELETE("/deleteTeacher", self.DeleteTeacher)  // 删除教师用户
 	g.GET("/getTeacherCount", self.GetTeacherCount) // 获取教师用户数量
 
+	g.GET("/getDepartmentManager", self.GetDepartmentManager)           // 查看系部管理员用户
+	g.POST("/addDepartmentManager", self.AddDepartmentManager)          // 添加系部管理员用户
+	g.POST("/updateDepartmentManager", self.UpdateDepartmentManager)    // 更新系部管理员用户
+	g.DELETE("/deleteDepartmentManager", self.DeleteDepartmentManager)  // 删除系部管理员用户
+	g.GET("/getDepartmentManagerCount", self.GetDepartmentManagerCount) // 获取系部管理员用户数量
+
 	g.GET("/getManager", self.GetManager)           // 查看管理员用户
 	g.POST("/addManager", self.AddManager)          // 添加管理员用户
 	g.POST("/updateManager", self.UpdateManager)    // 修改管理员用户
@@ -48,13 +54,15 @@ func (UserController) GetStudent(c *gin.Context) {
 	college := c.DefaultQuery("college", "")
 	class := c.DefaultQuery("class", "")
 	name := c.DefaultQuery("name", "")
+	major := c.DefaultQuery("major", "")
+	studentSchoolID := c.DefaultQuery("student_school_id", "")
 
 	fmt.Println("limit:", limit, " curPage:", curPage)
 	fmt.Println(c.Request.URL)
 	paginator := NewPaginator(curPage, limit)
 
 	data := make(map[string]interface{})
-	list, total, err := logic.DefaultCmsStudent.DisplayStudent(paginator, username, gender, school, semester, college, class, name)
+	list, total, err := logic.DefaultCmsStudent.DisplayStudent(paginator, username, gender, school, semester, college, class, name, major, studentSchoolID)
 	if err != nil {
 		appG.ResponseErr(err.Error())
 		return
@@ -85,7 +93,7 @@ func (UserController) AddStudent(c *gin.Context) {
 	}
 
 	err = logic.DefaultCmsStudent.AddStudent(form.Username, form.Password, form.Name, form.Gender, form.School,
-		form.College, form.Class, form.Semester, form.Avatar)
+		form.College, form.Class, form.Semester, form.Avatar, form.Major, form.StudentSchoolID)
 	if err != nil {
 		appG.ResponseErr(err.Error())
 		return
@@ -108,7 +116,7 @@ func (UserController) UpdateUser(c *gin.Context) {
 	}
 
 	err = logic.DefaultCmsStudent.UpdateStudent(form.ID, form.Username, form.Password, form.Name, form.Gender, form.School,
-		form.College, form.Class, form.Semester, form.Avatar)
+		form.College, form.Class, form.Semester, form.Avatar, form.Major, form.StudentSchoolID)
 	if err != nil {
 		DPrintf("UpdateUser logic.DefaultCmsUser.UpdateUser err:", err)
 		appG.ResponseErr(err.Error())
@@ -169,13 +177,15 @@ func (UserController) GetTeacher(c *gin.Context) {
 	school := c.DefaultQuery("school", "")
 	college := c.DefaultQuery("college", "")
 	name := c.DefaultQuery("name", "")
+	department := c.DefaultQuery("department", "")
+	title := c.DefaultQuery("title", "")
 
 	fmt.Println("limit:", limit, " curPage:", curPage)
 	fmt.Println(c.Request.URL)
 	paginator := NewPaginator(curPage, limit)
 
 	data := make(map[string]interface{})
-	list, total, err := logic.DefaultCmsTeacher.DisplayTeacher(paginator, username, gender, school, college, name)
+	list, total, err := logic.DefaultCmsTeacher.DisplayTeacher(paginator, username, gender, school, college, name, department, title)
 	if err != nil {
 		appG.ResponseErr(err.Error())
 		return
@@ -205,7 +215,7 @@ func (UserController) AddTeacher(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultCmsTeacher.AddTeacher(form.Username, form.Password, form.Name, form.Gender, form.School, form.College, form.Avatar)
+	err = logic.DefaultCmsTeacher.AddTeacher(form.Username, form.Password, form.Name, form.Gender, form.School, form.College, form.Avatar, form.Department, form.Title)
 	if err != nil {
 		appG.ResponseErr(err.Error())
 		return
@@ -227,7 +237,7 @@ func (UserController) UpdateTeacher(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultCmsTeacher.UpdateTeacher(form.ID, form.Username, form.Password, form.Name, form.Gender, form.School, form.College, form.Avatar)
+	err = logic.DefaultCmsTeacher.UpdateTeacher(form.ID, form.Username, form.Password, form.Name, form.Gender, form.School, form.College, form.Avatar, form.Department, form.Title)
 	if err != nil {
 		DPrintf("UpdateUser logic.DefaultCmsUser.UpdateUser err:", err)
 		appG.ResponseErr(err.Error())
@@ -379,6 +389,124 @@ func (UserController) GetManagerCount(c *gin.Context) {
 	appG := app.Gin{C: c}
 
 	count, err := logic.DefaultCmsManager.GetManagerCount()
+
+	if err != nil {
+		DPrintf("GetUserCount 出错:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+	data := make(map[string]interface{})
+	data["count"] = count
+
+	appG.ResponseSucMsg(data, "查询成功")
+}
+
+// =================================================系部管理员用户
+// GetTeacher
+func (UserController) GetDepartmentManager(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	limit := com.StrTo(c.DefaultQuery("page_size", "10")).MustInt()
+	curPage := com.StrTo(c.DefaultQuery("page_number", "1")).MustInt()
+	username := c.DefaultQuery("searchUser", "")
+	college := c.DefaultQuery("college", "")
+	name := c.DefaultQuery("name", "")
+	department := c.DefaultQuery("department", "")
+
+	fmt.Println("limit:", limit, " curPage:", curPage)
+	fmt.Println(c.Request.URL)
+	paginator := NewPaginator(curPage, limit)
+
+	data := make(map[string]interface{})
+	list, total, err := logic.DefaultCmsDepartmentManager.DisplayDepartmentManager(paginator, username, college, name, department)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	paginator.SetTotalPage(total)
+
+	if list != nil {
+		data["list"] = list
+		data["total"] = total
+		data["page_size"] = limit
+		data["page_number"] = curPage
+		data["total_page"] = paginator.GetTotalPage()
+	}
+
+	appG.ResponseSucMsg(data)
+}
+
+// AddTeacher
+func (UserController) AddDepartmentManager(c *gin.Context) {
+	appG := app.Gin{C: c}
+	var form models.DepartmentRegisterForm
+
+	err := c.ShouldBindJSON(&form)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultCmsDepartmentManager.AddDepartmentManager(form.Username, form.Password, form.Name, form.College, form.Department)
+	if err != nil {
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSuc()
+}
+
+// UpdateTeacher
+func (UserController) UpdateDepartmentManager(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	form := &models.DepartmentForm{}
+
+	err := c.ShouldBindJSON(&form)
+	if err != nil {
+		DPrintf("UpdateUser c.ShouldBindJSON err:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	err = logic.DefaultCmsDepartmentManager.UpdateDepartmentManager(form.ID, form.Username, form.Password, form.Name, form.College, form.Department)
+	if err != nil {
+		DPrintf("UpdateUser logic.DefaultCmsUser.UpdateUser err:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseSuc("更新成功")
+}
+
+// DeleteTeacher
+func (UserController) DeleteDepartmentManager(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	request := models.UserDeleteId{}
+	err := c.ShouldBindJSON(&request)
+	if err != nil {
+		DPrintf("DeleteUser c.ShouldBindJSON 发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	count, err := logic.DefaultCmsDepartmentManager.DeleteDepartmentManager(&request.ID)
+	if err != nil {
+		DPrintf("DeleteUser logic.DefaultCmsUser.DeleteUser 发生错误:", err)
+		appG.ResponseErr(err.Error())
+		return
+	}
+
+	appG.ResponseNumber(count)
+}
+
+// GetTeacherCount
+func (UserController) GetDepartmentManagerCount(c *gin.Context) {
+	appG := app.Gin{C: c}
+
+	count, err := logic.DefaultCmsDepartmentManager.GetDepartmentManagerCount()
 
 	if err != nil {
 		DPrintf("GetUserCount 出错:", err)

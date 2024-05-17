@@ -228,6 +228,7 @@ func (EnrollController) DisplayEnrollResult(c *gin.Context) {
 	isGroup := com.StrTo(c.DefaultQuery("is_group", "0")).MustInt()
 	contestLevel := com.StrTo(c.DefaultQuery("contest_level", "-1")).MustInt64()
 	EnrollID := com.StrTo(c.DefaultQuery("id", "-1")).MustInt64()
+	contestType := c.DefaultQuery("type", "")
 
 	key, exist := appG.C.Get("user_id")
 	if !exist {
@@ -258,7 +259,7 @@ func (EnrollController) DisplayEnrollResult(c *gin.Context) {
 
 	paginator := logic.NewPaginator(curPage, limit)
 
-	list, total, err := logic.DefaultEnrollLogic.Search(paginator, userID, EnrollID, contestLevel, contest, startTime, endTime, state, isGroup, role.(int))
+	list, total, err := logic.DefaultEnrollLogic.Search(paginator, userID, EnrollID, contestLevel, contest, startTime, endTime, contestType, state, isGroup, role.(int))
 
 	if err != nil {
 		DPrintf("DisplayEnrollResult 发生错误:", err)

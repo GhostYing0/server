@@ -15,7 +15,7 @@ type CmsGradeLogic struct{}
 
 var DefaultGradeContest = CmsGradeLogic{}
 
-func (self CmsGradeLogic) Display(paginator *Paginator, username, name, contest, school, startTime, endTime, grade string, state int) (*[]models.ReturnGradeInformation, int64, error) {
+func (self CmsGradeLogic) Display(paginator *Paginator, username, name, contest, school, startTime, endTime, major, grade string, state, prize int) (*[]models.ReturnGradeInformation, int64, error) {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("DisplayGrade session.Begin() 发生错误:", err)
@@ -34,28 +34,32 @@ func (self CmsGradeLogic) Display(paginator *Paginator, username, name, contest,
 	session.Join("LEFT", "student", "student.student_id = grade.student_id")
 	session.Join("LEFT", "school", "school.school_id = grade.school_id")
 	session.Join("LEFT", "contest", "contest.id = grade.contest_id")
+	session.Join("LEFT", "major", "major.major_id = student.major_id")
 	session.Join("LEFT", "account", "account.user_id = student.student_id")
 
 	if username != "" {
-		session.Where("account.username = ?", username)
+		session.Where("account.username like ?", "%"+username+"%")
 	}
 	if name != "" {
-		session.Where("student.name = ?", name)
+		session.Where("student.name like ?", "%"+name+"%")
 	}
 	if contest != "" {
-		session.Where("contest.contest = ?", contest)
+		session.Where("contest.contest like ?", "%"+contest+"%")
 	}
 	if startTime != "" && endTime != "" {
 		session.Where("grade.create_time > ? and grade.create_time < ?", startTime, endTime)
-	}
-	if grade != "" {
-		session.Where("grade.grade = ?", grade)
 	}
 	if school != "" {
 		session.Where("school.school = ?", school)
 	}
 	if state != -1 {
 		session.Where("grade.state = ?", state)
+	}
+	if prize > 0 {
+		session.Where("grade.grade_id = ?", prize)
+	}
+	if major != "" {
+		session.Where("major.major like ?", "%"+major+"%")
 	}
 
 	data := &[]models.GradeStudentSchoolContestAccount{}
@@ -73,8 +77,10 @@ func (self CmsGradeLogic) Display(paginator *Paginator, username, name, contest,
 		list[i].Username = (*data)[i].Username
 		list[i].Name = (*data)[i].Name
 		list[i].Contest = (*data)[i].Contest
+		list[i].Major = (*data)[i].Major
+		list[i].Prize = int64((*data)[i].GradeInformation.Grade)
 		list[i].School = (*data)[i].School.School
-		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].GradeInformation.CreateTime)
+		list[i].RewardTime = models.MysqlFormatString2String((*data)[i].GradeInformation.RewardTime)
 		list[i].Certificate = (*data)[i].Certificate
 		//list[i].Grade = (*data)[i].Grade
 		list[i].State = (*data)[i].GradeInformation.State

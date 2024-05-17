@@ -42,11 +42,13 @@ func (GradeController) GetGrade(c *gin.Context) {
 	endTime := c.DefaultQuery("end_time", "")
 	grade := c.DefaultQuery("grade", "")
 	state := com.StrTo(c.DefaultQuery("state", "-1")).MustInt()
+	major := c.DefaultQuery("major", "")
+	prize := com.StrTo(c.DefaultQuery("prize_id", "-1")).MustInt()
 
 	paginator := NewPaginator(curPage, limit)
 
 	data := make(map[string]interface{})
-	list, total, err := logic.DefaultGradeContest.Display(paginator, username, name, contest, school, startTime, endTime, grade, state)
+	list, total, err := logic.DefaultGradeContest.Display(paginator, username, name, contest, school, startTime, endTime, major, grade, state, prize)
 	if err != nil {
 		DPrintf("logic.DefaultGradeContest.Display 发生错误:", err)
 		appG.ResponseErr(err.Error())

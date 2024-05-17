@@ -20,6 +20,7 @@ type UpdateGradeForm struct {
 	TeacherTitle    string `json:"title"`
 	GuidanceTeacher string `json:"guidance_teacher"`
 	Certificate     string `json:"certificate"`
+	State           int    `json:"state"`
 }
 
 type UploadGradeForm struct {
@@ -83,6 +84,7 @@ type GradeStudentSchoolContestAccount struct {
 	Contest          string `xorm:"contest"`
 	ContestType      string `xorm:"type"`
 	Username         string `xorm:"username"`
+	Major            string `json:"major" xorm:"major"`
 }
 
 func (GradeStudentSchoolContestAccount) TableName() string {
@@ -90,6 +92,7 @@ func (GradeStudentSchoolContestAccount) TableName() string {
 }
 
 type ReturnGradeInformation struct {
+	ContestID       int64  `json:"contest_id"`
 	ID              int64  `json:"id" xorm:"id"`
 	Username        string `json:"username" xorm:"username"`
 	Name            string `json:"name" xorm:"name" `

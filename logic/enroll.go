@@ -172,7 +172,7 @@ func (self EnrollLogic) InsertEnrollInformation(userID, contestID, handle int64,
 	return session.Commit()
 }
 
-func (self EnrollLogic) Search(paginator *Paginator, userID, EnrollID, contestLevel int64, contest string, startTime string, endTime string, state, isGroup, role int) (*[]models.EnrollInformationReturn, int64, error) {
+func (self EnrollLogic) Search(paginator *Paginator, userID, EnrollID, contestLevel int64, contest string, startTime string, endTime string, contestType string, state, isGroup, role int) (*[]models.EnrollInformationReturn, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
 		logging.L.Error("Search 分页器为空")
@@ -233,6 +233,9 @@ func (self EnrollLogic) Search(paginator *Paginator, userID, EnrollID, contestLe
 	if state >= 0 {
 		session.Where("enroll_information.state = ?", state)
 	}
+	if contestType != "" {
+		session.Where("contest_type.type = ?", contestType)
+	}
 	fmt.Println(state)
 
 	data := &[]models.EnrollContestStudent{}
@@ -261,6 +264,8 @@ func (self EnrollLogic) Search(paginator *Paginator, userID, EnrollID, contestLe
 		list[i].CreateTime = models.MysqlFormatString2String((*data)[i].EnrollInformation.CreateTime)
 		list[i].Phone = (*data)[i].Phone
 		list[i].Email = (*data)[i].Email
+		list[i].ContestLevel = (*data)[i].ContestLevel
+		list[i].ContestType = (*data)[i].ContestType
 		list[i].State = (*data)[i].EnrollInformation.State
 		list[i].RejectReason = (*data)[i].RejectReason
 		list[i].Major = (*data)[i].Major
@@ -816,7 +821,7 @@ func (self EnrollLogic) UpdateEnrollInformation(userID int64, form models.Enroll
 		Phone:           form.Phone,
 		Email:           form.Email,
 		GuidanceTeacher: searchTeacher.TeacherID,
-		State:           Processing,
+		State:           form.State,
 	}
 	_, err = session.Where("id = ?", form.ID).Update(newEnroll)
 	if err != nil {

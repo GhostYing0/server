@@ -149,7 +149,7 @@ func (self GradeLogic) UpdateStudentGrade(form *models.UpdateGradeForm) error {
 		UpdateTime:      models.NewOftenTime().String(),
 		Grade:           form.Prize,
 		Certificate:     form.Certificate,
-		State:           e.Processing,
+		State:           form.State,
 	}
 	_, err = session.Where("id = ?", form.ID).Update(grade)
 	if err != nil {
@@ -294,7 +294,7 @@ func (self GradeLogic) InsertGradeInformation(user_id, enrollID int64, grade int
 	return session.Commit()
 }
 
-func (self GradeLogic) Search(paginator *Paginator, grade int, contest string, startTime string, endTime string, state int, user_id int64, role, contestLevel, isGroup int) (*[]models.ReturnGradeInformation, int64, error) {
+func (self GradeLogic) Search(paginator *Paginator, grade int, contest string, startTime string, endTime string, state int, user_id int64, role, contestLevel, isGroup int, id int64) (*[]models.ReturnGradeInformation, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
 		logging.L.Error("Search 分页器为空")
@@ -320,18 +320,45 @@ func (self GradeLogic) Search(paginator *Paginator, grade int, contest string, s
 		}
 	}()
 
+	account := &models.Account{}
 	// 查看自身上传竞赛成绩
-	account, err := public.SearchAccountByID(user_id)
-	if err != nil {
-		logging.L.Error(err)
-		return nil, 0, err
+	if role == e.StudentRole || role == e.TeacherRole {
+		var tempErr error
+		account, tempErr = public.SearchAccountByID(user_id)
+		if tempErr != nil {
+			logging.L.Error(tempErr)
+			return nil, 0, tempErr
+		}
 	}
 
-	session.Table("grade").Where("student_id = ?", account.UserID)
-	session.Join("LEFT", "contest", "contest.id = grade.contest_id")
+	if id > 0 {
+		session.Table("grade").Where("grade.id = ?", id)
+		session.Join("LEFT", "contest", "contest.id = grade.contest_id")
+	} else {
+		if role == e.StudentRole {
+			session.Table("grade").Where("grade.student_id = ?", account.UserID)
+			session.Join("LEFT", "contest", "contest.id = grade.contest_id")
+		} else if role == e.TeacherRole {
+			session.Table("contest").Where("contest.teacher_id = ?", account.UserID)
+			session.Join("LEFT", "grade", "grade.contest_id = contest.id")
+		} else if role == e.DepartmentRole {
+			session.Table("grade").Where("grade.student_id = ?", account.UserID)
+			session.Join("LEFT", "contest", "contest.id = grade.contest_id")
+		} else if role == e.CmsManagerRole {
+			session.Table("grade")
+			session.Join("LEFT", "contest", "contest.id = grade.contest_id")
+		}
+	}
+	session.Join("LEFT", "student", "student.student_id = grade.student_id")
+	session.Join("LEFT", "major", "student.major_id = major.major_id")
+	session.Join("LEFT", "college", "college.college_id = student.college_id")
 	session.Join("LEFT", "prize", "prize.prize_id = grade.grade_id")
+	session.Join("LEFT", "teacher", "teacher.teacher_id = grade.guidance_teacher")
+	session.Join("LEFT", "department", "department.department_id = teacher.department_id")
 	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")
 	session.Join("LEFT", "contest_level", "contest_level.contest_level_id = contest.contest_level_id")
+	session.Select("grade.*, prize.prize, department.department, contest_type.type, contest.contest, contest_level.contest_level," +
+		"teacher.name as t_name, teacher.title, college.college, major.major, student.name, student.student_school_id, contest.id as contest_id")
 
 	if grade > 0 {
 		session.Where("grade.grade_id = ?", grade)
@@ -356,7 +383,7 @@ func (self GradeLogic) Search(paginator *Paginator, grade int, contest string, s
 
 	data := &[]models.CurStudentGrade{}
 
-	total, err := session.Where("student_id = ?", account.UserID).Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(data)
+	total, err := session.Limit(paginator.PerPage(), paginator.Offset()).FindAndCount(data)
 	//total, err := session.Limit(paginator.PerPage(), paginator.Offset()).Select("g.id as id, g.*, account.*, student.*, contest.*, contest_type.*").FindAndCount(data)
 	if err != nil {
 		logging.L.Error(err)
@@ -368,10 +395,18 @@ func (self GradeLogic) Search(paginator *Paginator, grade int, contest string, s
 	for i := 0; i < len(*data); i++ {
 		list[i].ID = (*data)[i].ID
 		list[i].Contest = (*data)[i].Contest
+		list[i].ContestID = (*data)[i].ContestID
 		list[i].RewardTime = models.MysqlFormatString2String((*data)[i].GradeInformation.RewardTime)
 		list[i].Certificate = (*data)[i].Certificate
 		list[i].Grade = (*data)[i].Grade
 		list[i].State = (*data)[i].GradeInformation.State
+		list[i].GuidanceTeacher = (*data)[i].TeacherName
+		list[i].Title = (*data)[i].Title
+		list[i].Department = (*data)[i].Department
+		list[i].Major = (*data)[i].Major
+		list[i].College = (*data)[i].College
+		list[i].Name = (*data)[i].Name
+		list[i].StudentSchoolID = (*data)[i].StudentSchoolID
 		list[i].PS = (*data)[i].PS
 		list[i].ContestLevel = (*data)[i].ContestLevel
 		list[i].ContestType = (*data)[i].ContestType
@@ -540,10 +575,12 @@ func (self GradeLogic) GetUserGrade(paginator *Paginator, grade string, contest 
 	}()
 
 	// 查看自身上传竞赛成绩
-	_, err := public.SearchAccountByID(user_id)
-	if err != nil {
-		logging.L.Error(err)
-		return nil, 0, err
+	if role == e.TeacherRole {
+		_, err := public.SearchAccountByID(user_id)
+		if err != nil {
+			logging.L.Error(err)
+			return nil, 0, err
+		}
 	}
 
 	//session.Table("account").Where("user_id = ?", account.UserID)
