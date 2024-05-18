@@ -99,13 +99,13 @@ func (self CmsContestLogic) Display(paginator *Paginator, contest, contestType, 
 	return &list, total, session.Commit()
 }
 
-func (self CmsContestLogic) InsertContest(username, contest, contestType, startTime, deadline string, state int) error {
-	if username == "" || contest == "" || contestType == "" || startTime == "" || deadline == "" {
-		return errors.New("竞赛信息不能为空")
+func (self CmsContestLogic) InsertContest(form models.ContestForm) error {
+	if form.TeacherID == "" {
+		return errors.New("上传教师ID不能为空")
 	}
-
-	StartTime := models.FormatString2OftenTime(startTime)
-	DeadlineTime := models.FormatString2OftenTime(deadline)
+	if form.Contest == "" {
+		return errors.New("竞赛名不能为空")
+	}
 
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
@@ -121,25 +121,19 @@ func (self CmsContestLogic) InsertContest(username, contest, contestType, startT
 		}
 	}()
 
-	account, err := public.SearchAccountByUsernameAndRole(username, 2)
+	teacher, err := public.SearchTeacherByID(form.TeacherID)
 	if err != nil {
 		logging.L.Error(err)
 		return err
 	}
 
-	teacher, err := public.SearchTeacherByID(account.UserID)
+	searchContestType, err := public.SearchContestTypeByName(form.ContestType)
 	if err != nil {
 		logging.L.Error(err)
 		return err
 	}
 
-	searchContestType, err := public.SearchContestTypeByName(contestType)
-	if err != nil {
-		logging.L.Error(err)
-		return err
-	}
-
-	has, err := session.Table("contest").Where("contest = ? and contest_type_id = ?", contest, searchContestType.ContestTypeID).Exist()
+	has, err := session.Table("contest").Where("contest = ? and contest_type_id = ?", form.Contest, searchContestType.ContestTypeID).Exist()
 	if err != nil {
 		fmt.Println("InsertContestInfo Exist error:", err)
 		logging.L.Error(err)
@@ -147,19 +141,30 @@ func (self CmsContestLogic) InsertContest(username, contest, contestType, startT
 	}
 	if has {
 		logging.L.Error("竞赛已存在")
-		return err
+		return errors.New("竞赛已存在")
 	}
 
 	NewContest := &models.NewContest{
-		Contest:     contest,
-		TeacherID:   account.UserID,
-		SchoolID:    teacher.SchoolID,
-		CollegeID:   teacher.CollegeID,
-		ContestType: searchContestType.ContestTypeID,
-		CreateTime:  models.NewOftenTime(),
-		StartTime:   StartTime,
-		Deadline:    DeadlineTime,
-		State:       state,
+		Contest:        form.Contest,
+		TeacherID:      form.TeacherID,
+		SchoolID:       teacher.SchoolID,
+		CollegeID:      teacher.CollegeID,
+		ContestType:    searchContestType.ContestTypeID,
+		CreateTime:     models.NewOftenTime(),
+		StartTime:      models.FormatString2OftenTime(form.StartTime),
+		Deadline:       models.FormatString2OftenTime(form.Deadline),
+		State:          form.State,
+		ContestState:   form.ContestState,
+		ContestLevelID: form.ContestLevel,
+		ContestEntryID: form.ContestEntry,
+		IsGroup:        form.IsGroup,
+		MaxGroupNumber: form.MaxGroupNumber,
+		Prize1Count:    form.Prize1,
+		Prize2Count:    form.Prize2,
+		Prize3Count:    form.Prize3,
+		Prize4Count:    form.Prize4,
+		Ps:             form.PS,
+		Describe:       form.Describe,
 	}
 
 	_, err = session.Table("contest").Insert(NewContest)

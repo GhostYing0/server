@@ -7,7 +7,6 @@ import (
 	. "server/logic"
 	"server/logic/public"
 	"server/models"
-	"server/utils/e"
 	"server/utils/logging"
 	. "server/utils/mydebug"
 	"time"
@@ -103,10 +102,7 @@ func (self CmsEnrollLogic) Display(paginator *Paginator, name string, contest, s
 	return &list, total, session.Commit()
 }
 
-func (self CmsEnrollLogic) Add(username string, name string, contest string, createTime string, school string, state int) error {
-	if len(username) <= 0 {
-		return errors.New("请填写姓名")
-	}
+func (self CmsEnrollLogic) Add(username string, name string, contest string, createTime string, school string, state int, studentID, teacherID string, contestID int64, teamID int64) error {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("InsertEnrollInformation session.Begin() 发生错误:", err)
@@ -121,25 +117,19 @@ func (self CmsEnrollLogic) Add(username string, name string, contest string, cre
 		}
 	}()
 
-	contestInfo, err := public.SearchContestByName(contest)
+	contestInfo, err := public.SearchContestByID(contestID)
 	if err != nil {
 		logging.L.Error(err)
 		return err
 	}
 
-	account, err := public.SearchAccountByUsernameAndRole(username, e.StudentRole)
+	student, err := public.SearchStudentByID(studentID)
 	if err != nil {
 		logging.L.Error(err)
 		return err
 	}
 
-	student, err := public.SearchStudentByName(name)
-	if err != nil {
-		logging.L.Error(err)
-		return err
-	}
-
-	searchSchool, err := public.SearchSchoolByName(school)
+	teacher, err := public.SearchTeacherByID(teacherID)
 	if err != nil {
 		logging.L.Error(err)
 		return err
@@ -161,13 +151,12 @@ func (self CmsEnrollLogic) Add(username string, name string, contest string, cre
 	}
 
 	enroll := &models.NewEnroll{
-		StudentID:  student.StudentID,
-		ContestID:  contestInfo.ID,
-		CreateTime: models.FormatString2OftenTime(createTime),
-		SchoolID:   searchSchool.SchoolID,
-		Phone:      account.Phone,
-		Email:      account.Email,
-		State:      state,
+		StudentID:       student.StudentID,
+		ContestID:       contestInfo.ID,
+		CreateTime:      models.FormatString2OftenTime(createTime),
+		GuidanceTeacher: teacher.TeacherID,
+		TeamID:          teamID,
+		State:           state,
 	}
 
 	_, err = session.Insert(enroll)

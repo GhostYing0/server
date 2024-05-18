@@ -616,7 +616,7 @@ func (self EnrollLogic) DepartmentManagerSearchEnroll(paginator *Paginator, cont
 		return nil, 0, errors.New("权限错误")
 	}
 
-	session.Table("student").Where("student.school_id = ?", account.SchoolID)
+	session.Table("student")
 	session.Join("RIGHT", "enroll_information", "student.student_id = enroll_information.student_id")
 	session.Join("LEFT", "contest", "contest.id = enroll_information.contest_id")
 	session.Join("LEFT", "contest_type", "contest_type.id = contest.contest_type_id")

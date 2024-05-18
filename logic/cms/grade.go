@@ -91,10 +91,7 @@ func (self CmsGradeLogic) Display(paginator *Paginator, username, name, contest,
 	return &list, total, session.Commit()
 }
 
-func (self CmsGradeLogic) Add(username string, contest string, grade string, createTime string, certificate string, state int) error {
-	if len(username) <= 0 {
-		return errors.New("请填写姓名")
-	}
+func (self CmsGradeLogic) Add(studentID, teacherID, rewardTime, certificate string, state int, enrollID int64, grade int) error {
 	session := MasterDB.NewSession()
 	if err := session.Begin(); err != nil {
 		DPrintf("InsertGradeInformation session.Begin() 发生错误:", err)
@@ -109,35 +106,39 @@ func (self CmsGradeLogic) Add(username string, contest string, grade string, cre
 		}
 	}()
 
-	searchContest, err := public.SearchContestByName(contest)
-	if err != nil {
-		DPrintf("InsertGradeInformation 查询竞赛发生错误: ", err)
-		logging.L.Error(err)
-		return err
-	}
-
-	account, err := public.SearchAccountByUsernameAndRole(username, 1)
-	if err != nil {
-		DPrintf("InsertGradeInformation 查询参赛者失败:", err)
-		logging.L.Error(err)
-		return err
-	}
-
-	student, err := public.SearchStudentByID(account.UserID)
+	student, err := public.SearchStudentByID(studentID)
 	if err != nil {
 		DPrintf("InsertGradeInformation 查询学生:", err)
 		logging.L.Error(err)
 		return err
 	}
+	teacher, err := public.SearchTeacherByID(teacherID)
+	if err != nil {
+		DPrintf("InsertGradeInformation 查询学生:", err)
+		logging.L.Error(err)
+		return err
+	}
+	searchEnroll := models.EnrollInformation{}
+	exist, err := MasterDB.Table("enroll_information").Where("id = ?", enrollID).Get(&searchEnroll)
+	if err != nil {
+		return err
+	}
+	if !exist {
+		return errors.New("报名信息不存在11")
+	}
 
 	enroll := &models.GradeInformation{
-		StudentID:  account.UserID,
-		ContestID:  searchContest.ID,
-		SchoolID:   student.SchoolID,
-		CreateTime: models.MysqlFormatString2String(createTime),
-		//Grade:       grade,
-		Certificate: certificate,
-		State:       state,
+		StudentID:       studentID,
+		GuidanceTeacher: teacher.TeacherID,
+		ContestID:       searchEnroll.ContestID,
+		SchoolID:        student.SchoolID,
+		EnrollID:        enrollID,
+		RewardTime:      models.MysqlFormatString2String(rewardTime),
+		CreateTime:      models.NewOftenTime().String(),
+		UpdateTime:      models.NewOftenTime().String(),
+		Grade:           grade,
+		Certificate:     certificate,
+		State:           state,
 	}
 
 	_, err = session.Insert(enroll)

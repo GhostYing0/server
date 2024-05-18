@@ -83,7 +83,7 @@ func (ContestController) AddContest(c *gin.Context) {
 		return
 	}
 
-	err = logic.DefaultCmsContest.InsertContest(form.Username, form.Contest, form.ContestType, form.StartTime, form.Deadline, form.State)
+	err = logic.DefaultCmsContest.InsertContest(form)
 	if err != nil {
 		fmt.Println("logic.InsertContestInfo error:", err)
 		appG.ResponseErr(err.Error())

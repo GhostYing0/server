@@ -1,13 +1,24 @@
 package models
 
 type ContestForm struct {
-	Contest     string `json:"contest"`
-	Username    string `json:"username"`
-	ContestType string `json:"contest_type"`
-	StartTime   string `json:"start_time"`
-	Deadline    string `json:"deadline"`
-	Describe    string `json:"desc"`
-	State       int    `json:"state"`
+	TeacherID      string `json:"teacher_id"`
+	Contest        string `json:"contest"`
+	ContestEntry   int64  `json:"contest_entry"`
+	ContestLevel   int64  `json:"contest_level"`
+	PS             string `json:"ps"`
+	IsGroup        int    `json:"is_group"`
+	MaxGroupNumber int    `json:"max_group_number"`
+	Prize1         int64  `json:"prize1"`
+	Prize2         int64  `json:"prize2"`
+	Prize3         int64  `json:"prize3"`
+	Prize4         int64  `json:"prize4"`
+	ContestType    string `json:"contest_type"`
+	StartTime      string `json:"start_time"`
+	EnrollTime     string `json:"enroll_time"`
+	Deadline       string `json:"deadline"`
+	Describe       string `json:"desc"`
+	State          int    `json:"state"`
+	ContestState   int    `json:"contest_state"`
 }
 
 type TeacherUploadContestForm struct {

@@ -27,7 +27,10 @@ type EnrollInformationForm struct {
 	ID         int64  `json:"id"`
 	UserName   string `json:"username"`
 	Name       string `json:"name"`
-	TeamID     string `json:"team_id"`
+	TeamID     int64  `json:"team_id"`
+	ContestID  int64  `json:"contest_id"`
+	StudentID  string `json:"student_id"`
+	TeacherID  string `json:"teacher_id"`
 	Contest    string `json:"contest"`
 	CreateTime string `json:"create_time"`
 	School     string `json:"school"`
@@ -147,6 +150,10 @@ type EnrollContestStudent_e_id struct {
 	School       string `xorm:"school"`
 	College      string `xorm:"college"`
 	Semester     string `xorm:"semester"`
+}
+
+func (EnrollContestStudent_e_id) TableName() string {
+	return "enroll_information"
 }
 
 type EnrollContest struct {

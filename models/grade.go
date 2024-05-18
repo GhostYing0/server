@@ -13,6 +13,16 @@ type GradeForm struct {
 	State        int    `json:"state" xorm:"state"`
 }
 
+type NewGradeForm struct {
+	EnrollID    int64  `json:"enroll_id"`
+	StudentID   string `json:"student_id"`
+	TeacherID   string `json:"teacher_id"`
+	Grade       int    `json:"grade"`
+	Certificate string `json:"certificate"`
+	RewardTime  string `json:"reward_time"`
+	State       int    `json:"state" xorm:"state"`
+}
+
 type UpdateGradeForm struct {
 	ID              int64  `json:"id"`
 	Prize           int    `json:"prize_id"`

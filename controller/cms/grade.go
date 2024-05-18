@@ -71,7 +71,7 @@ func (GradeController) GetGrade(c *gin.Context) {
 // AddRegisteredContestByUser
 func (GradeController) AddGrade(c *gin.Context) {
 	appG := app.Gin{C: c}
-	form := &models.GradeForm{}
+	form := &models.NewGradeForm{}
 
 	err := c.ShouldBindJSON(&form)
 	if err != nil {
@@ -81,7 +81,7 @@ func (GradeController) AddGrade(c *gin.Context) {
 	}
 
 	fmt.Println("asd:", form)
-	err = logic.DefaultGradeContest.Add(form.Username, form.Contest, form.Grade, form.CreateTime, form.Certificate, form.State)
+	err = logic.DefaultGradeContest.Add(form.StudentID, form.TeacherID, form.RewardTime, form.Certificate, form.State, form.EnrollID, form.Grade)
 	if err != nil {
 		DPrintf("AddGradeInformation 发生错误:", err)
 		appG.ResponseErr(err.Error())
