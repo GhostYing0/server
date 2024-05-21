@@ -96,7 +96,7 @@ type StudentReturn struct {
 	School          string `json:"school" xorm:"school"`
 	Semester        string `json:"semester" xorm:"semester"`
 	College         string `json:"college" xorm:"college"`
-	Class           string `json:"class" xorm:"class"`
+	Class           string `json:"student_class" xorm:"class"`
 	Phone           string `json:"phone" xorm:"phone"`
 	Email           string `json:"email" xorm:"email"`
 	Major           string `json:"major"`

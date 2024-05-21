@@ -347,6 +347,7 @@ func (self UserAccountLogic) GetProfileTeacher(userID int64) (*models.TeacherRet
 	data := &models.AccountTeacher{}
 
 	session.Join("LEFT", "account", "account.user_id = teacher.teacher_id")
+	session.Join("LEFT", "department", "department.department_id = teacher.department_id")
 	exist, err := session.Where("account.id = ? and role = 2", userID).Get(data)
 	if err != nil {
 		logging.L.Error(err)
@@ -369,13 +370,14 @@ func (self UserAccountLogic) GetProfileTeacher(userID int64) (*models.TeacherRet
 	}
 
 	teacherReturn := &models.TeacherReturn{
-		Name:    data.Name,
-		Gender:  data.Gender,
-		School:  school.School,
-		College: college.College,
-		Phone:   data.Phone,
-		Email:   data.Email,
-		Avatar:  data.Avatar,
+		Name:       data.Name,
+		Gender:     data.Gender,
+		School:     school.School,
+		College:    college.College,
+		Phone:      data.Phone,
+		Email:      data.Email,
+		Department: data.Department,
+		Avatar:     data.Avatar,
 	}
 	return teacherReturn, err
 }

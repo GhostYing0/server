@@ -8,6 +8,10 @@ type PreTypeEnrollCountOfPerYear struct {
 	EnrollData map[string]map[string]int64 `json:"contest_type_with_enroll_data"` //KEY:年份 VALUE:{key:竞赛类型 value:数量}
 }
 
+type PreLevelEnrollCountOfPerYear struct {
+	EnrollData map[string]map[string]int64 `json:"contest_level_with_enroll_data"` //KEY:年份 VALUE:{key:LEVEL value:数量}
+}
+
 type SchoolEnrollSortedCount struct {
 	SchoolEnrollData []SchoolEnroll
 }
@@ -48,6 +52,11 @@ type RewardRate struct {
 type MysqlSelectEnrollYearAndContestType struct {
 	Date        OftenTime `xorm:"create_time"`
 	ContestType int64     `xorm:"contest_type_id"`
+}
+
+type MysqlSelectEnrollYearAndContestLevel struct {
+	Date         OftenTime `xorm:"create_time"`
+	ContestLevel int64     `xorm:"contest_level_id"`
 }
 
 type CompareEnrollCount struct {

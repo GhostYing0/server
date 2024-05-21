@@ -297,3 +297,75 @@ func (self StatisticLogic) ManagerStatistic(userID int64) (map[string]int64, err
 	data["grade_count"] = gradeCount
 	return data, err
 }
+
+func (self StatisticLogic) StatisticSlice(userID int64, year int) (map[string]int64, error) {
+	account, err := public.SearchDepartmentManagerByID(userID)
+	data := make(map[string]int64)
+
+	startTime := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+	endTime := time.Date(year+1, time.January, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02 15:04:05")
+
+	departmentContestCount, err := MasterDB.
+		Table("teacher").
+		Where("teacher.department_id = ?", account.DepartmentID).
+		Join("LEFT", "contest", "contest.teacher_id = teacher.teacher_id").
+		Where("contest.state = ? and contest.start_time > ? and contest.start_time < ?", e.Pass, startTime, endTime).
+		Count()
+	if err != nil {
+		logging.L.Error(err)
+	}
+
+	departmentEnrollCount, err := MasterDB.
+		Table("enroll_information").
+		Where("enroll_information.create_time > ? and enroll_information.create_time < ? and enroll_information.state = ?", startTime, endTime, e.Pass).
+		Join("LEFT", "contest", "contest.id = enroll_information.contest_id").
+		Join("LEFT", "teacher", "teacher.teacher_id = contest.teacher_id").
+		Where("teacher.department_id = ?", account.DepartmentID).
+		Count()
+	if err != nil {
+		logging.L.Error(err)
+	}
+
+	departmentGradeCount, err := MasterDB.
+		Table("grade").
+		Where("grade.create_time > ? and grade.create_time < ? and grade.state = ?", startTime, endTime, e.Pass).
+		Join("LEFT", "contest", "contest.id = grade.contest_id").
+		Join("LEFT", "teacher", "teacher.teacher_id = contest.teacher_id").
+		Where("teacher.department_id = ?", account.DepartmentID).
+		Count()
+	if err != nil {
+		logging.L.Error(err)
+	}
+
+	contestPassCount, err := MasterDB.
+		Table("contest").
+		Where("contest.state = ? and contest.start_time > ? and contest.start_time < ?", e.Pass, startTime, endTime).
+		Count()
+	if err != nil {
+		logging.L.Error(err)
+	}
+
+	enrollPassCount, err := MasterDB.
+		Table("enroll_information").
+		Where("create_time > ? and create_time < ? and state = ?", startTime, endTime, e.Pass).
+		Count()
+	if err != nil {
+		logging.L.Error(err)
+	}
+
+	gradePassCount, err := MasterDB.
+		Table("grade").
+		Where("create_time > ? and create_time < ? and state = ?", startTime, endTime, e.Pass).
+		Count()
+	if err != nil {
+		logging.L.Error(err)
+	}
+
+	data["department_contest_count"] = departmentContestCount
+	data["department_enroll_count"] = departmentEnrollCount
+	data["department_grade_count"] = departmentGradeCount
+	data["contest_count"] = contestPassCount
+	data["enroll_count"] = enrollPassCount
+	data["grade_count"] = gradePassCount
+	return data, err
+}

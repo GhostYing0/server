@@ -91,6 +91,57 @@ func (CmsAnalysisLogic) GetPreTypeEnrollCountOfPerYear() (*models.PreTypeEnrollC
 	return data, err
 }
 
+func (CmsAnalysisLogic) GetPreLevelEnrollCountOfPerYear() (*models.PreLevelEnrollCountOfPerYear, error) {
+	nowDate := time.Now()
+
+	endYear := time.Date(nowDate.Year(), nowDate.Month(), nowDate.Day(), 0, 0, 0, 0, time.Local)
+	startYear := time.Date(nowDate.Year()-6, time.December, 31, 0, 0, 0, 0, time.Local)
+
+	allContestLevel := &[]models.ContestLevel{}
+	_, err := MasterDB.Table("contest_level").FindAndCount(allContestLevel)
+
+	yearMap := make([]string, 5)
+	for i := 0; i < 5; i++ {
+		yearMap[i] = strconv.Itoa(startYear.Year() + 2 + i)
+	}
+
+	levelMap := make(map[int64]string)
+	for i := 0; i < len(*allContestLevel); i++ {
+		levelMap[(*allContestLevel)[i].ID] = (*allContestLevel)[i].ContestLevel
+	}
+
+	if err != nil {
+		logging.L.Error(err)
+		return nil, err
+	}
+
+	list := []models.MysqlSelectEnrollYearAndContestLevel{}
+	_, err = MasterDB.
+		Table("enroll_information").
+		Join("LEFT", "contest", "contest.id = enroll_information.contest_id").
+		Where("enroll_information.create_time > ? and enroll_information.create_time < ? and enroll_information.state = ?", startYear, endYear, Pass).
+		FindAndCount(&list)
+	if err != nil {
+		logging.L.Error(err)
+		return nil, err
+	}
+
+	data := &models.PreLevelEnrollCountOfPerYear{}
+	data.EnrollData = make(map[string]map[string]int64, 5)
+
+	for i := int64(0); i < 5; i++ {
+		data.EnrollData[yearMap[i]] = make(map[string]int64)
+		for _, value := range levelMap {
+			data.EnrollData[yearMap[i]][value] = 0
+		}
+	}
+
+	for i := 0; i < int(len(list)); i++ {
+		data.EnrollData[strconv.Itoa(int(list[i].Date.Year()))][levelMap[list[i].ContestLevel]] += 1
+	}
+	return data, err
+}
+
 func (CmsAnalysisLogic) CompareEnrollCount() (*models.CompareEnrollCount, error) {
 	nowDate := time.Now()
 
