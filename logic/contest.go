@@ -592,68 +592,82 @@ func (self ContestLogic) UploadContest(userId int64, form *models.TeacherUploadC
 		return err
 	}
 
-	contestEntry, err := public.SearchContestEntryByID(form.ContestEntry)
-	if err != nil {
-		logging.L.Error(err)
-		return err
-	}
+	if form.ContestEntry > 0 {
+		contestEntry, err := public.SearchContestEntryByID(form.ContestEntry)
+		if err != nil {
+			logging.L.Error(err)
+			return err
+		}
 
-	contestStartTime, err := time.Parse("2006-01-02 15:04:05", form.StartTime)
-	startTime := time.Now()
-	endTime := time.Now()
-	switch contestEntry.Cycle {
-	case 1:
-		//每年举办一次
-		startTime = time.Date(contestStartTime.Year(), time.January, 1, 0, 0, 0, 0, time.Local)
-		endTime = time.Date(contestStartTime.Year()+1, time.January, 1, 0, 0, 0, 0, time.Local)
-		exist, err := MasterDB.Table("contest").
-			Where("contest_entry_id = ? and contest_type_id = ? and start_time > ? and start_time < ?", form.ContestEntry, searchContestType.ContestTypeID, startTime, endTime).
-			Exist()
-		if err != nil {
-			logging.L.Error(err)
-			return err
-		}
-		if exist {
-			logging.L.Error("已有同名竞赛")
-			return errors.New("已有同名竞赛")
-		}
-	case 2:
-		//每半年举办一次
-		startMouth := models.FormatString2OftenTime(form.StartTime).OftenTimeMonth()
-		num := (startMouth / 7) * 6
-		startTime = time.Date(contestStartTime.Year(), time.January+num, 1, 0, 0, 0, 0, time.Local)
-		if num == 0 {
-			endTime = time.Date(contestStartTime.Year(), time.July, 1, 0, 0, 0, 0, time.Local)
-		} else {
+		contestStartTime, err := time.Parse("2006-01-02 15:04:05", form.StartTime)
+		startTime := time.Now()
+		endTime := time.Now()
+		switch contestEntry.Cycle {
+		case 1:
+			//每年举办一次
+			startTime = time.Date(contestStartTime.Year(), time.January, 1, 0, 0, 0, 0, time.Local)
 			endTime = time.Date(contestStartTime.Year()+1, time.January, 1, 0, 0, 0, 0, time.Local)
+			exist, err := MasterDB.Table("contest").
+				Where("contest_entry_id = ? and contest_type_id = ? and start_time > ? and start_time < ?", form.ContestEntry, searchContestType.ContestTypeID, startTime, endTime).
+				Exist()
+			if err != nil {
+				logging.L.Error(err)
+				return err
+			}
+			if exist {
+				logging.L.Error("已有同名竞赛")
+				return errors.New("已有同名竞赛")
+			}
+		case 2:
+			//每半年举办一次
+			startMouth := models.FormatString2OftenTime(form.StartTime).OftenTimeMonth()
+			num := (startMouth / 7) * 6
+			startTime = time.Date(contestStartTime.Year(), time.January+num, 1, 0, 0, 0, 0, time.Local)
+			if num == 0 {
+				endTime = time.Date(contestStartTime.Year(), time.July, 1, 0, 0, 0, 0, time.Local)
+			} else {
+				endTime = time.Date(contestStartTime.Year()+1, time.January, 1, 0, 0, 0, 0, time.Local)
+			}
+			exist, err := MasterDB.Table("contest").
+				Where("contest_entry_id = ? and contest_type_id = ? and start_time > ? and start_time < ?", form.ContestEntry, searchContestType.ContestTypeID, startTime, endTime).
+				Exist()
+			if err != nil {
+				logging.L.Error(err)
+				return err
+			}
+			if exist {
+				logging.L.Error("已有同名竞赛")
+				return errors.New("已有同名竞赛")
+			}
+		case 3:
+			//每季度举办一次
+			startMouth := models.FormatString2OftenTime(form.StartTime).OftenTimeMonth()
+			num := (startMouth / 4) * 3
+			startTime = time.Date(contestStartTime.Year(), time.January+num, 1, 0, 0, 0, 0, time.Local)
+			if num == 0 {
+				endTime = time.Date(contestStartTime.Year(), 4, 1, 0, 0, 0, 0, time.Local)
+			} else if num == 1 {
+				endTime = time.Date(contestStartTime.Year(), 7, 1, 0, 0, 0, 0, time.Local)
+			} else if num == 2 {
+				endTime = time.Date(contestStartTime.Year(), 10, 1, 0, 0, 0, 0, time.Local)
+			} else if num == 3 {
+				endTime = time.Date(contestStartTime.Year()+1, time.January, 1, 0, 0, 0, 0, time.Local)
+			}
+			exist, err := MasterDB.Table("contest").
+				Where("contest_entry_id = ? and contest_type_id = ? and start_time > ? and start_time < ?", form.ContestEntry, searchContestType.ContestTypeID, startTime, endTime).
+				Exist()
+			if err != nil {
+				logging.L.Error(err)
+				return err
+			}
+			if exist {
+				logging.L.Error("已有同名竞赛")
+				return errors.New("已有同名竞赛")
+			}
 		}
+	} else {
 		exist, err := MasterDB.Table("contest").
-			Where("contest_entry_id = ? and contest_type_id = ? and start_time > ? and start_time < ?", form.ContestEntry, searchContestType.ContestTypeID, startTime, endTime).
-			Exist()
-		if err != nil {
-			logging.L.Error(err)
-			return err
-		}
-		if exist {
-			logging.L.Error("已有同名竞赛")
-			return errors.New("已有同名竞赛")
-		}
-	case 3:
-		//每季度举办一次
-		startMouth := models.FormatString2OftenTime(form.StartTime).OftenTimeMonth()
-		num := (startMouth / 4) * 3
-		startTime = time.Date(contestStartTime.Year(), time.January+num, 1, 0, 0, 0, 0, time.Local)
-		if num == 0 {
-			endTime = time.Date(contestStartTime.Year(), 4, 1, 0, 0, 0, 0, time.Local)
-		} else if num == 1 {
-			endTime = time.Date(contestStartTime.Year(), 7, 1, 0, 0, 0, 0, time.Local)
-		} else if num == 2 {
-			endTime = time.Date(contestStartTime.Year(), 10, 1, 0, 0, 0, 0, time.Local)
-		} else if num == 3 {
-			endTime = time.Date(contestStartTime.Year()+1, time.January, 1, 0, 0, 0, 0, time.Local)
-		}
-		exist, err := MasterDB.Table("contest").
-			Where("contest_entry_id = ? and contest_type_id = ? and start_time > ? and start_time < ?", form.ContestEntry, searchContestType.ContestTypeID, startTime, endTime).
+			Where("contest = ?", form.Contest).
 			Exist()
 		if err != nil {
 			logging.L.Error(err)
@@ -664,7 +678,6 @@ func (self ContestLogic) UploadContest(userId int64, form *models.TeacherUploadC
 			return errors.New("已有同名竞赛")
 		}
 	}
-
 	newContest := &models.ContestInfo{
 		TeacherID:      account.UserID,
 		Contest:        form.Contest,

@@ -148,14 +148,15 @@ func (self EnrollLogic) InsertEnrollInformation(userID, contestID, handle int64,
 	}
 
 	enroll := &models.NewEnroll{
-		StudentID:  account.UserID,
-		TeamID:     teamID,
-		ContestID:  contestID,
-		CreateTime: models.NewOftenTime(),
-		SchoolID:   searchSchool.SchoolID,
-		Phone:      phone,
-		Email:      email,
-		State:      3,
+		StudentID:       account.UserID,
+		TeamID:          teamID,
+		ContestID:       contestID,
+		CreateTime:      models.NewOftenTime(),
+		SchoolID:        searchSchool.SchoolID,
+		Phone:           phone,
+		GuidanceTeacher: guidanceTeacher,
+		Email:           email,
+		State:           3,
 	}
 
 	_, err = session.Insert(enroll)
