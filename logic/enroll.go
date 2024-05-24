@@ -154,7 +154,7 @@ func (self EnrollLogic) InsertEnrollInformation(userID, contestID, handle int64,
 		CreateTime:      models.NewOftenTime(),
 		SchoolID:        searchSchool.SchoolID,
 		Phone:           phone,
-		GuidanceTeacher: guidanceTeacher,
+		GuidanceTeacher: teacherAccount.TeacherID,
 		Email:           email,
 		State:           3,
 	}
@@ -441,7 +441,7 @@ func (self EnrollLogic) TeacherGetOneEnroll(paginator *Paginator, enrollID, user
 	return &list, total, session.Rollback()
 }
 
-func (self EnrollLogic) TeacherSearch(paginator *Paginator, contestID, userID int64, contest, class, major, name, teamName string /* startTime, endTime string*/, state int, contestType string, year int) (*[]models.EnrollInformationReturn, int64, error) {
+func (self EnrollLogic) TeacherSearch(paginator *Paginator, contestID, userID int64, contest, class, major, name, teamName, guidanceTeacher string /* startTime, endTime string*/, state int, contestType string, year int) (*[]models.EnrollInformationReturn, int64, error) {
 	if paginator == nil {
 		DPrintf("Search 分页器为空")
 		logging.L.Error("Search 分页器为空")
@@ -535,6 +535,9 @@ func (self EnrollLogic) TeacherSearch(paginator *Paginator, contestID, userID in
 	}
 	if teamName != "" {
 		session.Where("team.team_name like ?", "%"+teamName+"%")
+	}
+	if guidanceTeacher != "" {
+		session.Where("guidance.name like ?", "%"+guidanceTeacher+"%")
 	}
 
 	data := &[]models.EnrollContestStudent{}
@@ -799,9 +802,19 @@ func (self EnrollLogic) UpdateEnrollInformation(userID int64, form models.Enroll
 	searchTeam := &models.Team{}
 	if searchContest.IsGroup == 1 {
 		searchTeam, err = public.SearchTeamByNameAndContest(form.TeamName, enroll.ContestID)
-		if err != nil {
+		if err != nil && err.Error() != "队伍已存在" {
 			logging.L.Error(err)
 			return err
+		} else {
+			memberCount, err := MasterDB.Table("enroll_information").Where("team_id = ? and state = ?", searchTeam.TeamID, Pass).Count()
+			if err != nil {
+				logging.L.Error(err)
+				return err
+			}
+			if memberCount >= int64(searchContest.MaxGroupNumber) {
+				logging.L.Error("队伍已满")
+				return errors.New("队伍已满")
+			}
 		}
 	}
 
