@@ -319,8 +319,10 @@ func (self StatisticLogic) StatisticSlice(userID int64, year int) (map[string]in
 		Table("enroll_information").
 		Where("enroll_information.create_time > ? and enroll_information.create_time < ? and enroll_information.state = ?", startTime, endTime, e.Pass).
 		Join("LEFT", "contest", "contest.id = enroll_information.contest_id").
+		Join("LEFT", "student", "student.student_id = enroll_information.student_id").
 		Join("LEFT", "teacher", "teacher.teacher_id = contest.teacher_id").
 		Where("teacher.department_id = ?", account.DepartmentID).
+		Where("student.department_id = ?", account.DepartmentID).
 		Count()
 	if err != nil {
 		logging.L.Error(err)
@@ -330,8 +332,10 @@ func (self StatisticLogic) StatisticSlice(userID int64, year int) (map[string]in
 		Table("grade").
 		Where("grade.create_time > ? and grade.create_time < ? and grade.state = ?", startTime, endTime, e.Pass).
 		Join("LEFT", "contest", "contest.id = grade.contest_id").
+		Join("LEFT", "student", "student.student_id = grade.student_id").
 		Join("LEFT", "teacher", "teacher.teacher_id = contest.teacher_id").
 		Where("teacher.department_id = ?", account.DepartmentID).
+		Where("student.department_id = ?", account.DepartmentID).
 		Count()
 	if err != nil {
 		logging.L.Error(err)
