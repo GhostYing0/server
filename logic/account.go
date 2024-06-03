@@ -55,7 +55,7 @@ func (self UserAccountLogic) Login(username string, password string, role int) (
 			DPrintf("回滚失败")
 			return "", fail
 		}
-		return "", errors.New("用户不存在")
+		return "", errors.New("账号或密码错误")
 	}
 
 	if username != account.Username || util.EncodeMD5(password) != account.Password {
@@ -654,7 +654,7 @@ func (self UserAccountLogic) DepartmentLogin(username string, password string, r
 			DPrintf("回滚失败")
 			return "", fail
 		}
-		return "", errors.New("用户不存在")
+		return "", errors.New("账号或密码错误")
 	}
 
 	if username != account.Username || util.EncodeMD5(password) != account.Password {

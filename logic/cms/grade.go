@@ -124,7 +124,7 @@ func (self CmsGradeLogic) Add(studentID, teacherID, rewardTime, certificate stri
 		return err
 	}
 	if !exist {
-		return errors.New("报名信息不存在11")
+		return errors.New("报名信息不存在")
 	}
 
 	enroll := &models.GradeInformation{

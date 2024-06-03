@@ -1,6 +1,7 @@
 package cms
 
 import (
+	"errors"
 	"fmt"
 	"github.com/unknwon/com"
 	. "server/database"
@@ -34,11 +35,11 @@ func (self CmsAccountLogic) Login(param *models.LoginForm) (string, string, erro
 		return "操作错误", "", err
 	}
 	if !has {
-		return "用户不存在", "", err
+		return "", "", errors.New("账号或密码错误")
 	}
 
 	if util.EncodeMD5(param.Password) != loginReturn.Password {
-		return "密码错误", "", err
+		return "", "", errors.New("账号或密码错误")
 	}
 
 	token, err := util.GenerateToken(com.ToStr(loginReturn.ID), param.Username, param.Role)
